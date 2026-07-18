@@ -1,0 +1,532 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  color: #212529;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  height: 100vh;
+  min-height: 0;
+}
+
+.panel {
+  padding: 20px;
+  border-right: 1px solid #e9ecef;
+  overflow: hidden; /* the change log scrolls internally instead of the whole panel */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8f9fa;
+  /* definite height so the flexible change-log region has a real boundary to
+     scroll within */
+  height: 100vh;
+  min-height: 0;
+}
+
+.panel h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.sub {
+  margin: 0;
+  font-size: 13px;
+  color: #868e96;
+  line-height: 1.4;
+}
+
+textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  resize: vertical;
+}
+
+button {
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #7048e8;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #adb5bd;
+  cursor: not-allowed;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar button {
+  flex: 1;
+}
+
+button.secondary {
+  flex: 0 0 auto;
+  background: #fff;
+  color: #495057;
+  border: 1px solid #ced4da;
+}
+
+button.secondary:hover:not(:disabled) {
+  background: #f1f3f5;
+}
+
+button.secondary:disabled {
+  background: #fff;
+  color: #ced4da;
+  border-color: #e9ecef;
+}
+
+.error {
+  font-size: 12px;
+  color: #c92a2a;
+  background: #fff0f0;
+  border: 1px solid #ffc9c9;
+  border-radius: 6px;
+  padding: 8px;
+  white-space: pre-wrap;
+}
+
+.stats {
+  font-size: 13px;
+  color: #495057;
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 12px;
+  color: #495057;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* ---- Change log ---- */
+
+.cl {
+  margin-top: 4px;
+  border-top: 1px solid #e9ecef;
+  padding-top: 10px;
+  overflow: hidden; /* inner .cl-entries scrolls; title stays pinned */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* fill the remaining panel height so the log can scroll internally */
+  flex: 1 1 auto;
+  min-height: 120px;
+}
+
+/* keep the log title pinned while the entries scroll under it */
+.cl-title {
+  flex: none;
+}
+.cl-entries {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cl-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #adb5bd;
+  margin-bottom: 2px;
+}
+
+.cl-empty {
+  font-size: 13px;
+  color: #adb5bd;
+}
+
+.cl-entry {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  /* don't let the scroll container shrink entries — keep natural height so the
+     list scrolls instead of squishing rows */
+  flex: none;
+}
+
+.cl-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.cl-summary::-webkit-details-marker {
+  display: none;
+}
+
+.cl-chevron {
+  color: #adb5bd;
+  font-size: 11px;
+  transition: transform 0.15s ease;
+  flex: none;
+}
+
+.cl-entry[open] .cl-chevron {
+  transform: rotate(90deg);
+}
+
+.cl-req {
+  flex: 1;
+  font-size: 13px;
+  color: #343a40;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cl-count {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: #7048e8;
+  background: #f3f0ff;
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+
+.cl-time {
+  flex: none;
+  font-size: 11px;
+  color: #adb5bd;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-copy {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  color: #495057;
+  background: #f1f3f5;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  width: auto;
+}
+
+.cl-copy:hover {
+  background: #e9ecef;
+}
+
+.cl-ops {
+  border-top: 1px solid #f1f3f5;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cl-none {
+  font-size: 12px;
+  color: #adb5bd;
+  padding: 4px 6px;
+}
+
+.cl-op {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 12.5px;
+}
+
+.cl-op-add {
+  background: #ebfbee;
+}
+.cl-op-update {
+  background: #fff9db;
+}
+.cl-op-remove {
+  background: #fff0f0;
+}
+
+.cl-glyph {
+  flex: none;
+  width: 16px;
+  text-align: center;
+  font-weight: 700;
+}
+.cl-op-add .cl-glyph {
+  color: #2f9e44;
+}
+.cl-op-update .cl-glyph {
+  color: #f08c00;
+}
+.cl-op-remove .cl-glyph {
+  color: #e03131;
+}
+
+.cl-op-body {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cl-verb {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #adb5bd;
+}
+
+.cl-name {
+  font-weight: 600;
+  color: #212529;
+}
+
+.cl-arrow {
+  color: #868e96;
+}
+
+.cl-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.cl-label {
+  color: #495057;
+  font-style: italic;
+}
+
+.cl-weight {
+  font-size: 10px;
+  font-weight: 700;
+  color: #495057;
+  background: #f1f3f5;
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-meta {
+  font-size: 11px;
+  color: #868e96;
+}
+
+.canvas-wrap {
+  position: relative;
+}
+
+/* ---- Person detail popup ---- */
+
+.pd-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(33, 37, 41, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.pd-card {
+  width: 380px;
+  max-width: calc(100% - 40px);
+  max-height: calc(100% - 40px);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.pd-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #212529;
+}
+
+.pd-aliases {
+  font-size: 12px;
+  color: #868e96;
+  margin-top: 2px;
+}
+
+.pd-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  color: #868e96;
+  background: #f1f3f5;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pd-close:hover {
+  background: #e9ecef;
+}
+
+.pd-attrs {
+  padding: 10px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.pd-attr {
+  font-size: 11px;
+  font-weight: 600;
+  color: #495057;
+  background: #f1f3f5;
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
+.pd-notes {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: #868e96;
+}
+
+.pd-section-title {
+  padding: 12px 18px 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #adb5bd;
+}
+
+.pd-rels {
+  padding: 4px 12px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pd-empty {
+  padding: 8px;
+  font-size: 13px;
+  color: #adb5bd;
+}
+
+.pd-rel {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.pd-rel-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pd-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.pd-arrow {
+  color: #868e96;
+}
+
+.pd-other {
+  font-weight: 600;
+  color: #212529;
+}
+
+.pd-cat {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #adb5bd;
+}
+
+.pd-weight {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: #495057;
+  background: #f1f3f5;
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+
+.pd-label {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.pd-desc {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: #495057;
+  line-height: 1.4;
+}
+
+.graph-canvas {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+}
