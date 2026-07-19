@@ -11,6 +11,9 @@ import type { LogEntry } from "./ui/ChangeLog";
 import { RELATIONSHIP_CATEGORIES, CATEGORY_LIST } from "./graph/relationshipTypes";
 import { loadState, saveState, clearState } from "./persist";
 
+// How much recent transcript to carry forward as reference context (chars).
+const CONTEXT_MAX = 400;
+
 export default function App() {
   // Hydrate from sessionStorage so a normal reload restores the working state.
   const [graph, setGraph] = useState<SocialGraph>(() => loadState()?.graph ?? emptyGraph());
@@ -19,6 +22,9 @@ export default function App() {
   const [entries, setEntries] = useState<LogEntry[]>(() => loadState()?.entries ?? []);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Rolling window of recently-processed text, sent as reference context so the
+  // model can resolve pronouns / unnamed subjects carried over from prior input.
+  const [recentContext, setRecentContext] = useState<string>(() => loadState()?.recentContext ?? "");
 
   // Undo stack: graph snapshots taken *before* each applied request, newest first.
   // Stays index-aligned with `entries` so undo can drop both together.
@@ -26,10 +32,10 @@ export default function App() {
   const pastRef = useRef(past);
   pastRef.current = past;
 
-  // Persist on every change to graph / log / undo stack.
+  // Persist on every change to graph / log / undo stack / context window.
   useEffect(() => {
-    saveState({ graph, entries, past });
-  }, [graph, entries, past]);
+    saveState({ graph, entries, past, recentContext });
+  }, [graph, entries, past, recentContext]);
 
   async function process() {
     if (!text.trim() || busy) return;
@@ -38,7 +44,8 @@ export default function App() {
     const requestText = text.trim();
     const snapshot = graph; // state to return to if this request is undone
     try {
-      const ops = await extractOps(graph, requestText);
+      // Send the prior window as reference context; it's already in the graph.
+      const ops = await extractOps(graph, requestText, recentContext);
       const nextGraph = applyOps(snapshot, ops);
       setGraph(nextGraph);
       const entry: LogEntry = {
@@ -54,6 +61,8 @@ export default function App() {
       };
       setEntries((prev) => [entry, ...prev]);
       setPast((prev) => [snapshot, ...prev]);
+      // Extend the rolling context window, keeping the most recent tail.
+      setRecentContext((prev) => `${prev}\n${requestText}`.slice(-CONTEXT_MAX));
       setText("");
     } catch (e) {
       setError(String(e));
@@ -77,6 +86,7 @@ export default function App() {
     setGraph(emptyGraph());
     setEntries([]);
     setPast([]);
+    setRecentContext("");
     clearState();
   }
 

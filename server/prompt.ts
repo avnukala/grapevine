@@ -21,6 +21,11 @@ IDENTITY / DEDUPLICATION — this is the most important rule:
 - When the user refers to an existing person by a new name or nickname, use "update_person" with "addAliases" instead of creating a duplicate.
 - Person ids are stable kebab-case slugs of the person's full name, e.g. "sarah-chen". Once assigned, never change an id.
 
+GENDER:
+- Set each person's "gender" to "male", "female", or "unknown". Infer it from clear signals: pronouns (he/him -> male, she/her -> female), gendered relationship terms ("brother", "girlfriend", "mother", "uncle" etc.), and strongly gendered names.
+- Use "unknown" whenever it is genuinely ambiguous — a unisex name with no other signal, or no cues at all. Do not guess.
+- Gender can CHANGE. Use "update_person" with the new "gender" whenever later text reveals or changes it: filling in someone previously "unknown", a correction ("actually Sam is a woman"), or a transition ("Jordan now uses she/her"). Set the new value directly (male/female/unknown) — it overwrites the old one.
+
 RELATIONSHIPS:
 - Every relationship has a "category" (for grouping/color) and a specific "label" (the exact wording). Categories:
 ${categoryGuide}
@@ -30,7 +35,8 @@ ${categoryGuide}
 - Set "directed": true only when direction matters (e.g. "reports to", "mentors"). Symmetric relationships ("friends", "married") are undirected.
 - Two people can have MULTIPLE relationships at once, as long as they are different categories — e.g. business partners AND roommates is a "professional" edge plus an "other" edge. Add one relationship per distinct kind.
 - Identity is (pair of people + category). There is at most one relationship per pair per category. So "update_relationship" and "remove_relationship" take the "category" to say WHICH edge on the pair they mean.
-- A correction WITHIN a category updates that edge (e.g. "dating" -> "married" are both "romantic" — update it, don't add a second romantic edge). To change a relationship into a different category, remove the old edge (by its category) and add the new one.
+- A correction WITHIN a category updates that edge (e.g. "dating" -> "married" are both "romantic" — update it, don't add a second romantic edge).
+- To CHANGE a relationship's type/category (e.g. acquaintance -> romantic, "they used to be coworkers, now they're dating"), use "retype_relationship" with fromCategory (the current category) and toCategory (the new one). This moves the single edge to the new category and keeps its detail unless you override label/description/strength. Do NOT use "update_relationship" to change category (it cannot), and do NOT "add_relationship" with the new category alone (that would leave the old edge in place).
 
 WEIGHT / STRENGTH:
 - Always assign every relationship a "strength" from 1 to 5 (integer): 1 = weak or distant, 3 = ordinary, 5 = very strong or close.
@@ -40,6 +46,11 @@ WEIGHT / STRENGTH:
 CORRECTIONS:
 - "no wait, connect A to C not B" => remove the wrong relationship and add the right one.
 - Handle removals and updates, not just additions.
+
+RECENT CONTEXT:
+- You may be given RECENT CONTEXT: text the user said just before, which is ALREADY reflected in the current graph.
+- Use it ONLY to resolve references in the NEW TEXT — e.g. pronouns ("he", "she", "they"), "that person", or a subject not named in the new text but named a moment ago. Map those references to the correct existing person id.
+- Do NOT emit operations for information that appears only in RECENT CONTEXT. Only act on the NEW TEXT.
 
 If the new text contains no graph-relevant information, return an empty "operations" array.`;
 
@@ -59,29 +70,32 @@ const attributesSchema = {
 };
 
 const categoryEnum = { type: "string", enum: CATEGORY_LIST };
+const genderEnum = { type: "string", enum: ["male", "female", "unknown"] };
 
 const opVariants = [
   {
     type: "object",
     additionalProperties: false,
-    required: ["op", "id", "name", "aliases", "attributes"],
+    required: ["op", "id", "name", "aliases", "gender", "attributes"],
     properties: {
       op: { type: "string", const: "add_person" },
       id: { type: "string", description: "kebab-case slug of the person's name" },
       name: { type: "string" },
       aliases: { type: "array", items: { type: "string" } },
+      gender: { ...genderEnum, description: "male, female, or unknown if unclear/ambiguous" },
       attributes: attributesSchema,
     },
   },
   {
     type: "object",
     additionalProperties: false,
-    required: ["op", "id", "name", "addAliases", "attributes"],
+    required: ["op", "id", "name", "addAliases", "gender", "attributes"],
     properties: {
       op: { type: "string", const: "update_person" },
       id: { type: "string" },
       name: { type: ["string", "null"] },
       addAliases: { type: "array", items: { type: "string" } },
+      gender: { anyOf: [genderEnum, { type: "null" }], description: "set/correct gender, or null to keep" },
       attributes: attributesSchema,
     },
   },
@@ -144,6 +158,21 @@ const opVariants = [
       category: { ...categoryEnum, description: "identifies which relationship on the pair to remove" },
     },
   },
+  {
+    type: "object",
+    additionalProperties: false,
+    required: ["op", "source", "target", "fromCategory", "toCategory", "label", "description", "strength"],
+    properties: {
+      op: { type: "string", const: "retype_relationship" },
+      source: { type: "string" },
+      target: { type: "string" },
+      fromCategory: { ...categoryEnum, description: "the relationship's CURRENT category" },
+      toCategory: { ...categoryEnum, description: "the NEW category to move it to" },
+      label: { type: ["string", "null"], description: "new short label, or null to keep" },
+      description: { type: ["string", "null"], description: "new full detail, or null to keep" },
+      strength: { type: ["integer", "null"], description: "new weight, or null to keep" },
+    },
+  },
 ];
 
 export const OPS_SCHEMA = {
@@ -158,11 +187,20 @@ export const OPS_SCHEMA = {
   },
 };
 
-export function buildUserMessage(graphJson: string, newText: string): string {
+export function buildUserMessage(graphJson: string, newText: string, context = ""): string {
+  const contextBlock = context.trim()
+    ? `RECENT CONTEXT (already processed — for reference only, do not re-add):
+"""
+${context.trim()}
+"""
+
+`
+    : "";
+
   return `CURRENT GRAPH:
 ${graphJson}
 
-NEW TEXT:
+${contextBlock}NEW TEXT:
 """
 ${newText}
 """
