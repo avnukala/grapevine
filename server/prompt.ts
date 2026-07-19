@@ -38,10 +38,16 @@ ${categoryGuide}
 - A correction WITHIN a category updates that edge (e.g. "dating" -> "married" are both "romantic" — update it, don't add a second romantic edge).
 - To CHANGE a relationship's type/category (e.g. acquaintance -> romantic, "they used to be coworkers, now they're dating"), use "retype_relationship" with fromCategory (the current category) and toCategory (the new one). This moves the single edge to the new category and keeps its detail unless you override label/description/strength. Do NOT use "update_relationship" to change category (it cannot), and do NOT "add_relationship" with the new category alone (that would leave the old edge in place).
 
-WEIGHT / STRENGTH:
-- Always assign every relationship a "strength" from 1 to 5 (integer): 1 = weak or distant, 3 = ordinary, 5 = very strong or close.
-- Infer it from the language: "best friend", "married", "inseparable", "childhood friend" → 4-5; "friend", "colleague" → 3; "acquaintance", "met once", "barely knows" → 1-2.
-- When the user later signals the bond changed ("they've grown close", "they drifted apart"), use "update_relationship" to adjust the existing strength — don't add a new edge.
+WEIGHT / STRENGTH (signed affinity, integer -5 to 5):
+- "strength" is a SIGNED value describing whether the two people are drawn together or pushed apart. It drives the graph's physics: positive pulls them close, negative repels them.
+- POSITIVE = closeness/warmth: 5 = extremely close (best friends, married, inseparable), 3 = ordinary (friend, colleague), 1 = weak/distant (acquaintance, met once). This is the DEFAULT range — almost every relationship is positive.
+- NEGATIVE requires STRONG, EXPLICIT evidence of antagonism. Only go negative when the text clearly states the two people dislike each other, are in active conflict, or have fallen out — e.g. "they hate each other", "no longer speaking after a huge fight", "bitter rivals", "nasty/messy breakup", "can't stand him". Scale: -3 = clearly on bad terms, -5 = hostile or fully estranged.
+- Do NOT infer negativity from ambiguity, drama, jealousy, a plain breakup, an ex, or one person behaving badly. A breakup or an ex-relationship is NOT negative unless the text explicitly says it was hostile/bitter — a normal ex is a low-positive romantic tie (1-2) or neutral (0).
+- Being dumped, cheated on, moving on to someone else, jealousy, hurt feelings, or one-sided bad behavior are NOT negative by themselves. Go negative ONLY if the text explicitly states the two now dislike each other, are in open conflict, or no longer speak. The test: could you point to words in the text that directly say they are hostile or estranged? If not, keep it 0 or positive.
+- When in doubt, DON'T go negative: use 0 (neutral) or a low positive. Reserve negatives for unmistakable, mutual hostility.
+- Infer from tone: "best friends" → 5; "coworkers" → 3; "ex, still friendly" → 1; "they broke up" (no more detail) → 1 or 0; "ex, brutal/messy breakup, don't speak" → -4/-5; "used to be friends but had a huge fight and stopped talking" → -5.
+- The category is separate from the sign: an "ex, bad breakup" is still category "romantic" but strength -5.
+- When the bond clearly changes (they made up, or explicitly fell out), use "update_relationship" to adjust the existing strength — including flipping its sign. Don't add a second edge.
 
 CORRECTIONS:
 - "no wait, connect A to C not B" => remove the wrong relationship and add the right one.
@@ -129,7 +135,8 @@ const opVariants = [
       directed: { type: "boolean" },
       strength: {
         type: "integer",
-        description: "relationship weight: 1 (weak) to 5 (strong). Always provide a value.",
+        description:
+          "signed affinity, integer -5..5: positive pulls closer (5 = very close), negative repels (-5 = hostile/estranged), 0 = neutral. Always provide a value.",
       },
     },
   },

@@ -16,7 +16,9 @@ function RelRow({ rel, personId, graph }: { rel: Relationship; personId: string;
         <span className="pd-arrow">{arrow}</span>
         <span className="pd-other">{otherName}</span>
         <span className="pd-cat">{rel.category}</span>
-        {rel.strength != null && <span className="pd-weight">w{rel.strength}</span>}
+        {rel.strength != null && (
+          <span className={`pd-weight${rel.strength < 0 ? " pd-weight-neg" : ""}`}>w{rel.strength}</span>
+        )}
       </div>
       <div className="pd-label">{rel.label}</div>
       {rel.description && <div className="pd-desc">{rel.description}</div>}
