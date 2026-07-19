@@ -21,7 +21,9 @@ export async function extractOps(
   // don't depend on the installed SDK's typings including it yet.
   const params = {
     model: MODEL,
-    max_tokens: 2048,
+    // Generous cap: a rich input can produce many ops with long descriptions.
+    // Too small a cap truncates the JSON mid-string and breaks JSON.parse.
+    max_tokens: 8192,
     system: SYSTEM_PROMPT,
     output_config: {
       format: { type: "json_schema", schema: OPS_SCHEMA },
@@ -44,11 +46,23 @@ export async function extractOps(
 
   if (LOG !== "off") {
     const u = response.usage;
-    console.log(`   response (in ${u.input_tokens} / out ${u.output_tokens} tok):`);
+    console.log(`   response (in ${u.input_tokens} / out ${u.output_tokens} tok, stop=${response.stop_reason}):`);
     console.log(`   ${rawText || "(no text block)"}`);
   }
 
+  // If the model hit the token cap, the JSON is truncated (invalid). Fail with a
+  // clear, actionable message instead of a raw JSON.parse crash.
+  if (response.stop_reason === "max_tokens") {
+    throw new Error(
+      "The model's response was too long and got cut off (hit max_tokens). Try describing fewer people/relationships per turn.",
+    );
+  }
+
   if (!rawText) return [];
-  const parsed = JSON.parse(rawText) as { operations?: GraphOp[] };
-  return parsed.operations ?? [];
+  try {
+    const parsed = JSON.parse(rawText) as { operations?: GraphOp[] };
+    return parsed.operations ?? [];
+  } catch {
+    throw new Error("The model returned malformed JSON (likely truncated). Try a shorter input.");
+  }
 }

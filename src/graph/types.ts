@@ -38,7 +38,7 @@ export interface Relationship {
   label: string; // SHORT edge label, 2-3 words: "girlfriend", "childhood friend", "reports to"
   description?: string; // full detail, shown in the node popup (not on the edge)
   directed: boolean; // true => arrow from source -> target (e.g. "mentors")
-  strength?: number; // optional 1..5, for later weighting
+  strength?: number; // signed affinity -5..5: + pulls nodes together, - repels them
 }
 
 export interface SocialGraph {

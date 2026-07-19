@@ -1,42 +1,15 @@
 import { useEffect, useRef } from "react";
 import cytoscape from "cytoscape";
-import cola from "cytoscape-cola";
 import type { Core, ElementDefinition } from "cytoscape";
 import type { SocialGraph } from "../graph/types";
 import { categoryColor } from "../graph/relationshipTypes";
+import { GraphPhysics, nodeRadius } from "./physics";
 
-// Register cola so we can run its continuous physics simulation on demand.
-cytoscape.use(cola);
-
-// ---- Physics tuning ----
-
-// One-shot force params for the structural cose passes (initial + incremental):
-// strong repulsion + overlap avoidance so people claim their own space, springy
-// edges, light gravity to keep the graph cohesive, and gaps between components.
-const COSE_PHYSICS = {
-  nodeRepulsion: () => 20000,
-  nodeOverlap: 24,
-  idealEdgeLength: () => 90,
-  edgeElasticity: () => 100,
-  gravity: 0.3,
-  componentSpacing: 120,
-};
-
-// Continuous physics, run only while a node is being dragged (see wakePhysics).
-// infinite:true keeps it ticking; centerGraph/fit:false so waking never recenters
-// or zooms the graph. cola pins grabbed + locked nodes internally each tick.
-const COLA_OPTIONS = {
-  name: "cola",
-  infinite: true,
-  fit: false,
-  centerGraph: false,
-  randomize: false,
-  ungrabifyWhileSimulating: false,
-  avoidOverlap: true,
-  handleDisconnected: true,
-  nodeSpacing: () => 12,
-  edgeLength: 100,
-} as unknown as cytoscape.LayoutOptions;
+// All node movement is owned by GraphPhysics (src/ui/physics.ts): one continuous
+// force simulation where positive edge weights pull pairs together and negative
+// weights genuinely push them apart. Cytoscape is purely the renderer here —
+// its own layouts are never run (elements mount via "preset" and the sim writes
+// positions every tick).
 
 // Node color by gender: male blue, female pink, ambiguous/unknown gray.
 const GENDER_COLOR: Record<string, string> = {
@@ -50,11 +23,28 @@ function genderColor(gender?: string): string {
 
 // Pure projection: SocialGraph -> Cytoscape elements.
 function toElements(graph: SocialGraph): ElementDefinition[] {
+  // Distinct-partner degree drives node size, so well-connected people read as hubs.
+  const partners = new Map<string, Set<string>>();
+  const touch = (a: string, b: string) => {
+    let s = partners.get(a);
+    if (!s) partners.set(a, (s = new Set()));
+    s.add(b);
+  };
+  for (const r of Object.values(graph.relationships)) {
+    touch(r.source, r.target);
+    touch(r.target, r.source);
+  }
+
   const nodes: ElementDefinition[] = Object.values(graph.people).map((p) => ({
-    data: { id: p.id, label: p.name, color: genderColor(p.gender) },
+    data: {
+      id: p.id,
+      label: p.name,
+      color: genderColor(p.gender),
+      size: Math.round(nodeRadius(partners.get(p.id)?.size ?? 0) * 2),
+    },
   }));
   const edges: ElementDefinition[] = Object.values(graph.relationships).map((r) => {
-    const strength = r.strength ?? 3; // default to "ordinary" if unset
+    const strength = r.strength ?? 3; // signed affinity, default "ordinary"
     return {
       data: {
         id: r.id,
@@ -63,8 +53,11 @@ function toElements(graph: SocialGraph): ElementDefinition[] {
         label: r.label,
         color: categoryColor(r.category),
         arrow: r.directed ? "triangle" : "none",
-        // map weight 1..5 -> a slim line width 1.5..5.5px
-        width: 1.5 + (strength - 1),
+        // line thickness reflects magnitude of the bond (positive or negative)
+        width: Math.max(1.2, 1 + 0.75 * Math.abs(strength)),
+        weight: strength, // signed; drives the layout physics
+        // negative (antagonistic) relationships are drawn dashed
+        lineStyle: strength < 0 ? "dashed" : "solid",
       },
     };
   });
@@ -91,10 +84,10 @@ const STYLESHEET: cytoscape.StylesheetStyle[] = [
       "text-valign": "bottom",
       "text-halign": "center",
       "text-margin-y": 6,
-      width: 26,
-      height: 26,
+      width: s("data(size)"),
+      height: s("data(size)"),
       // smooth reactions to hover/selection state changes
-      "transition-property": "background-color, border-color, border-width, width, height, opacity",
+      "transition-property": "background-color, border-color, border-width, opacity",
       "transition-duration": s(180),
       "transition-timing-function": "ease-out",
     },
@@ -104,6 +97,7 @@ const STYLESHEET: cytoscape.StylesheetStyle[] = [
     style: {
       width: "data(width)",
       "line-color": "data(color)",
+      "line-style": s("data(lineStyle)"), // dashed = negative/antagonistic
       "line-opacity": s(0.55),
       "target-arrow-color": "data(color)",
       "target-arrow-shape": s("data(arrow)"),
@@ -202,28 +196,35 @@ export function GraphView({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<Core | null>(null);
-  // The in-flight incremental layout, so a rapid follow-up run can stop it first.
-  const layoutRef = useRef<cytoscape.Layouts | null>(null);
-  // The live drag-physics simulation (cola), awake only while a node is dragged.
-  const colaRef = useRef<cytoscape.Layouts | null>(null);
-  const sleepTimerRef = useRef<number | undefined>(undefined);
+  const physicsRef = useRef<GraphPhysics | null>(null);
   // keep the latest callback available to the one-time-bound cytoscape handlers
   const selectRef = useRef(onSelectPerson);
   selectRef.current = onSelectPerson;
 
-  // Initialize Cytoscape once.
+  // Initialize Cytoscape (renderer) + GraphPhysics (simulation) once.
   useEffect(() => {
     if (!containerRef.current) return;
     const cy = cytoscape({
       container: containerRef.current,
       elements: toElements(graph),
       style: STYLESHEET,
-      layout: { name: "cose", animate: true, padding: 40, ...COSE_PHYSICS },
+      layout: { name: "preset" }, // positions come from the simulation
       minZoom: 0.3,
       maxZoom: 2.5,
       wheelSensitivity: 0.2,
     });
     cyRef.current = cy;
+    // Dev-only handle so browser automation / debugging can inspect positions.
+    if (import.meta.env.DEV) (window as unknown as { cy?: Core }).cy = cy;
+
+    const physics = new GraphPhysics(cy);
+    physicsRef.current = physics;
+    // Hydration (e.g. a session restore): settle fully off-screen, then frame it.
+    physics.sync(graph); // no seeds — d3 spreads fresh nodes on its spiral
+    if (cy.nodes().length > 0) {
+      physics.settleNow();
+      cy.fit(undefined, 60);
+    }
 
     // Reactive focus: hovering a person highlights its neighborhood, fades the rest.
     const focus = (node: cytoscape.NodeSingular) => {
@@ -256,31 +257,20 @@ export function GraphView({
       if (containerRef.current) containerRef.current.style.cursor = "default";
     });
 
-    // Springy-on-touch: the graph is frozen at rest, but dragging a node wakes a
-    // live cola simulation so neighbors repel / spring away in response. It sleeps
-    // shortly after release, refreezing the layout. Waking on "drag" (not "grab")
-    // means a plain click still just opens the details popup without any jiggle.
-    const wakePhysics = () => {
-      window.clearTimeout(sleepTimerRef.current);
-      if (colaRef.current) return; // already awake
-      layoutRef.current?.stop(); // don't let a cose settle fight the sim
-      cy.nodes().unlock(); // everything is free to respond while dragging
-      const sim = cy.layout(COLA_OPTIONS);
-      colaRef.current = sim;
-      sim.run();
-    };
-    const sleepPhysics = () => {
-      window.clearTimeout(sleepTimerRef.current);
-      sleepTimerRef.current = window.setTimeout(() => {
-        colaRef.current?.stop();
-        colaRef.current = null;
-      }, 900);
-    };
-    cy.on("drag", "node", wakePhysics);
-    cy.on("free", "node", sleepPhysics);
+    // Springy-on-touch: grab pins the node (a plain click stays perfectly
+    // still); actually dragging wakes the simulation so friends follow and
+    // rivals scatter live, with the same forces that shaped the layout. Release
+    // lets it cool back to a freeze.
+    cy.on("grab", "node", (e) => physics.grab(e.target.id()));
+    cy.on("drag", "node", (e) => {
+      const p = e.target.position();
+      physics.drag(e.target.id(), p.x, p.y);
+    });
+    cy.on("free", "node", (e) => physics.free(e.target.id()));
 
     return () => {
-      window.clearTimeout(sleepTimerRef.current);
+      physics.destroy();
+      physicsRef.current = null;
       cy.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -291,13 +281,15 @@ export function GraphView({
   //  - add new elements, seeding nodes near their neighbors so they ease in
   //  - re-point an edge whose endpoints flipped (same id, swapped source/target)
   //  - drop elements that are gone
-  // When a node is added, the established graph is locked so it stays put while
-  // only the newcomer settles into place; edge-only and removal-only changes skip
-  // layout entirely. Every added / updated element briefly flashes so the eye can
-  // follow what the model just did.
+  // Then hand the new structure to the simulation. Because the sim is already at
+  // equilibrium, a reheat only moves what the change actually affects: the
+  // newcomer settles in, a re-weighted pair drifts closer or springs apart, and
+  // the rest of the graph barely stirs. Every added / updated element briefly
+  // flashes so the eye can follow what the model just did.
   useEffect(() => {
     const cy = cyRef.current;
-    if (!cy) return;
+    const physics = physicsRef.current;
+    if (!cy || !physics) return;
 
     const next = toElements(graph);
     const nextIds = new Set(next.map((d) => d.data.id as string));
@@ -306,11 +298,15 @@ export function GraphView({
     const added: string[] = [];
     const updated: string[] = [];
     let newNode = false;
+    let physicsDirty = false; // anything structural: add/remove/flip or weight change
 
     cy.batch(() => {
       // Drop elements no longer present (removing a node cascades to its edges).
       cy.elements().forEach((el) => {
-        if (!nextIds.has(el.id())) el.remove();
+        if (!nextIds.has(el.id())) {
+          physicsDirty = true;
+          el.remove();
+        }
       });
 
       for (const def of next) {
@@ -322,6 +318,7 @@ export function GraphView({
         if (!ex.nonempty()) {
           if (isEdge) {
             cy.add({ group: "edges", data: def.data });
+            physicsDirty = true;
           } else {
             cy.add({ group: "nodes", data: def.data, position: seedPosition(cy, id, graph) });
             newNode = true;
@@ -336,16 +333,21 @@ export function GraphView({
           ex.remove();
           cy.add({ group: "edges", data: def.data });
           updated.push(id);
+          physicsDirty = true;
           continue;
         }
 
         // Existing element: sync only the fields that drive its appearance.
-        const fields = isEdge ? (["label", "color", "arrow", "width"] as const) : (["label", "color"] as const);
+        const fields = isEdge
+          ? (["label", "color", "arrow", "width", "weight", "lineStyle"] as const)
+          : (["label", "color", "size"] as const);
         let changed = false;
         for (const k of fields) {
           if (ex.data(k) !== def.data[k]) {
             ex.data(k, def.data[k]);
-            changed = true;
+            // A size bump is a side effect of a new edge, not news — don't flash.
+            if (k !== "size") changed = true;
+            if (k === "weight") physicsDirty = true; // re-settle with the new force
           }
         }
         if (changed) updated.push(id);
@@ -356,33 +358,18 @@ export function GraphView({
     added.forEach((id) => bloom(cy.getElementById(id), FLASH_ADD));
     updated.forEach((id) => bloom(cy.getElementById(id), FLASH_UPDATE));
 
-    // A new node needs placing. Lock the established graph so it stays fixed and
-    // only the newcomer settles; re-fit the viewport only on the first fill.
-    if (newNode) {
-      layoutRef.current?.stop();
-      colaRef.current?.stop(); // don't let the drag sim fight the structural pass
-      colaRef.current = null;
-      window.clearTimeout(sleepTimerRef.current);
-      cy.nodes().unlock(); // clear any locks left by an interrupted prior run
-      const addedSet = new Set(added);
-      cy.nodes()
-        .filter((n) => !addedSet.has(n.id()))
-        .lock();
-      const layout = cy.layout({
-        name: "cose",
-        animate: true,
-        fit: wasEmpty,
-        padding: 40,
-        randomize: false,
-        ...COSE_PHYSICS,
-      });
-      layoutRef.current = layout;
-      // Only the most recent layout clears the locks — guards against a stale
-      // stop() firing after a newer run has already started.
-      layout.on("layoutstop", () => {
-        if (layoutRef.current === layout) cy.nodes().unlock();
-      });
-      layout.run();
+    if (!newNode && !physicsDirty) return; // cosmetic change only — leave the sim asleep
+
+    // New nodes enter the sim at their seeded spot (neighbor centroid).
+    physics.sync(graph, (id) => ({ ...cy.getElementById(id).position() }));
+    if (wasEmpty && cy.nodes().length > 0) {
+      // First fill: settle instantly and frame the result.
+      physics.settleNow();
+      cy.fit(undefined, 60);
+    } else {
+      // Otherwise animate: a bigger kick when someone new must find their place,
+      // a smaller one when only the forces changed.
+      physics.reheat(newNode ? 0.65 : 0.45);
     }
   }, [graph]);
 

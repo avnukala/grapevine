@@ -511,6 +511,11 @@ button.secondary:disabled {
   padding: 1px 6px;
 }
 
+.pd-weight-neg {
+  color: #c92a2a;
+  background: #ffe3e3;
+}
+
 .pd-label {
   margin-top: 4px;
   font-size: 13px;
