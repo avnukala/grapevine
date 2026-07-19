@@ -15,6 +15,7 @@ function personChanged(a: Person, b: Person): boolean {
   return (
     a.name !== b.name ||
     a.aliases.join("") !== b.aliases.join("") ||
+    (a.gender ?? "unknown") !== (b.gender ?? "unknown") ||
     JSON.stringify(a.attributes ?? {}) !== JSON.stringify(b.attributes ?? {})
   );
 }

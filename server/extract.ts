@@ -12,7 +12,11 @@ const LOG = process.env.GRAPEVINE_LOG ?? "on";
 
 // Calls Claude with the current graph + new text and returns the proposed ops.
 // Structured outputs guarantees the response is valid JSON matching OPS_SCHEMA.
-export async function extractOps(graphJson: string, newText: string): Promise<GraphOp[]> {
+export async function extractOps(
+  graphJson: string,
+  newText: string,
+  context = "",
+): Promise<GraphOp[]> {
   // `output_config` is the canonical structured-outputs param. Cast to any so we
   // don't depend on the installed SDK's typings including it yet.
   const params = {
@@ -22,7 +26,7 @@ export async function extractOps(graphJson: string, newText: string): Promise<Gr
     output_config: {
       format: { type: "json_schema", schema: OPS_SCHEMA },
     },
-    messages: [{ role: "user", content: buildUserMessage(graphJson, newText) }],
+    messages: [{ role: "user", content: buildUserMessage(graphJson, newText, context) }],
   };
 
   if (LOG !== "off") {

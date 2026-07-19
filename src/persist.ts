@@ -10,6 +10,7 @@ export interface PersistedState {
   graph: SocialGraph;
   entries: LogEntry[];
   past: SocialGraph[];
+  recentContext?: string;
 }
 
 export function loadState(): PersistedState | null {

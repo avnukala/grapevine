@@ -66,6 +66,7 @@ function applyOne(graph: SocialGraph, op: GraphOp): void {
           ...existing,
           name: op.name || existing.name,
           aliases: mergeAliases(existing.aliases, op.aliases),
+          gender: op.gender ?? existing.gender,
           attributes: { ...existing.attributes, ...(op.attributes ?? {}) },
         };
       } else {
@@ -74,6 +75,7 @@ function applyOne(graph: SocialGraph, op: GraphOp): void {
           name: op.name,
           aliases: op.aliases ?? [],
         };
+        if (op.gender) person.gender = op.gender;
         if (op.attributes) person.attributes = op.attributes;
         graph.people[id] = person;
       }
@@ -90,6 +92,7 @@ function applyOne(graph: SocialGraph, op: GraphOp): void {
         ...person,
         name: op.name ?? person.name,
         aliases: mergeAliases(person.aliases, op.addAliases),
+        gender: op.gender ?? person.gender,
         attributes: { ...person.attributes, ...(op.attributes ?? {}) },
       };
       break;
@@ -144,6 +147,38 @@ function applyOne(graph: SocialGraph, op: GraphOp): void {
 
     case "remove_relationship": {
       delete graph.relationships[relationshipId(op.source, op.target, op.category)];
+      break;
+    }
+
+    case "retype_relationship": {
+      // Find the edge to move: prefer the stated fromCategory, but if that's not
+      // found, fall back to the sole relationship on the pair (robust to a
+      // slightly-wrong fromCategory).
+      const fromId = relationshipId(op.source, op.target, op.fromCategory);
+      let existing = graph.relationships[fromId];
+      let existingId = fromId;
+      if (!existing) {
+        const onPair = Object.entries(graph.relationships).filter(
+          ([, r]) =>
+            (r.source === op.source && r.target === op.target) ||
+            (r.source === op.target && r.target === op.source),
+        );
+        if (onPair.length === 1) {
+          [existingId, existing] = onPair[0];
+        }
+      }
+      if (!existing) break; // nothing to retype
+
+      delete graph.relationships[existingId];
+      const toId = relationshipId(existing.source, existing.target, op.toCategory);
+      graph.relationships[toId] = {
+        ...existing,
+        id: toId,
+        category: op.toCategory,
+        label: op.label ?? existing.label,
+        description: op.description ?? existing.description,
+        strength: op.strength ?? existing.strength,
+      };
       break;
     }
   }

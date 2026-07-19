@@ -9,10 +9,13 @@ export interface PersonAttributes {
   notes?: string; // anything else worth remembering
 }
 
+export type Gender = "male" | "female" | "unknown";
+
 export interface Person {
   id: PersonId;
   name: string; // display name, e.g. "Sarah Chen"
   aliases: string[]; // ["Sarah", "she", "Ms. Chen"] — the main lever for dedup
+  gender?: Gender; // inferred from name / pronouns / relationship terms; drives node color
   attributes?: PersonAttributes;
 }
 

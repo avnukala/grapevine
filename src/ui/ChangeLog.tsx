@@ -79,11 +79,17 @@ function relUpdateBody(before: Relationship, after: Relationship): ReactNode {
 
 function personUpdateBody(before: Person, after: Person): ReactNode {
   const addedAliases = after.aliases.filter((a) => !before.aliases.includes(a));
+  const genderChanged = (before.gender ?? "unknown") !== (after.gender ?? "unknown");
   return (
     <>
       <span className="cl-verb">person</span>
       <span className="cl-name">{after.name}</span>
       {before.name !== after.name && <span className="cl-meta">was {before.name}</span>}
+      {genderChanged && (
+        <span className="cl-meta">
+          gender: {before.gender ?? "unknown"} → {after.gender ?? "unknown"}
+        </span>
+      )}
       {addedAliases.length > 0 && <span className="cl-meta">+aliases: {addedAliases.join(", ")}</span>}
     </>
   );

@@ -10,13 +10,13 @@ app.use(express.json({ limit: "1mb" }));
 // The client owns the graph state; the server only turns text into proposed ops.
 app.post("/api/extract", async (req, res) => {
   try {
-    const { graph, text } = req.body ?? {};
+    const { graph, text, context } = req.body ?? {};
     if (typeof text !== "string" || typeof graph !== "string") {
       return res.status(400).json({ error: "expected { graph: string, text: string }" });
     }
     if (!text.trim()) return res.json({ operations: [] });
 
-    const operations = await extractOps(graph, text);
+    const operations = await extractOps(graph, text, typeof context === "string" ? context : "");
     res.json({ operations });
   } catch (err) {
     console.error("extract failed:", err);

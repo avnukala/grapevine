@@ -8,6 +8,7 @@ export function serializeGraphForPrompt(graph: SocialGraph): string {
     id: p.id,
     name: p.name,
     aliases: p.aliases,
+    ...(p.gender ? { gender: p.gender } : {}),
     ...(p.attributes ? { attributes: p.attributes } : {}),
   }));
 

@@ -1,4 +1,4 @@
-import type { PersonId, PersonAttributes, RelationshipCategory } from "./types";
+import type { PersonId, PersonAttributes, RelationshipCategory, Gender } from "./types";
 
 // The LLM's output contract. Each op is one mutation the model proposes; the
 // reducer applies them deterministically. People are addressed by id;
@@ -9,6 +9,7 @@ export type GraphOp =
       id: PersonId;
       name: string;
       aliases?: string[];
+      gender?: Gender | null;
       attributes?: PersonAttributes | null;
     }
   | {
@@ -16,6 +17,7 @@ export type GraphOp =
       id: PersonId;
       name?: string | null;
       addAliases?: string[];
+      gender?: Gender | null;
       attributes?: PersonAttributes | null;
     }
   | { op: "remove_person"; id: PersonId }
@@ -44,4 +46,15 @@ export type GraphOp =
       source: PersonId;
       target: PersonId;
       category: RelationshipCategory;
+    }
+  | {
+      // Change a relationship's category atomically (e.g. acquaintance -> romantic).
+      op: "retype_relationship";
+      source: PersonId;
+      target: PersonId;
+      fromCategory: RelationshipCategory; // the existing category
+      toCategory: RelationshipCategory; // the new category
+      label?: string | null; // optional new short label
+      description?: string | null;
+      strength?: number | null;
     };
