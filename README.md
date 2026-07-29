@@ -6,7 +6,7 @@ Real-time relationship graph from conversation.
 
 ```sh
 npm install
-cp .env.example .env      # creates your own .env. Must add your ANTHROPIC_API_KEY
+cp .env.example .env      # creates your own .env. Must add your OPENAI_API_KEY (or point OPENAI_BASE_URL at a local model server)
 npm run dev               # access at localhost:5173
 ```
 
