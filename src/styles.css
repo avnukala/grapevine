@@ -530,3 +530,145 @@ button.secondary:disabled {
   inset: 0;
   background: #fff;
 }
+
+/* ---- React Flow overrides ---- */
+
+.react-flow__node {
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 0;
+  width: auto;
+  font-size: inherit;
+}
+
+.rf-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: box-shadow 180ms ease-out, border-color 180ms ease-out, opacity 180ms ease-out;
+}
+
+.rf-pill:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #dbe4ff;
+}
+
+.rf-pill--selected {
+  box-shadow: 0 0 0 2px #7048e8;
+}
+
+.rf-pill--dimmed {
+  opacity: 0.25;
+}
+
+.rf-pill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rf-badge {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rf-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #212529;
+  white-space: nowrap;
+}
+
+.rf-detail {
+  margin-top: 2px;
+  padding-left: 32px;
+  font-size: 11px;
+  color: #868e96;
+  white-space: nowrap;
+}
+
+.rf-pill--flash-add {
+  animation: rf-bloom-add 1000ms ease-out;
+}
+
+.rf-pill--flash-update {
+  animation: rf-bloom-update 1000ms ease-out;
+}
+
+@keyframes rf-bloom-add {
+  0% {
+    box-shadow: 0 0 0 6px rgba(47, 158, 68, 0.45);
+  }
+  100% {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+}
+
+@keyframes rf-bloom-update {
+  0% {
+    box-shadow: 0 0 0 6px rgba(240, 140, 0, 0.45);
+  }
+  100% {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+}
+
+.rf-edge--flash-add {
+  animation: rf-edge-bloom-add 1000ms ease-out;
+}
+
+.rf-edge--flash-update {
+  animation: rf-edge-bloom-update 1000ms ease-out;
+}
+
+@keyframes rf-edge-bloom-add {
+  0% {
+    filter: drop-shadow(0 0 4px rgba(47, 158, 68, 0.9));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(47, 158, 68, 0));
+  }
+}
+
+@keyframes rf-edge-bloom-update {
+  0% {
+    filter: drop-shadow(0 0 4px rgba(240, 140, 0, 0.9));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(240, 140, 0, 0));
+  }
+}
+
+.rf-edge-label {
+  position: absolute;
+  pointer-events: none;
+  font-size: 11px;
+  color: #495057;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 2px 6px;
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+  white-space: nowrap;
+}
+
+.rf-edge-label--visible {
+  opacity: 1;
+}
