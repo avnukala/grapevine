@@ -66,3 +66,13 @@ export function categoryColor(category: RelationshipCategory): string {
 export function defaultDirected(category: RelationshipCategory): boolean {
   return RELATIONSHIP_CATEGORIES[category]?.defaultDirected ?? false;
 }
+
+// Node color by gender: male blue, female pink, ambiguous/unknown gray.
+export const GENDER_COLOR: Record<string, string> = {
+  male: "#4c6ef5",
+  female: "#e64980",
+  unknown: "#868e96",
+};
+export function genderColor(gender?: string): string {
+  return GENDER_COLOR[gender ?? "unknown"] ?? GENDER_COLOR.unknown;
+}
