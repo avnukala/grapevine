@@ -1,0 +1,6 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+setup = "npm install"
+run = "concurrently -n server,web -c blue,green \"npm:dev:server\" \"vite --port $CONDUCTOR_PORT\""
+run_mode = "concurrent"
