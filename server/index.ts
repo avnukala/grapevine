@@ -26,8 +26,10 @@ app.post("/api/extract", async (req, res) => {
 
 const port = Number(process.env.PORT ?? 8787);
 app.listen(port, () => {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.warn("⚠  ANTHROPIC_API_KEY is not set — /api/extract will fail. Copy .env.example to .env.");
+  if (!process.env.OPENAI_API_KEY && !process.env.OPENAI_BASE_URL) {
+    console.warn(
+      "⚠  Neither OPENAI_API_KEY nor OPENAI_BASE_URL is set — /api/extract will fail. Copy .env.example to .env.",
+    );
   }
   console.log(`grapevine server listening on http://localhost:${port}`);
 });
