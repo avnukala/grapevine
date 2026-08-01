@@ -2,5 +2,5 @@
 
 [scripts]
 setup = "npm install"
-run = "concurrently -n server,web -c blue,green \"npm:dev:server\" \"vite --port $CONDUCTOR_PORT\""
+run = "npx concurrently -n server,web -c blue,green \"npm:dev:server\" \"npx vite --port $CONDUCTOR_PORT\""
 run_mode = "concurrent"
