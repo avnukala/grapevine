@@ -12,8 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "cytoscape": "^3.30.2",
-    "cytoscape-cola": "^2.5.1",
+    "@xyflow/react": "^12.11.2",
+    "d3-force": "^3.0.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "openai": "^4.104.0",
