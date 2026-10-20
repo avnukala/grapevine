@@ -107,7 +107,12 @@ def chat() -> OpenAIChat:
 
 @cache
 def llm_file_hash() -> str:
-    return model_file_hash(LLM_MODEL_PATH)
+    """Fingerprints LLM_MODEL_PATH, or else the one LM Studio model folder whose name contains the model id."""
+    if LLM_MODEL_PATH:
+        return model_file_hash(LLM_MODEL_PATH)
+    model = RunConfig().extract_model.lower()
+    folders = [f for f in Path("~/.lmstudio/models").expanduser().glob("*/*") if model in f.name.lower()]
+    return model_file_hash(str(folders[0])) if len(folders) == 1 else "unknown"
 
 
 def load_models(config: RunConfig) -> Models:

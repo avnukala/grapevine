@@ -10,6 +10,7 @@ from pathlib import Path
 
 from grapevine import db
 from grapevine.audio import file_chunks
+from grapevine.compare import differences, judge
 from grapevine.config import DB_PATH, ROOT, run_config
 from grapevine.llm import LLM
 from grapevine.merge import merge
@@ -80,6 +81,22 @@ async def merge_accepted() -> None:
         print(f"  [{prompt['reason']}] {prompt['text']}")
 
 
+async def compare_runs(first: int, second: int, *, with_judge: bool) -> None:
+    conn = db.connect(DB_PATH)
+    a, b = open_store(conn, first).graph, open_store(conn, second).graph
+    for key, diff in differences(a, b).items():
+        print(f"{key}: {len(diff['only_a'])} only in run {first}, {len(diff['only_b'])} only in run {second}")
+        for item in diff["only_a"]:
+            print(f"  - {item}")
+        for item in diff["only_b"]:
+            print(f"  + {item}")
+    if with_judge:
+        config = run_config({})
+        llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
+        verdict = await judge(llm, a, b, run_id=second, model=config.summary_model, seed=config.seed)
+        print(f"judge (A = run {first}, B = run {second}):", json.dumps(verdict, indent=2))
+
+
 def report(run_id: int) -> None:
     conn = db.connect(DB_PATH)
     store = open_store(conn, run_id)
@@ -143,6 +160,10 @@ def main() -> None:
     accept_parser = commands.add_parser("accept", help="accept a run for its session")
     accept_parser.add_argument("run_id", type=int)
     commands.add_parser("merge", help="merge the accepted runs into the global graph")
+    compare_parser = commands.add_parser("compare", help="compare two runs on the same session")
+    compare_parser.add_argument("first", type=int)
+    compare_parser.add_argument("second", type=int)
+    compare_parser.add_argument("--judge", action="store_true", help="also ask the local model which run is better")
     serve_parser = commands.add_parser("serve", help="serve the API and WebSocket")
     serve_parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8790")))
     args = parser.parse_args()
@@ -157,6 +178,8 @@ def main() -> None:
             accept(args.run_id)
         case "merge":
             asyncio.run(merge_accepted())
+        case "compare":
+            asyncio.run(compare_runs(args.first, args.second, with_judge=args.judge))
         case "serve":
             import uvicorn
 

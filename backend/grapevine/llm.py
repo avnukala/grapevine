@@ -11,7 +11,7 @@ from typing import Literal
 
 from grapevine.models import ChatModel
 
-Worker = Literal["extractor", "prompter", "summarizer", "merger"]
+Worker = Literal["extractor", "prompter", "summarizer", "merger", "judge"]
 
 log = logging.getLogger(__name__)
 
