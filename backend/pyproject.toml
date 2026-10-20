@@ -1,0 +1,34 @@
+[project]
+name = "grapevine"
+version = "0.1.0"
+description = "Listens to a group conversation and builds a knowledge graph of the people in it"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "openai>=1.60",
+    "numpy>=2.0",
+    "soundfile>=0.12",
+    "sounddevice>=0.5",
+    "torch>=2.6",
+    "transformers>=5.20",
+    "mlx-whisper>=0.4.3",
+    "soxr>=1.1.0",
+    "librosa>=1.0.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "httpx>=0.28", "ruff>=0.8", "playwright>=1.50"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+grapevine = "grapevine.cli:main"

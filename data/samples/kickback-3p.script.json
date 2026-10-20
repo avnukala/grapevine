@@ -1,0 +1,46 @@
+{
+  "name": "Kickback with Ray, Jasper, and Sophie",
+  "recorded_at": "2025-10-18",
+  "voices": { "Ray Patel": "Daniel", "Jasper Lin": "Aman", "Sophie Moreau": "Samantha" },
+  "intro_lines": 3,
+  "lines": [
+    { "speaker": "Ray Patel", "text": "Hey everyone, I'm Ray. Ray Patel. I'm a software engineer at Stripe, and I live in Brooklyn with my dog Biscuit." },
+    { "speaker": "Jasper Lin", "text": "I'm Jasper Lin. I work as a nurse at Mount Sinai, and I play bass in a band called the Night Owls." },
+    { "speaker": "Sophie Moreau", "text": "Hi, I'm Sophie Moreau. I'm a grad student at Columbia studying architecture, and I just moved here from Montreal." },
+    { "speaker": "Sophie Moreau", "text": "So Ray and Jasper, how did you two meet?" },
+    { "speaker": "Ray Patel", "text": "We met freshman year at Cornell. We were roommates in the fall of 2016, and Jasper kept stealing my cereal." },
+    { "speaker": "Jasper Lin", "text": "That is true, but I made up for it. I drove Ray to the hospital when he broke his arm skiing in 2017." },
+    { "speaker": "Ray Patel", "text": "Actually, I think that was 2018, junior year." },
+    { "speaker": "Jasper Lin", "text": "No way. It was definitely 2017, right before spring break." },
+    { "speaker": "Ray Patel", "text": "Anyway, we both moved to New York after graduation in 2020, and we still climb together every Tuesday at Brooklyn Boulders with Maya and Theo. We call ourselves the Tuesday climbing crew." },
+    { "speaker": "Sophie Moreau", "text": "Jasper and I actually dated for about a year. We met at Electric Zoo in 2019." },
+    { "speaker": "Jasper Lin", "text": "No, it was 2018. Electric Zoo 2018, on Randall's Island. You lost your phone in the mud." },
+    { "speaker": "Sophie Moreau", "text": "Okay, fine, it was 2018. We broke up in 2019, but we are still good friends." },
+    { "speaker": "Jasper Lin", "text": "Andrew Gao is my coworker at Mount Sinai. He is a doctor in the emergency room." },
+    { "speaker": "Sophie Moreau", "text": "And Andrew Moy is my cousin. He is the one who introduced me to Ray last year.", "pause_after_ms": 8000 },
+    { "speaker": "Ray Patel", "text": "We all went to Electric Zoo again in 2022, and Andrew came with us. He got us backstage passes." },
+    { "speaker": "Sophie Moreau", "text": "Ray, didn't you get engaged recently?" },
+    { "speaker": "Ray Patel", "text": "Yes! I proposed to my girlfriend Priya in Lisbon in September 2025. She said yes on the first try." },
+    { "speaker": "Jasper Lin", "text": "Priya is great. She and I went to the same high school in New Jersey, so I have known her since 2012." }
+  ],
+  "expected": {
+    "people": ["Ray Patel", "Jasper Lin", "Sophie Moreau", "Andrew Gao", "Andrew Moy", "Maya", "Theo", "Priya"],
+    "relationships": [
+      { "a": "Ray Patel", "b": "Jasper Lin", "category": "friend", "status": "current", "met": "2016" },
+      { "a": "Jasper Lin", "b": "Sophie Moreau", "category": "romantic", "status": "past", "met": "2018" },
+      { "a": "Jasper Lin", "b": "Sophie Moreau", "category": "friend", "status": "current" },
+      { "a": "Jasper Lin", "b": "Andrew Gao", "category": "professional", "status": "current" },
+      { "a": "Sophie Moreau", "b": "Andrew Moy", "category": "family", "status": "current" },
+      { "a": "Ray Patel", "b": "Priya", "category": "romantic", "status": "current" },
+      { "a": "Jasper Lin", "b": "Priya", "category": "friend", "status": "current", "met": "2012" }
+    ],
+    "events": [
+      { "name": "Electric Zoo 2018", "year": 2018 },
+      { "name": "Electric Zoo 2022", "year": 2022 },
+      { "name": "Proposal in Lisbon", "year": 2025 }
+    ],
+    "groups": [{ "name": "Tuesday climbing crew", "members": ["Ray Patel", "Jasper Lin", "Maya", "Theo"] }],
+    "disputes": 1,
+    "ambiguous_names": ["Andrew"]
+  }
+}
