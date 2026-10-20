@@ -4,11 +4,7 @@
   "voices": {
     "Kevin Doyle": "Rocko (English (US))",
     "Hannah Kim": "Karen",
-    "Sam Torres": {
-      "name": "Eddy (English (US))",
-      "pitch": -4,
-      "rate": 165
-    },
+    "Sam Torres": "Fred",
     "Chris Porter": "Daniel"
   },
   "intro_lines": 4,

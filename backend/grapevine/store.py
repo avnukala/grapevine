@@ -199,14 +199,20 @@ class Store:
         return segment
 
     def update_segment(
-        self, segment_id: int, *, person_id: int | None = None, timings: dict[str, int] | None = None
+        self,
+        segment_id: int,
+        *,
+        person_id: int | None = None,
+        speaker_label: str | None = None,
+        timings: dict[str, int] | None = None,
     ) -> None:
         segment = self.segment(segment_id)
         with self.batch():
             self.conn.execute(
-                "UPDATE segments SET person_id = ?, timings_json = ? WHERE id = ?",
+                "UPDATE segments SET person_id = ?, speaker_label = ?, timings_json = ? WHERE id = ?",
                 (
                     person_id if person_id is not None else segment["person_id"],
+                    speaker_label or segment["speaker_label"],
                     json.dumps({**segment["timings"], **(timings or {})}),
                     segment_id,
                 ),

@@ -1,7 +1,7 @@
 {
   "audio": "pregame-4p.mp3",
-  "intro_end_ms": 24883,
-  "duration_ms": 300008,
+  "intro_end_ms": 24948,
+  "duration_ms": 300394,
   "turns": [
     {
       "speaker": "Kevin Doyle",
@@ -18,265 +18,265 @@
     {
       "speaker": "Sam Torres",
       "start_ms": 12336,
-      "end_ms": 18430,
+      "end_ms": 18495,
       "text": "Sam Torres. I work at REI, and I'm the designated driver tonight, sadly."
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 18930,
-      "end_ms": 24633,
+      "start_ms": 18995,
+      "end_ms": 24698,
       "text": "I'm Chris Porter. I'm an accountant, and my wife Megan Walsh is making me text her every hour."
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 25133,
-      "end_ms": 28203,
+      "start_ms": 25198,
+      "end_ms": 28268,
       "text": "So who's playing at Red Rocks tonight again?"
     },
     {
       "speaker": "Sam Torres",
-      "start_ms": 28703,
-      "end_ms": 32951,
+      "start_ms": 28768,
+      "end_ms": 32869,
       "text": "Kevin. You bought the tickets. It's the Lumineers."
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 33451,
-      "end_ms": 38057,
+      "start_ms": 33369,
+      "end_ms": 37975,
       "text": "Right, right. I just buy whatever the group chat tells me to."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 38557,
-      "end_ms": 40526,
+      "start_ms": 38475,
+      "end_ms": 40444,
       "text": "Where's Megan tonight, Chris?"
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 41026,
-      "end_ms": 46311,
+      "start_ms": 40944,
+      "end_ms": 46229,
       "text": "Book club. They're reading something with a dead husband in it, and she keeps looking at me funny."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 46811,
-      "end_ms": 51853,
+      "start_ms": 46729,
+      "end_ms": 51771,
       "text": "Ha! You two have been together forever. Bonnaroo 2014, right?"
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 52353,
-      "end_ms": 68423,
+      "start_ms": 52271,
+      "end_ms": 68341,
       "text": "Yep, Bonnaroo 2014. Eleven years ago this month. I still have the tent, actually. Megan wants me to throw it out, but I think it's a historical artifact. It's the whole reason we're married. Honestly, I want to be buried in that tent."
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 68923,
-      "end_ms": 71673,
+      "start_ms": 68841,
+      "end_ms": 71591,
       "text": "That's disgusting and also romantic."
     },
     {
       "speaker": "Sam Torres",
-      "start_ms": 72173,
-      "end_ms": 79451,
+      "start_ms": 72091,
+      "end_ms": 79098,
       "text": "Speaking of history, Kevin, you are officially the slowest Sunday Sends member ever to finish the blue wall."
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 79951,
-      "end_ms": 84845,
+      "start_ms": 79598,
+      "end_ms": 84492,
       "text": "I've only been in the crew since 2019. Give me some time."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 85345,
-      "end_ms": 91023,
+      "start_ms": 84992,
+      "end_ms": 90670,
       "text": "You joined in 2020, Kevin. You came to your first session right after the gyms reopened."
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 91523,
-      "end_ms": 96513,
+      "start_ms": 91170,
+      "end_ms": 96160,
       "text": "No, it was the fall of 2019, before everything shut down."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 97013,
-      "end_ms": 99366,
+      "start_ms": 96660,
+      "end_ms": 99013,
       "text": "I'm pretty sure it was 2020."
     },
     {
       "speaker": "Sam Torres",
-      "start_ms": 99866,
-      "end_ms": 102248,
+      "start_ms": 99513,
+      "end_ms": 101685,
       "text": "I'm not getting in the middle of this."
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 102748,
-      "end_ms": 104530,
+      "start_ms": 102185,
+      "end_ms": 103967,
       "text": "Kevin, how's Jenna doing?"
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 105030,
-      "end_ms": 128196,
+      "start_ms": 104467,
+      "end_ms": 127633,
       "text": "She's great. She just got promoted to head nurse at Saint Joseph's. We've been married almost seven years now. We met at a wedding in 2015. Wait, no, 2016. It was my cousin's wedding in Pittsburgh. Her name was Jenna Lowe back then, and she was the only person at that whole wedding who would dance with me to Mister Brightside."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 128696,
-      "end_ms": 131170,
+      "start_ms": 128133,
+      "end_ms": 130607,
       "text": "And Kevin's bachelor party is still a legend."
     },
     {
       "speaker": "Sam Torres",
-      "start_ms": 131670,
-      "end_ms": 153636,
+      "start_ms": 131107,
+      "end_ms": 153701,
       "text": "Austin, 2018. Five guys, one rented pontoon boat, and Kevin decided he could drive it without reading a single instruction. We got stuck on a sandbar for three hours, and a family of total strangers on jet skis had to tow us back to the dock. Kevin tipped them forty dollars and a cooler of beer."
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 154136,
-      "end_ms": 156644,
+      "start_ms": 154201,
+      "end_ms": 156709,
       "text": "Best forty dollars I ever spent."
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 157144,
-      "end_ms": 159198,
+      "start_ms": 157209,
+      "end_ms": 159263,
       "text": "Who else was on that boat? Matt?"
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 159698,
-      "end_ms": 168016,
+      "start_ms": 159763,
+      "end_ms": 168081,
       "text": "Matt Fisher, yeah. He's my coworker. We wire houses together. And he's the commissioner of the Dynasty League now."
     },
     {
       "speaker": "Sam Torres",
-      "start_ms": 168516,
-      "end_ms": 170674,
+      "start_ms": 168581,
+      "end_ms": 170428,
       "text": "Which he runs like a dictator."
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 171174,
-      "end_ms": 175465,
+      "start_ms": 170928,
+      "end_ms": 175219,
       "text": "Arjun and I founded that league, and we have absolutely no power anymore."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 175965,
-      "end_ms": 179845,
+      "start_ms": 175719,
+      "end_ms": 179599,
       "text": "Okay, Kevin, were you there when Owen tore his knee in Breckenridge?"
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 180345,
-      "end_ms": 187879,
+      "start_ms": 180099,
+      "end_ms": 187633,
       "text": "Oh, I was there. Breckenridge, the winter of 2022. I carried his skis all the way down."
     },
     {
       "speaker": "Sam Torres",
-      "start_ms": 188379,
-      "end_ms": 192163,
+      "start_ms": 188133,
+      "end_ms": 191469,
       "text": "Poor Owen. He still won't go near a green run."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 192663,
-      "end_ms": 199586,
+      "start_ms": 191969,
+      "end_ms": 198892,
       "text": "He's doing great now, though. He's helping me plan the wedding, which is a sentence I never thought I'd say about my ex."
     },
     {
       "speaker": "Sam Torres",
-      "start_ms": 200086,
-      "end_ms": 207764,
+      "start_ms": 199392,
+      "end_ms": 207729,
       "text": "Oh, by the way, my coworker Kate Russo is meeting us there. She's the one who runs the climbing clinics at REI."
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 208264,
-      "end_ms": 210239,
+      "start_ms": 208229,
+      "end_ms": 210204,
       "text": "Kate Russo? Not Kate Miller?"
     },
     {
       "speaker": "Sam Torres",
-      "start_ms": 210739,
-      "end_ms": 215168,
+      "start_ms": 210704,
+      "end_ms": 214873,
       "text": "Definitely not Kate Miller. Why would Kate Miller be coming?"
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 215668,
-      "end_ms": 228313,
+      "start_ms": 215373,
+      "end_ms": 228018,
       "text": "Because Kate Miller is my ex girlfriend from college, and she texted me last week saying she'd be at Red Rocks tonight. We dated from 2012 to 2014, it ended badly, and I have not seen her since."
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 228813,
-      "end_ms": 229771,
+      "start_ms": 228518,
+      "end_ms": 229476,
       "text": "Oh no."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 230271,
-      "end_ms": 232556,
+      "start_ms": 229976,
+      "end_ms": 232261,
       "text": "Oh, this is going to be a great night."
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 233056,
-      "end_ms": 235836,
+      "start_ms": 232761,
+      "end_ms": 235541,
       "text": "Does Megan know Kate is going to be there?"
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 236336,
-      "end_ms": 238243,
+      "start_ms": 236041,
+      "end_ms": 237948,
       "text": "I'm going to text her right now."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 246243,
-      "end_ms": 250761,
+      "start_ms": 245948,
+      "end_ms": 250466,
       "text": "Okay, while he does that, Sam, tell me about the new climbing route."
     },
     {
       "speaker": "Sam Torres",
-      "start_ms": 251261,
-      "end_ms": 272875,
+      "start_ms": 250966,
+      "end_ms": 273194,
       "text": "So, there's a crack climb up in Eldorado Canyon called the Bastille Crack. Owen and I tried it last fall and bailed halfway up. This summer the whole crew is going back, me, Owen, Hannah, and Kevin, and we are not leaving until everyone tops out. Even if it takes until dark. Even if Kevin cries."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 273375,
-      "end_ms": 276911,
+      "start_ms": 273694,
+      "end_ms": 277230,
       "text": "I'll be there, assuming wedding planning doesn't kill me first."
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 277411,
-      "end_ms": 281737,
+      "start_ms": 277730,
+      "end_ms": 282056,
       "text": "Okay. Megan says, and I quote, have fun and don't be weird."
     },
     {
       "speaker": "Kevin Doyle",
-      "start_ms": 282237,
-      "end_ms": 284987,
+      "start_ms": 282556,
+      "end_ms": 285306,
       "text": "Ha, true. Solid advice."
     },
     {
       "speaker": "Sam Torres",
-      "start_ms": 292987,
-      "end_ms": 297449,
+      "start_ms": 293306,
+      "end_ms": 297835,
       "text": "Alright, everybody in the car. Last call for snacks."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 297949,
-      "end_ms": 299508,
+      "start_ms": 298335,
+      "end_ms": 299894,
       "text": "Grab the chips, Kevin."
     }
   ]

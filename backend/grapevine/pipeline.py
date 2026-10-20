@@ -33,7 +33,12 @@ VOICE_TIE = 0.02
 MIN_VOICE_MS = 2000
 SETTLE_MARGIN = 0.05
 MAX_VOICES = 100
-SELF_INTRO = re.compile(r"\b(?:I'm|I am|my name is|name's|call me)\s+([A-Z][a-z]+)")
+SELF_INTRO = re.compile(r"\b(?:I'm|I am|my name is|name's|call me)\s+([A-Z][a-z]+)\b(?!['’]s)")
+
+
+def goes_by(person: dict, name: str) -> bool:
+    first = name.split()[0].lower()
+    return first in {person["name"].split()[0].lower(), *(a.lower() for a in person["aliases"])}
 
 
 def said_name(text: str, model_name: str | None, *, intro: bool) -> str | None:
@@ -103,6 +108,7 @@ class Pipeline:
         self.prompter_tasks: set[asyncio.Task] = set()
         self.voice_sums: dict[str, np.ndarray] = {}
         self.voice_ms: dict[str, int] = {}
+        self.segment_voices: dict[int, tuple[np.ndarray, int]] = {}
         self.paused = True
         self.active_label: str | None = None
         self.intro_over = False
@@ -220,6 +226,7 @@ class Pipeline:
                     text=text,
                     timings={"detect_ms": detect_ms, "transcribe_ms": transcribe_ms, "embed_ms": embed_ms},
                 )
+                self.segment_voices[segment["id"]] = (voice, end_ms - start_ms)
                 await self.jobs.put(SegmentJob(segment["id"], heard_at))
         await self.jobs.put(None)
 
@@ -342,13 +349,32 @@ class Pipeline:
         if output is not None:
             teller = Teller(segment["id"], speaker_id, segment["speaker_confidence"] or 1.0, result.model_call_id)
             intro = segment["speaker_confidence"] is None
-            name = said_name(segment["text"], output["speaker_name"], intro=intro) if speaker_id is None else None
+            name = (
+                said_name(segment["text"], output["speaker_name"], intro=intro) if speaker_id is None or intro else None
+            )
+            if name and speaker_id is not None and goes_by(self.store.person(speaker_id), name):
+                name = None
+            if name and speaker_id is not None:
+                segment = self._own_voice(segment)
             if name:
                 speaker_id = self._name_speaker(segment, name, Held(output, teller))
+                if speaker_id is not None and segment["person_id"] != speaker_id:
+                    self.store.update_segment(segment["id"], person_id=speaker_id)
             if speaker_id is not None or not name:
                 apply_output(self.store, Held(output, replace(teller, person_id=speaker_id)))
         total_ms = int((time.monotonic() - job.heard_at) * 1000)
         self.store.update_segment(segment["id"], timings={"extract_ms": extract_ms, "total_ms": total_ms})
+
+    def _own_voice(self, segment: dict) -> dict:
+        """Moves an introduction to a voice of its own. Someone said a new name under a voice that already
+        has a name, so the speaker detector merged two people for this turn."""
+        label = self._new_label(segment["speaker_label"], self.store.voices())
+        voice, ms = self.segment_voices[segment["id"]]
+        self.voice_sums[label] = voice * ms
+        self.voice_ms[label] = ms
+        self.store.set_speaker(label, None, voice)
+        self.store.update_segment(segment["id"], speaker_label=label)
+        return self.store.graph.segments[segment["id"]]
 
     def _name_speaker(self, segment: dict, name: str, held: Held) -> int | None:
         """Links a voice to the person who said their name. Asks the room when the name fits several people."""

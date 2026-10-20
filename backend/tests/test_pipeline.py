@@ -152,3 +152,36 @@ def test_a_turn_that_two_merged_voices_share_splits_by_voice(conn):
         ("I'm Jasper Lin.", "Jasper Lin"),
         ("Ray and I met at Cornell in 2016.", "Sophie Moreau"),
     ]
+
+
+def test_a_new_name_under_a_named_voice_gets_its_own_voice(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    lines = [
+        Line(0, 500, 2700, "Hey, I'm Ray Patel."),
+        Line(2, 3700, 5200, "Hi, I'm Sophie Moreau."),
+        Line(1, 5700, 7200, "I'm Jasper Lin."),
+        Line(2, 8000, 10000, "Ray and I met at Cornell in 2016."),
+    ]
+    chat = FakeChat(RULES)
+    store = Store(
+        conn,
+        conn.execute(
+            "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'replay', '{}', 'test')"
+        ).lastrowid,
+    )
+    pipeline = Pipeline(
+        store,
+        fake_models(lines, chat, {2: 0}),
+        LLM(conn, chat, model_file_hash="t", reuse=True),
+        RunConfig(),
+        today="2025-10-18",
+        intro_end_ms=7600,
+    )
+    asyncio.run(pipeline.run(chunks(render(lines, 11000))))
+
+    assert [name for _, name in snapshot(store)["segments"]] == [
+        "Ray Patel",
+        "Sophie Moreau",
+        "Jasper Lin",
+        "Sophie Moreau",
+    ]
