@@ -213,6 +213,34 @@ def test_the_roster_seats_people_and_fixes_how_their_names_are_spelled(conn):
     assert sorted(names.values()) == ["Jasper Lin", "Ray Patel", "Sophie Moreau"]
 
 
+def test_a_short_introduction_that_sounds_unlike_its_label_gets_its_own_voice(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    lines = [
+        Line(0, 500, 2700, "Hey, I'm Ray Patel."),
+        Line(1, 3200, 5600, "I love climbing."),
+        Line(2, 6600, 8000, "I'm Jasper Lin."),
+    ]
+    chat = FakeChat(RULES)
+    store = Store(
+        conn,
+        conn.execute(
+            "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'replay', '{}', 'test')"
+        ).lastrowid,
+    )
+    pipeline = Pipeline(
+        store,
+        fake_models(lines, chat, {2: 1}),
+        LLM(conn, chat, model_file_hash="t", reuse=True),
+        RunConfig(),
+        today="2025-10-18",
+        intro_end_ms=8500,
+        roster=[],
+    )
+    asyncio.run(pipeline.run(chunks(render(lines, 9500))))
+
+    assert [name for _, name in snapshot(store)["segments"]] == ["Ray Patel", None, "Jasper Lin"]
+
+
 class SecondsTranscriber:
     def transcribe(self, audio, names):
         return f"{len(audio) // SAMPLE_RATE} seconds"

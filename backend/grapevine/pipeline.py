@@ -33,6 +33,8 @@ ACTIVITY_SILENCE_MS = 300
 PARTIAL_MS = 1000
 VOICE_TIE = 0.02
 MIN_VOICE_MS = 2000
+# A turn under MIN_VOICE_MS by the same speaker still scores 0.8 or more against their voice.
+SHORT_UNLIKE = 0.65
 SETTLE_MARGIN = 0.05
 MAX_VOICES = 100
 LEADING_NAME = re.compile(r"(?:(?:Hi|Hey|Hello|So),?\s+)?([A-Z][a-z]+ [A-Z][a-z]+)(?:[,.]|$)")
@@ -437,15 +439,14 @@ class Pipeline:
         self.store.update_segment(segment["id"], timings={"extract_ms": extract_ms, "total_ms": total_ms})
 
     def _sounds_unlike_label(self, segment: dict) -> bool:
-        """Whether a turn sounds unlike the voice its label saved from other turns. A short turn never does,
-        because its voice is not reliable."""
+        """Whether a turn sounds unlike the voice its label saved from other turns. The voice of a short turn
+        is noisy, so it must score far lower to count."""
         label = segment["speaker_label"]
         voice, ms = self.segment_voices[segment["id"]]
-        if ms < MIN_VOICE_MS:
-            return False
         saved = self.store.voices().get(label)
-        others_ms = self.voice_ms.get(label, 0) - ms
-        return saved is not None and others_ms > 0 and float(voice @ saved[1]) < self.config.voice_threshold
+        others_ms = self.voice_ms.get(label, 0) - (ms if ms >= MIN_VOICE_MS else 0)
+        bar = self.config.voice_threshold if ms >= MIN_VOICE_MS else SHORT_UNLIKE
+        return saved is not None and others_ms > 0 and float(voice @ saved[1]) < bar
 
     def _own_voice(self, segment: dict) -> dict:
         """Moves an introduction to a voice of its own. Someone said a new name under a voice that already
