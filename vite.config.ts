@@ -1,14 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// The React app runs on :5173 and proxies /api to the Express server on :8787,
-// so the browser never sees the OpenAI-compatible API key.
+const api = `http://localhost:${process.env.PORT ?? 8790}`;
+
+// The Python backend owns all server work. Vite only builds and serves the client.
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
-      "/api": "http://localhost:8787",
+      "/api": api,
+      "/ws": { target: api.replace("http", "ws"), ws: true },
     },
   },
 });

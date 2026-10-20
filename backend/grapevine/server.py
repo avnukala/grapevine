@@ -33,6 +33,7 @@ from grapevine.runs import (
     recordings_dir,
     run_pipeline,
     session,
+    session_for_audio,
     set_status,
     start_pipeline,
 )
@@ -101,8 +102,11 @@ class NewSession(BaseModel):
 
 @app.post("/api/sessions")
 def new_session(body: NewSession) -> Record:
-    if body.audio_uri and not audio_path(body.audio_uri).is_file():
-        raise HTTPException(400, f"no audio file at {body.audio_uri}")
+    """A session for a recording that already has one returns that session."""
+    if body.audio_uri:
+        if not audio_path(body.audio_uri).is_file():
+            raise HTTPException(400, f"no audio file at {body.audio_uri}")
+        return session_for_audio(conn, audio_path(body.audio_uri))
     return create_session(
         conn,
         name=body.name,

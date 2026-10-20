@@ -1,78 +1,59 @@
-import type { Person, Relationship, SocialGraph } from "../graph/types";
-import { categoryColor } from "../graph/relationshipTypes";
+import { CATEGORIES } from "../state/categories";
+import { canonicalId, liveFacts, personName } from "../state/derive";
+import type { RunState } from "../state/types";
 
-function RelRow({ rel, personId, graph }: { rel: Relationship; personId: string; graph: SocialGraph }) {
-  const otherId = rel.source === personId ? rel.target : rel.source;
-  const otherName = graph.people[otherId]?.name ?? otherId;
-
-  // Direction from this person's point of view.
-  let arrow = "—";
-  if (rel.directed) arrow = rel.source === personId ? "→" : "←";
-
-  return (
-    <div className="pd-rel">
-      <div className="pd-rel-top">
-        <span className="pd-swatch" style={{ background: categoryColor(rel.category) }} />
-        <span className="pd-arrow">{arrow}</span>
-        <span className="pd-other">{otherName}</span>
-        <span className="pd-cat">{rel.category}</span>
-        {rel.strength != null && <span className="pd-weight">w{rel.strength}</span>}
-      </div>
-      <div className="pd-label">{rel.label}</div>
-      {rel.description && <div className="pd-desc">{rel.description}</div>}
-    </div>
-  );
+interface PersonDetailsProps {
+  state: RunState;
+  personId: number;
+  onClose: () => void;
 }
 
-export function PersonDetails({
-  person,
-  graph,
-  onClose,
-}: {
-  person: Person;
-  graph: SocialGraph;
-  onClose: () => void;
-}) {
-  const rels = Object.values(graph.relationships).filter(
-    (r) => r.source === person.id || r.target === person.id,
-  );
-  const attrs = person.attributes ?? {};
+export function PersonDetails({ state, personId, onClose }: PersonDetailsProps) {
+  const person = state.people[personId];
+  if (!person) return null;
+  const same = (id: number) => canonicalId(state, id) === personId;
+  const relationships = Object.values(state.relationships).filter((r) => same(r.a) || same(r.b));
+  const facts = liveFacts(state).filter((f) => f.people.some((p) => same(p.person_id) && p.role !== "teller"));
+  const groups = Object.values(state.members)
+    .filter((m) => same(m.person_id))
+    .map((m) => state.groups[m.group_id]?.name)
+    .filter(Boolean);
 
   return (
-    <div className="pd-backdrop" onClick={onClose}>
-      <div className="pd-card" onClick={(e) => e.stopPropagation()}>
-        <div className="pd-header">
-          <div>
-            <div className="pd-name">{person.name}</div>
-            {person.aliases.length > 0 && (
-              <div className="pd-aliases">a.k.a. {person.aliases.join(", ")}</div>
-            )}
-          </div>
-          <button className="pd-close" onClick={onClose} title="Close">
-            ×
-          </button>
-        </div>
-
-        {(attrs.role || attrs.org || attrs.notes) && (
-          <div className="pd-attrs">
-            {attrs.role && <span className="pd-attr">{attrs.role}</span>}
-            {attrs.org && <span className="pd-attr">{attrs.org}</span>}
-            {attrs.notes && <div className="pd-notes">{attrs.notes}</div>}
-          </div>
-        )}
-
-        <div className="pd-section-title">
-          {rels.length} {rels.length === 1 ? "relationship" : "relationships"}
-        </div>
-
-        <div className="pd-rels">
-          {rels.length === 0 ? (
-            <div className="pd-empty">No relationships yet.</div>
-          ) : (
-            rels.map((r) => <RelRow key={r.id} rel={r} personId={person.id} graph={graph} />)
-          )}
-        </div>
-      </div>
-    </div>
+    <aside className="details" data-testid="person-details">
+      <header>
+        <h2>{person.name}</h2>
+        <button className="link" onClick={onClose} aria-label="Close">
+          Close
+        </button>
+      </header>
+      {person.aliases.length > 0 && <p className="muted">Also called {person.aliases.join(", ")}</p>}
+      {groups.length > 0 && <p className="muted">Groups: {[...new Set(groups)].join(", ")}</p>}
+      <h3>Relationships</h3>
+      <ul>
+        {relationships.map((r) => (
+          <li key={r.id}>
+            <span className="swatch" style={{ background: CATEGORIES[r.category].color }} />
+            <strong>{personName(state, same(r.a) ? r.b : r.a)}</strong>: {r.label}
+            {r.status === "past" ? " (past)" : ""}
+            {r.met_on ? `, met ${r.met_on}` : ""}
+            {r.summary && <div className="muted">{r.summary}</div>}
+          </li>
+        ))}
+        {relationships.length === 0 && <li className="muted">None yet</li>}
+      </ul>
+      <h3>Facts</h3>
+      <ul>
+        {facts.map((f) => (
+          <li key={f.id} className={f.disputed ? "disputed" : ""}>
+            {f.text}
+            {f.start_date ? ` (${f.start_date})` : ""}
+            {f.disputed ? " — disputed" : ""}
+            {f.detail && <div className="muted">{f.detail}</div>}
+          </li>
+        ))}
+        {facts.length === 0 && <li className="muted">None yet</li>}
+      </ul>
+    </aside>
   );
 }
