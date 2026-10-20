@@ -370,11 +370,14 @@ class Pipeline:
         self.store.update_segment(segment["id"], timings={"extract_ms": extract_ms, "total_ms": total_ms})
 
     def _sounds_unlike_label(self, segment: dict) -> bool:
-        """Whether a turn sounds unlike the voice its label saved from other turns."""
+        """Whether a turn sounds unlike the voice its label saved from other turns. A short turn never does,
+        because its voice is not reliable."""
         label = segment["speaker_label"]
         voice, ms = self.segment_voices[segment["id"]]
+        if ms < MIN_VOICE_MS:
+            return False
         saved = self.store.voices().get(label)
-        others_ms = self.voice_ms.get(label, 0) - (ms if ms >= MIN_VOICE_MS else 0)
+        others_ms = self.voice_ms.get(label, 0) - ms
         return saved is not None and others_ms > 0 and float(voice @ saved[1]) < self.config.voice_threshold
 
     def _own_voice(self, segment: dict) -> dict:
