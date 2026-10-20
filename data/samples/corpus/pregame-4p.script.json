@@ -4,85 +4,314 @@
   "voices": {
     "Kevin Doyle": "Rocko (English (US))",
     "Hannah Kim": "Karen",
-    "Sam Torres": "Eddy (English (US))",
+    "Sam Torres": {
+      "name": "Eddy (English (US))",
+      "pitch": -4,
+      "rate": 165
+    },
     "Chris Porter": "Daniel"
   },
   "intro_lines": 4,
   "lines": [
-    { "speaker": "Kevin Doyle", "text": "Alright, I'm Kevin Doyle. I'm an electrician, and I'm the only one here who brought actual snacks." },
-    { "speaker": "Hannah Kim", "text": "I'm Hannah Kim. I'm a lawyer, and I'm getting married next spring." },
-    { "speaker": "Sam Torres", "text": "Sam Torres. I work at REI, and I'm the designated driver tonight, sadly." },
-    { "speaker": "Chris Porter", "text": "I'm Chris Porter. I'm an accountant, and my wife Megan Walsh is making me text her every hour." },
-    { "speaker": "Kevin Doyle", "text": "So who's playing at Red Rocks tonight again?" },
-    { "speaker": "Sam Torres", "text": "Kevin. You bought the tickets. It's the Lumineers." },
-    { "speaker": "Kevin Doyle", "text": "Right, right. I just buy whatever the group chat tells me to." },
-    { "speaker": "Hannah Kim", "text": "Where's Megan tonight, Chris?" },
-    { "speaker": "Chris Porter", "text": "Book club. They're reading something with a dead husband in it, and she keeps looking at me funny." },
-    { "speaker": "Hannah Kim", "text": "Ha! You two have been together forever. Bonnaroo 2014, right?" },
-    { "speaker": "Chris Porter", "text": "Yep, Bonnaroo 2014. Eleven years ago this month. I still have the tent, actually. Megan wants me to throw it out, but I think it's a historical artifact. It's the whole reason we're married. Honestly, I want to be buried in that tent." },
-    { "speaker": "Kevin Doyle", "text": "That's disgusting and also romantic." },
-    { "speaker": "Sam Torres", "text": "Speaking of history, Kevin, you are officially the slowest Sunday Sends member ever to finish the blue wall." },
-    { "speaker": "Kevin Doyle", "text": "I've only been in the crew since 2019. Give me some time." },
-    { "speaker": "Hannah Kim", "text": "You joined in 2020, Kevin. You came to your first session right after the gyms reopened." },
-    { "speaker": "Kevin Doyle", "text": "No, it was the fall of 2019, before everything shut down." },
-    { "speaker": "Hannah Kim", "text": "I'm pretty sure it was 2020." },
-    { "speaker": "Sam Torres", "text": "I'm not getting in the middle of this." },
-    { "speaker": "Chris Porter", "text": "Kevin, how's Jenna doing?" },
-    { "speaker": "Kevin Doyle", "text": "She's great. She just got promoted to head nurse at Saint Joseph's. We've been married almost seven years now. We met at a wedding in 2015. Wait, no, 2016. It was my cousin's wedding in Pittsburgh. Her name was Jenna Lowe back then, and she was the only person at that whole wedding who would dance with me to Mister Brightside." },
-    { "speaker": "Hannah Kim", "text": "And Kevin's bachelor party is still a legend." },
-    { "speaker": "Sam Torres", "text": "Austin, 2018. Five guys, one rented pontoon boat, and Kevin decided he could drive it without reading a single instruction. We got stuck on a sandbar for three hours, and a family of total strangers on jet skis had to tow us back to the dock. Kevin tipped them forty dollars and a cooler of beer." },
-    { "speaker": "Kevin Doyle", "text": "Best forty dollars I ever spent." },
-    { "speaker": "Chris Porter", "text": "Who else was on that boat? Matt?" },
-    { "speaker": "Kevin Doyle", "text": "Matt Fisher, yeah. He's my coworker. We wire houses together. And he's the commissioner of the Dynasty League now." },
-    { "speaker": "Sam Torres", "text": "Which he runs like a dictator." },
-    { "speaker": "Chris Porter", "text": "Arjun and I founded that league, and we have absolutely no power anymore." },
-    { "speaker": "Hannah Kim", "text": "Okay, Kevin, were you there when Owen tore his knee in Breckenridge?" },
-    { "speaker": "Kevin Doyle", "text": "Oh, I was there. Breckenridge, the winter of 2022. I carried his skis all the way down." },
-    { "speaker": "Sam Torres", "text": "Poor Owen. He still won't go near a green run." },
-    { "speaker": "Hannah Kim", "text": "He's doing great now, though. He's helping me plan the wedding, which is a sentence I never thought I'd say about my ex." },
-    { "speaker": "Sam Torres", "text": "Oh, by the way, my coworker Kate Russo is meeting us there. She's the one who runs the climbing clinics at REI." },
-    { "speaker": "Chris Porter", "text": "Kate Russo? Not Kate Miller?" },
-    { "speaker": "Sam Torres", "text": "Definitely not Kate Miller. Why would Kate Miller be coming?" },
-    { "speaker": "Chris Porter", "text": "Because Kate Miller is my ex girlfriend from college, and she texted me last week saying she'd be at Red Rocks tonight. We dated from 2012 to 2014, it ended badly, and I have not seen her since." },
-    { "speaker": "Kevin Doyle", "text": "Oh no." },
-    { "speaker": "Hannah Kim", "text": "Oh, this is going to be a great night." },
-    { "speaker": "Kevin Doyle", "text": "Does Megan know Kate is going to be there?" },
-    { "speaker": "Chris Porter", "text": "I'm going to text her right now.", "pause_after_ms": 8000 },
-    { "speaker": "Hannah Kim", "text": "Okay, while he does that, Sam, tell me about the new climbing route." },
-    { "speaker": "Sam Torres", "text": "So, there's a crack climb up in Eldorado Canyon called the Bastille Crack. Owen and I tried it last fall and bailed halfway up. This summer the whole crew is going back, me, Owen, Hannah, and Kevin, and we are not leaving until everyone tops out. Even if it takes until dark. Even if Kevin cries." },
-    { "speaker": "Hannah Kim", "text": "I'll be there, assuming wedding planning doesn't kill me first." },
-    { "speaker": "Chris Porter", "text": "Okay. Megan says, and I quote, have fun and don't be weird." },
-    { "speaker": "Kevin Doyle", "text": "Ha, true. Solid advice.", "pause_after_ms": 8000 },
-    { "speaker": "Sam Torres", "text": "Alright, everybody in the car. Last call for snacks." },
-    { "speaker": "Hannah Kim", "text": "Grab the chips, Kevin." }
+    {
+      "speaker": "Kevin Doyle",
+      "text": "Alright, I'm Kevin Doyle. I'm an electrician, and I'm the only one here who brought actual snacks."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "I'm Hannah Kim. I'm a lawyer, and I'm getting married next spring."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Sam Torres. I work at REI, and I'm the designated driver tonight, sadly."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "I'm Chris Porter. I'm an accountant, and my wife Megan Walsh is making me text her every hour."
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "So who's playing at Red Rocks tonight again?"
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Kevin. You bought the tickets. It's the Lumineers."
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "Right, right. I just buy whatever the group chat tells me to."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "Where's Megan tonight, Chris?"
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Book club. They're reading something with a dead husband in it, and she keeps looking at me funny."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "Ha! You two have been together forever. Bonnaroo 2014, right?"
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Yep, Bonnaroo 2014. Eleven years ago this month. I still have the tent, actually. Megan wants me to throw it out, but I think it's a historical artifact. It's the whole reason we're married. Honestly, I want to be buried in that tent."
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "That's disgusting and also romantic."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Speaking of history, Kevin, you are officially the slowest Sunday Sends member ever to finish the blue wall."
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "I've only been in the crew since 2019. Give me some time."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "You joined in 2020, Kevin. You came to your first session right after the gyms reopened."
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "No, it was the fall of 2019, before everything shut down."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "I'm pretty sure it was 2020."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "I'm not getting in the middle of this."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Kevin, how's Jenna doing?"
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "She's great. She just got promoted to head nurse at Saint Joseph's. We've been married almost seven years now. We met at a wedding in 2015. Wait, no, 2016. It was my cousin's wedding in Pittsburgh. Her name was Jenna Lowe back then, and she was the only person at that whole wedding who would dance with me to Mister Brightside."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "And Kevin's bachelor party is still a legend."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Austin, 2018. Five guys, one rented pontoon boat, and Kevin decided he could drive it without reading a single instruction. We got stuck on a sandbar for three hours, and a family of total strangers on jet skis had to tow us back to the dock. Kevin tipped them forty dollars and a cooler of beer."
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "Best forty dollars I ever spent."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Who else was on that boat? Matt?"
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "Matt Fisher, yeah. He's my coworker. We wire houses together. And he's the commissioner of the Dynasty League now."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Which he runs like a dictator."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Arjun and I founded that league, and we have absolutely no power anymore."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "Okay, Kevin, were you there when Owen tore his knee in Breckenridge?"
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "Oh, I was there. Breckenridge, the winter of 2022. I carried his skis all the way down."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Poor Owen. He still won't go near a green run."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "He's doing great now, though. He's helping me plan the wedding, which is a sentence I never thought I'd say about my ex."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Oh, by the way, my coworker Kate Russo is meeting us there. She's the one who runs the climbing clinics at REI."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Kate Russo? Not Kate Miller?"
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Definitely not Kate Miller. Why would Kate Miller be coming?"
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Because Kate Miller is my ex girlfriend from college, and she texted me last week saying she'd be at Red Rocks tonight. We dated from 2012 to 2014, it ended badly, and I have not seen her since."
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "Oh no."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "Oh, this is going to be a great night."
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "Does Megan know Kate is going to be there?"
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "I'm going to text her right now.",
+      "pause_after_ms": 8000
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "Okay, while he does that, Sam, tell me about the new climbing route."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "So, there's a crack climb up in Eldorado Canyon called the Bastille Crack. Owen and I tried it last fall and bailed halfway up. This summer the whole crew is going back, me, Owen, Hannah, and Kevin, and we are not leaving until everyone tops out. Even if it takes until dark. Even if Kevin cries."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "I'll be there, assuming wedding planning doesn't kill me first."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Okay. Megan says, and I quote, have fun and don't be weird."
+    },
+    {
+      "speaker": "Kevin Doyle",
+      "text": "Ha, true. Solid advice.",
+      "pause_after_ms": 8000
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Alright, everybody in the car. Last call for snacks."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "text": "Grab the chips, Kevin."
+    }
   ],
   "expected": {
     "people": [
-      "Kevin Doyle", "Hannah Kim", "Sam Torres", "Chris Porter", "Megan Walsh",
-      "Jenna Lowe", "Matt Fisher", "Arjun", "Owen", "Kate Russo", "Kate Miller"
+      "Kevin Doyle",
+      "Hannah Kim",
+      "Sam Torres",
+      "Chris Porter",
+      "Megan Walsh",
+      "Jenna Lowe",
+      "Matt Fisher",
+      "Arjun",
+      "Owen",
+      "Kate Russo",
+      "Kate Miller"
     ],
     "relationships": [
-      { "a": "Chris Porter", "b": "Megan Walsh", "category": "romantic", "status": "current", "met": "2014" },
-      { "a": "Kevin Doyle", "b": "Jenna Lowe", "category": "romantic", "status": "current", "met": "2016" },
-      { "a": "Kevin Doyle", "b": "Matt Fisher", "category": "professional", "status": "current" },
-      { "a": "Chris Porter", "b": "Arjun", "category": "friend", "status": "current" },
-      { "a": "Hannah Kim", "b": "Owen", "category": "romantic", "status": "past" },
-      { "a": "Hannah Kim", "b": "Owen", "category": "friend", "status": "current" },
-      { "a": "Sam Torres", "b": "Kate Russo", "category": "professional", "status": "current" },
-      { "a": "Chris Porter", "b": "Kate Miller", "category": "romantic", "status": "past", "met": "2012" }
+      {
+        "a": "Chris Porter",
+        "b": "Megan Walsh",
+        "category": "romantic",
+        "status": "current",
+        "met": "2014"
+      },
+      {
+        "a": "Kevin Doyle",
+        "b": "Jenna Lowe",
+        "category": "romantic",
+        "status": "current",
+        "met": "2016"
+      },
+      {
+        "a": "Kevin Doyle",
+        "b": "Matt Fisher",
+        "category": "professional",
+        "status": "current"
+      },
+      {
+        "a": "Chris Porter",
+        "b": "Arjun",
+        "category": "friend",
+        "status": "current"
+      },
+      {
+        "a": "Hannah Kim",
+        "b": "Owen",
+        "category": "romantic",
+        "status": "past"
+      },
+      {
+        "a": "Hannah Kim",
+        "b": "Owen",
+        "category": "friend",
+        "status": "current"
+      },
+      {
+        "a": "Sam Torres",
+        "b": "Kate Russo",
+        "category": "professional",
+        "status": "current"
+      },
+      {
+        "a": "Chris Porter",
+        "b": "Kate Miller",
+        "category": "romantic",
+        "status": "past",
+        "met": "2012"
+      }
     ],
     "events": [
-      { "name": "Bonnaroo 2014", "year": 2014 },
-      { "name": "Kevin's cousin's wedding in Pittsburgh", "year": 2016 },
-      { "name": "Kevin's bachelor party in Austin", "year": 2018 },
-      { "name": "Breckenridge ski trip", "year": 2022 },
-      { "name": "Lumineers at Red Rocks", "year": 2025 }
+      {
+        "name": "Bonnaroo 2014",
+        "year": 2014
+      },
+      {
+        "name": "Kevin's cousin's wedding in Pittsburgh",
+        "year": 2016
+      },
+      {
+        "name": "Kevin's bachelor party in Austin",
+        "year": 2018
+      },
+      {
+        "name": "Breckenridge ski trip",
+        "year": 2022
+      },
+      {
+        "name": "Lumineers at Red Rocks",
+        "year": 2025
+      }
     ],
     "groups": [
-      { "name": "Sunday Sends", "members": ["Kevin Doyle", "Sam Torres", "Hannah Kim", "Owen"] },
-      { "name": "The Dynasty League", "members": ["Matt Fisher", "Chris Porter", "Arjun", "Sam Torres"] }
+      {
+        "name": "Sunday Sends",
+        "members": [
+          "Kevin Doyle",
+          "Sam Torres",
+          "Hannah Kim",
+          "Owen"
+        ]
+      },
+      {
+        "name": "The Dynasty League",
+        "members": [
+          "Matt Fisher",
+          "Chris Porter",
+          "Arjun",
+          "Sam Torres"
+        ]
+      }
     ],
     "disputes": 1,
-    "ambiguous_names": ["Kate"]
+    "ambiguous_names": [
+      "Kate"
+    ]
   }
 }

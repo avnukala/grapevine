@@ -2,145 +2,565 @@
   "name": "Nina's birthday dinner",
   "recorded_at": "2025-03-15",
   "voices": {
-    "Nina Shah": "Tara",
-    "Laura Bennett": "Moira",
+    "Nina Shah": {
+      "name": "Tara",
+      "pitch": 3
+    },
+    "Laura Bennett": {
+      "name": "Moira",
+      "pitch": -3,
+      "rate": 165
+    },
     "Megan Walsh": "Samantha",
     "Chris Porter": "Daniel",
-    "Emily Hart": "Tessa",
-    "Sam Torres": "Eddy (English (US))",
+    "Emily Hart": "Shelley (English (UK))",
+    "Sam Torres": {
+      "name": "Eddy (English (US))",
+      "pitch": -4,
+      "rate": 165
+    },
     "Owen Brooks": "Reed (English (US))",
     "Arjun Mehta": "Rishi"
   },
   "intro_lines": 8,
   "lines": [
-    { "speaker": "Nina Shah", "text": "Hi, I'm Nina Shah, and it's my birthday, so you all have to be nice to me. I teach chemistry at East High." },
-    { "speaker": "Laura Bennett", "text": "I'm Laura Bennett. I'm a graphic designer in Chicago, and I flew in this morning because I've known the birthday girl since college." },
-    { "speaker": "Megan Walsh", "text": "I'm Megan Walsh. I'm a nurse at Children's Hospital, and I'm in the book club with Nina." },
-    { "speaker": "Chris Porter", "text": "Chris Porter. I'm Megan's husband, I'm an accountant, and I made the reservation tonight, so you're welcome." },
-    { "speaker": "Emily Hart", "text": "I'm Emily Hart. I'm a veterinarian in Boulder, and I'm the one who picks the depressing books for book club." },
-    { "speaker": "Sam Torres", "text": "Hey, I'm Sam Torres. I work at REI, and I climb with Owen most Sundays." },
-    { "speaker": "Owen Brooks", "text": "I'm Owen Brooks. I'm a physical therapist, and I'm the one who drove Sam here, because his car is dead again." },
-    { "speaker": "Arjun Mehta", "text": "I'm Arjun Mehta. I'm a data scientist, and Chris was my college roommate at Colorado State." },
-    { "speaker": "Chris Porter", "text": "Happy birthday, Nina! Thirty five!" },
-    { "speaker": "Nina Shah", "text": "Thirty four. Do not age me." },
-    { "speaker": "Chris Porter", "text": "Thirty four. Sorry." },
-    { "speaker": "Emily Hart", "text": "Laura, how did you and Nina actually meet? I always forget." },
-    { "speaker": "Laura Bennett", "text": "Freshman orientation at Michigan, August 2008. They put us in the same group for the campus tour, and Nina asked the tour guide so many questions about the chemistry building that the whole group fell twenty minutes behind. I thought she was the most annoying person I had ever met. Then we ended up on the same floor of the dorm, and by October we were inseparable." },
-    { "speaker": "Nina Shah", "text": "That was 2009, wasn't it?" },
-    { "speaker": "Laura Bennett", "text": "Nina. We graduated in 2012. It was 2008." },
-    { "speaker": "Nina Shah", "text": "Oh, right, 2008. Okay, I'm already confused and I've only had one drink." },
-    { "speaker": "Megan Walsh", "text": "And you two lived together after college, right?" },
-    { "speaker": "Laura Bennett", "text": "In Chicago, for six years, until Nina abandoned me for Denver." },
-    { "speaker": "Nina Shah", "text": "In 2019. And you visit every summer, so stop complaining." },
-    { "speaker": "Arjun Mehta", "text": "Chris, should I tell them how we met, or will you?" },
-    { "speaker": "Chris Porter", "text": "Go ahead. You tell it worse than me." },
-    { "speaker": "Arjun Mehta", "text": "Fall of 2011, Colorado State. Chris and I got randomly assigned as roommates in the same tiny dorm room. The very first night, he set off the smoke alarm making ramen in an electric kettle, and the whole building had to stand outside in the rain at two in the morning. Everyone was furious with him. I decided right there that anybody that bad at cooking needed a friend." },
-    { "speaker": "Chris Porter", "text": "In my defense, the box said the kettle could do noodles." },
-    { "speaker": "Sam Torres", "text": "Ha, true. He still can't cook." },
-    { "speaker": "Megan Walsh", "text": "He really can't. I do everything." },
-    { "speaker": "Owen Brooks", "text": "Arjun, you're in the fantasy football league too, right?" },
-    { "speaker": "Arjun Mehta", "text": "The Dynasty League, yes. Me, Chris, Sam, Kevin Doyle, and Matt Fisher. Chris and I started it in 2013." },
-    { "speaker": "Chris Porter", "text": "2014. We started it in 2014, the year I got my first real job." },
-    { "speaker": "Arjun Mehta", "text": "No, it was 2013. I still have the email." },
-    { "speaker": "Chris Porter", "text": "You do not have the email." },
-    { "speaker": "Sam Torres", "text": "I joined in 2017, and I've won it twice, so honestly the founding year doesn't matter." },
-    { "speaker": "Arjun Mehta", "text": "That's the part that hurts the most." },
-    { "speaker": "Emily Hart", "text": "Wait, Arjun, you're getting married soon, aren't you?" },
-    { "speaker": "Arjun Mehta", "text": "In September! Claire and I are getting married in Napa, at a vineyard. Claire Dunn. She's a pediatric dentist, and you would all love her." },
-    { "speaker": "Megan Walsh", "text": "We met her at the holiday party. She's lovely." },
-    { "speaker": "Arjun Mehta", "text": "We met on a hiking app in 2021, which is either very romantic or very sad." },
-    { "speaker": "Laura Bennett", "text": "Very romantic. Better than how I met my ex." },
-    { "speaker": "Nina Shah", "text": "Oh no. Are we doing the Sam Reyes story?" },
-    { "speaker": "Laura Bennett", "text": "We are doing the Sam Reyes story. So Sam Reyes and I dated from 2014 to 2017 in Chicago. We met because she rear ended my car at a stoplight on Lake Shore Drive, and instead of exchanging insurance, we went and got coffee. Three years later we broke up, very calmly, like adults, and now she's honestly one of my best friends. She's coming to visit me in April." },
-    { "speaker": "Sam Torres", "text": "Sam Reyes, not me. Just to be clear." },
-    { "speaker": "Laura Bennett", "text": "Not you, Sam. A different Sam." },
-    { "speaker": "Emily Hart", "text": "Two Sams. This is going to get confusing." },
-    { "speaker": "Owen Brooks", "text": "Speaking of exes, Hannah says happy birthday, by the way. She's stuck at a work dinner." },
-    { "speaker": "Nina Shah", "text": "Tell her thank you! How is the wedding planning going?" },
-    { "speaker": "Owen Brooks", "text": "Stressful. She texts me spreadsheets. I don't know why. I'm the ex." },
-    { "speaker": "Megan Walsh", "text": "Because you're the most organized person she knows." },
-    { "speaker": "Emily Hart", "text": "Okay, I have to tell you all about Iceland, because I never got to at book club." },
-    { "speaker": "Emily Hart", "text": "So my college roommate Paige Wilson and I went to Iceland in 2022. We rented this tiny car and drove the whole ring road in ten days. On day four we got a flat tire in the middle of nowhere, with no cell service at all, and this old farmer pulled over on a tractor, changed the tire for us, refused to take any money, and invited us in for lamb soup. Best meal of my entire life." },
-    { "speaker": "Laura Bennett", "text": "Wasn't that 2021? I remember seeing the photos the summer I changed jobs." },
-    { "speaker": "Emily Hart", "text": "No, 2022. Paige got married in 2021, so it couldn't have been that year." },
-    { "speaker": "Laura Bennett", "text": "I really think it was 2021." },
-    { "speaker": "Emily Hart", "text": "Agree to disagree." },
-    { "speaker": "Nina Shah", "text": "Paige is in the book club now too, right?" },
-    { "speaker": "Megan Walsh", "text": "She joined Second Chapter last fall. So now it's five of us. Me, Nina, Laura, Emily, and Paige." },
-    { "speaker": "Sam Torres", "text": "Okay. Owen, can I tell the Breckenridge story?" },
-    { "speaker": "Owen Brooks", "text": "No." },
-    { "speaker": "Sam Torres", "text": "Too late. So, January 2023, the whole climbing crew goes up to Breckenridge for a ski weekend. Owen, a professional physical therapist, a person who tells other people how to avoid injuries for a living, goes off a tiny little jump on a green run, lands completely flat, and tears his ACL. On a green run." },
-    { "speaker": "Owen Brooks", "text": "It was a blue run." },
-    { "speaker": "Sam Torres", "text": "It was a green run. There were six year olds on it." },
-    { "speaker": "Owen Brooks", "text": "Okay, fine, it was a green run. And then I had to do my own rehab for eight months, and I was a terrible patient. I yelled at my own exercise bands. Megan had to come over twice a week just to make me do my exercises." },
-    { "speaker": "Megan Walsh", "text": "He cried at the leg press. I have witnesses." },
-    { "speaker": "Arjun Mehta", "text": "No way!" },
-    { "speaker": "Chris Porter", "text": "Okay, everyone, raise a glass. To Nina." },
-    { "speaker": "Laura Bennett", "text": "To Nina!" },
-    { "speaker": "Nina Shah", "text": "Thank you. Honestly, I'm so lucky. Six years ago I didn't know a single person here." },
-    { "speaker": "Emily Hart", "text": "Nina, what was your favorite birthday ever?" },
-    { "speaker": "Nina Shah", "text": "Probably my twenty first, in Ann Arbor, in 2012. Laura threw me a surprise party in our tiny apartment and invited like forty people. Then the landlord showed up, and instead of shutting it down, he stayed and danced until two in the morning. I still think about that landlord a lot." },
-    { "speaker": "Laura Bennett", "text": "Ha, true. He was the best dancer there." },
-    { "speaker": "Sam Torres", "text": "Megan, are you and Chris going to Napa for Arjun's wedding?" },
-    { "speaker": "Megan Walsh", "text": "Yes, we already booked the flights. It's our first trip without the dog." },
-    { "speaker": "Chris Porter", "text": "I'm a groomsman, so I have to give a speech. I'm terrified." },
-    { "speaker": "Arjun Mehta", "text": "Do not mention the kettle." },
-    { "speaker": "Chris Porter", "text": "I am absolutely mentioning the kettle." },
-    { "speaker": "Nina Shah", "text": "Laura, did Sam ever pay you back for those concert tickets?" },
-    { "speaker": "Laura Bennett", "text": "Not yet. Still waiting.", "pause_after_ms": 8000 },
-    { "speaker": "Emily Hart", "text": "Okay, I have to ask. Owen, are you seeing anyone?" },
-    { "speaker": "Owen Brooks", "text": "I am not answering that at a birthday dinner." },
-    { "speaker": "Sam Torres", "text": "His only relationship right now is with his trivia team." },
-    { "speaker": "Owen Brooks", "text": "The Know It Alls are a serious commitment. We came in second last week." },
-    { "speaker": "Arjun Mehta", "text": "Who's on that team?" },
-    { "speaker": "Owen Brooks", "text": "Me, my roommates Lucy Ford and Ravi Kapoor, and Ben Carter, Megan's cousin." },
-    { "speaker": "Arjun Mehta", "text": "Wait. Ravi Kapoor? Ravi is my cousin!" },
-    { "speaker": "Owen Brooks", "text": "No way. Ravi never told me that." },
-    { "speaker": "Arjun Mehta", "text": "Our moms are sisters. He's coming to the wedding too." },
-    { "speaker": "Megan Walsh", "text": "Denver is so small.", "pause_after_ms": 8000 },
-    { "speaker": "Emily Hart", "text": "Okay, cake time. Nina, make a wish." },
-    { "speaker": "Nina Shah", "text": "I wish that next year we all do this again. Same table, same people." },
-    { "speaker": "Laura Bennett", "text": "And that Chris doesn't burn anything." },
-    { "speaker": "Chris Porter", "text": "One time! One kettle!" },
-    { "speaker": "Sam Torres", "text": "Happy birthday, Nina." }
+    {
+      "speaker": "Nina Shah",
+      "text": "Hi, I'm Nina Shah, and it's my birthday, so you all have to be nice to me. I teach chemistry at East High."
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "I'm Laura Bennett. I'm a graphic designer in Chicago, and I flew in this morning because I've known the birthday girl since college."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "text": "I'm Megan Walsh. I'm a nurse at Children's Hospital, and I'm in the book club with Nina."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Chris Porter. I'm Megan's husband, I'm an accountant, and I made the reservation tonight, so you're welcome."
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "I'm Emily Hart. I'm a veterinarian in Boulder, and I'm the one who picks the depressing books for book club."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Hey, I'm Sam Torres. I work at REI, and I climb with Owen most Sundays."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "I'm Owen Brooks. I'm a physical therapist, and I'm the one who drove Sam here, because his car is dead again."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "I'm Arjun Mehta. I'm a data scientist, and Chris was my college roommate at Colorado State."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Happy birthday, Nina! Thirty five!"
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "Thirty four. Do not age me."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Thirty four. Sorry."
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "Laura, how did you and Nina actually meet? I always forget."
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "Freshman orientation at Michigan, August 2008. They put us in the same group for the campus tour, and Nina asked the tour guide so many questions about the chemistry building that the whole group fell twenty minutes behind. I thought she was the most annoying person I had ever met. Then we ended up on the same floor of the dorm, and by October we were inseparable."
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "That was 2009, wasn't it?"
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "Nina. We graduated in 2012. It was 2008."
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "Oh, right, 2008. Okay, I'm already confused and I've only had one drink."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "text": "And you two lived together after college, right?"
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "In Chicago, for six years, until Nina abandoned me for Denver."
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "In 2019. And you visit every summer, so stop complaining."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "Chris, should I tell them how we met, or will you?"
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Go ahead. You tell it worse than me."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "Fall of 2011, Colorado State. Chris and I got randomly assigned as roommates in the same tiny dorm room. The very first night, he set off the smoke alarm making ramen in an electric kettle, and the whole building had to stand outside in the rain at two in the morning. Everyone was furious with him. I decided right there that anybody that bad at cooking needed a friend."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "In my defense, the box said the kettle could do noodles."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Ha, true. He still can't cook."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "text": "He really can't. I do everything."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "Arjun, you're in the fantasy football league too, right?"
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "The Dynasty League, yes. Me, Chris, Sam, Kevin Doyle, and Matt Fisher. Chris and I started it in 2013."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "2014. We started it in 2014, the year I got my first real job."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "No, it was 2013. I still have the email."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "You do not have the email."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "I joined in 2017, and I've won it twice, so honestly the founding year doesn't matter."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "That's the part that hurts the most."
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "Wait, Arjun, you're getting married soon, aren't you?"
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "In September! Claire and I are getting married in Napa, at a vineyard. Claire Dunn. She's a pediatric dentist, and you would all love her."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "text": "We met her at the holiday party. She's lovely."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "We met on a hiking app in 2021, which is either very romantic or very sad."
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "Very romantic. Better than how I met my ex."
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "Oh no. Are we doing the Sam Reyes story?"
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "We are doing the Sam Reyes story. So Sam Reyes and I dated from 2014 to 2017 in Chicago. We met because she rear ended my car at a stoplight on Lake Shore Drive, and instead of exchanging insurance, we went and got coffee. Three years later we broke up, very calmly, like adults, and now she's honestly one of my best friends. She's coming to visit me in April."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Sam Reyes, not me. Just to be clear."
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "Not you, Sam. A different Sam."
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "Two Sams. This is going to get confusing."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "Speaking of exes, Hannah says happy birthday, by the way. She's stuck at a work dinner."
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "Tell her thank you! How is the wedding planning going?"
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "Stressful. She texts me spreadsheets. I don't know why. I'm the ex."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "text": "Because you're the most organized person she knows."
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "Okay, I have to tell you all about Iceland, because I never got to at book club."
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "So my college roommate Paige Wilson and I went to Iceland in 2022. We rented this tiny car and drove the whole ring road in ten days. On day four we got a flat tire in the middle of nowhere, with no cell service at all, and this old farmer pulled over on a tractor, changed the tire for us, refused to take any money, and invited us in for lamb soup. Best meal of my entire life."
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "Wasn't that 2021? I remember seeing the photos the summer I changed jobs."
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "No, 2022. Paige got married in 2021, so it couldn't have been that year."
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "I really think it was 2021."
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "Agree to disagree."
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "Paige is in the book club now too, right?"
+    },
+    {
+      "speaker": "Megan Walsh",
+      "text": "She joined Second Chapter last fall. So now it's five of us. Me, Nina, Laura, Emily, and Paige."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Okay. Owen, can I tell the Breckenridge story?"
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "No."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Too late. So, January 2023, the whole climbing crew goes up to Breckenridge for a ski weekend. Owen, a professional physical therapist, a person who tells other people how to avoid injuries for a living, goes off a tiny little jump on a green run, lands completely flat, and tears his ACL. On a green run."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "It was a blue run."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "It was a green run. There were six year olds on it."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "Okay, fine, it was a green run. And then I had to do my own rehab for eight months, and I was a terrible patient. I yelled at my own exercise bands. Megan had to come over twice a week just to make me do my exercises."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "text": "He cried at the leg press. I have witnesses."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "No way!"
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "Okay, everyone, raise a glass. To Nina."
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "To Nina!"
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "Thank you. Honestly, I'm so lucky. Six years ago I didn't know a single person here."
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "Nina, what was your favorite birthday ever?"
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "Probably my twenty first, in Ann Arbor, in 2012. Laura threw me a surprise party in our tiny apartment and invited like forty people. Then the landlord showed up, and instead of shutting it down, he stayed and danced until two in the morning. I still think about that landlord a lot."
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "Ha, true. He was the best dancer there."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Megan, are you and Chris going to Napa for Arjun's wedding?"
+    },
+    {
+      "speaker": "Megan Walsh",
+      "text": "Yes, we already booked the flights. It's our first trip without the dog."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "I'm a groomsman, so I have to give a speech. I'm terrified."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "Do not mention the kettle."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "I am absolutely mentioning the kettle."
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "Laura, did Sam ever pay you back for those concert tickets?"
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "Not yet. Still waiting.",
+      "pause_after_ms": 8000
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "Okay, I have to ask. Owen, are you seeing anyone?"
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "I am not answering that at a birthday dinner."
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "His only relationship right now is with his trivia team."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "The Know It Alls are a serious commitment. We came in second last week."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "Who's on that team?"
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "Me, my roommates Lucy Ford and Ravi Kapoor, and Ben Carter, Megan's cousin."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "Wait. Ravi Kapoor? Ravi is my cousin!"
+    },
+    {
+      "speaker": "Owen Brooks",
+      "text": "No way. Ravi never told me that."
+    },
+    {
+      "speaker": "Arjun Mehta",
+      "text": "Our moms are sisters. He's coming to the wedding too."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "text": "Denver is so small.",
+      "pause_after_ms": 8000
+    },
+    {
+      "speaker": "Emily Hart",
+      "text": "Okay, cake time. Nina, make a wish."
+    },
+    {
+      "speaker": "Nina Shah",
+      "text": "I wish that next year we all do this again. Same table, same people."
+    },
+    {
+      "speaker": "Laura Bennett",
+      "text": "And that Chris doesn't burn anything."
+    },
+    {
+      "speaker": "Chris Porter",
+      "text": "One time! One kettle!"
+    },
+    {
+      "speaker": "Sam Torres",
+      "text": "Happy birthday, Nina."
+    }
   ],
   "expected": {
     "people": [
-      "Nina Shah", "Laura Bennett", "Megan Walsh", "Chris Porter", "Emily Hart", "Sam Torres", "Owen Brooks", "Arjun Mehta",
-      "Kevin Doyle", "Matt Fisher", "Claire Dunn", "Sam Reyes", "Hannah", "Paige Wilson",
-      "Lucy Ford", "Ravi Kapoor", "Ben Carter"
+      "Nina Shah",
+      "Laura Bennett",
+      "Megan Walsh",
+      "Chris Porter",
+      "Emily Hart",
+      "Sam Torres",
+      "Owen Brooks",
+      "Arjun Mehta",
+      "Kevin Doyle",
+      "Matt Fisher",
+      "Claire Dunn",
+      "Sam Reyes",
+      "Hannah",
+      "Paige Wilson",
+      "Lucy Ford",
+      "Ravi Kapoor",
+      "Ben Carter"
     ],
     "relationships": [
-      { "a": "Laura Bennett", "b": "Nina Shah", "category": "friend", "status": "current", "met": "2008" },
-      { "a": "Megan Walsh", "b": "Chris Porter", "category": "romantic", "status": "current" },
-      { "a": "Chris Porter", "b": "Arjun Mehta", "category": "friend", "status": "current", "met": "2011" },
-      { "a": "Arjun Mehta", "b": "Claire Dunn", "category": "romantic", "status": "current", "met": "2021" },
-      { "a": "Laura Bennett", "b": "Sam Reyes", "category": "romantic", "status": "past", "met": "2014" },
-      { "a": "Laura Bennett", "b": "Sam Reyes", "category": "friend", "status": "current" },
-      { "a": "Owen Brooks", "b": "Hannah", "category": "romantic", "status": "past" },
-      { "a": "Owen Brooks", "b": "Hannah", "category": "friend", "status": "current" },
-      { "a": "Owen Brooks", "b": "Sam Torres", "category": "friend", "status": "current" },
-      { "a": "Emily Hart", "b": "Paige Wilson", "category": "friend", "status": "current" },
-      { "a": "Owen Brooks", "b": "Lucy Ford", "category": "friend", "status": "current" },
-      { "a": "Owen Brooks", "b": "Ravi Kapoor", "category": "friend", "status": "current" },
-      { "a": "Arjun Mehta", "b": "Ravi Kapoor", "category": "family", "status": "current" },
-      { "a": "Megan Walsh", "b": "Ben Carter", "category": "family", "status": "current" }
+      {
+        "a": "Laura Bennett",
+        "b": "Nina Shah",
+        "category": "friend",
+        "status": "current",
+        "met": "2008"
+      },
+      {
+        "a": "Megan Walsh",
+        "b": "Chris Porter",
+        "category": "romantic",
+        "status": "current"
+      },
+      {
+        "a": "Chris Porter",
+        "b": "Arjun Mehta",
+        "category": "friend",
+        "status": "current",
+        "met": "2011"
+      },
+      {
+        "a": "Arjun Mehta",
+        "b": "Claire Dunn",
+        "category": "romantic",
+        "status": "current",
+        "met": "2021"
+      },
+      {
+        "a": "Laura Bennett",
+        "b": "Sam Reyes",
+        "category": "romantic",
+        "status": "past",
+        "met": "2014"
+      },
+      {
+        "a": "Laura Bennett",
+        "b": "Sam Reyes",
+        "category": "friend",
+        "status": "current"
+      },
+      {
+        "a": "Owen Brooks",
+        "b": "Hannah",
+        "category": "romantic",
+        "status": "past"
+      },
+      {
+        "a": "Owen Brooks",
+        "b": "Hannah",
+        "category": "friend",
+        "status": "current"
+      },
+      {
+        "a": "Owen Brooks",
+        "b": "Sam Torres",
+        "category": "friend",
+        "status": "current"
+      },
+      {
+        "a": "Emily Hart",
+        "b": "Paige Wilson",
+        "category": "friend",
+        "status": "current"
+      },
+      {
+        "a": "Owen Brooks",
+        "b": "Lucy Ford",
+        "category": "friend",
+        "status": "current"
+      },
+      {
+        "a": "Owen Brooks",
+        "b": "Ravi Kapoor",
+        "category": "friend",
+        "status": "current"
+      },
+      {
+        "a": "Arjun Mehta",
+        "b": "Ravi Kapoor",
+        "category": "family",
+        "status": "current"
+      },
+      {
+        "a": "Megan Walsh",
+        "b": "Ben Carter",
+        "category": "family",
+        "status": "current"
+      }
     ],
     "events": [
-      { "name": "Michigan freshman orientation", "year": 2008 },
-      { "name": "Nina's move to Denver", "year": 2019 },
-      { "name": "Nina's twenty first birthday party in Ann Arbor", "year": 2012 },
-      { "name": "Emily and Paige's Iceland trip", "year": 2022 },
-      { "name": "Paige's wedding", "year": 2021 },
-      { "name": "Breckenridge ski trip", "year": 2023 },
-      { "name": "Arjun and Claire's wedding in Napa", "year": 2025 }
+      {
+        "name": "Michigan freshman orientation",
+        "year": 2008
+      },
+      {
+        "name": "Nina's move to Denver",
+        "year": 2019
+      },
+      {
+        "name": "Nina's twenty first birthday party in Ann Arbor",
+        "year": 2012
+      },
+      {
+        "name": "Emily and Paige's Iceland trip",
+        "year": 2022
+      },
+      {
+        "name": "Paige's wedding",
+        "year": 2021
+      },
+      {
+        "name": "Breckenridge ski trip",
+        "year": 2023
+      },
+      {
+        "name": "Arjun and Claire's wedding in Napa",
+        "year": 2025
+      }
     ],
     "groups": [
-      { "name": "The Dynasty League", "members": ["Arjun Mehta", "Chris Porter", "Sam Torres", "Kevin Doyle", "Matt Fisher"] },
-      { "name": "Second Chapter", "members": ["Megan Walsh", "Nina Shah", "Laura Bennett", "Emily Hart", "Paige Wilson"] },
-      { "name": "The Know It Alls", "members": ["Owen Brooks", "Lucy Ford", "Ravi Kapoor", "Ben Carter"] }
+      {
+        "name": "The Dynasty League",
+        "members": [
+          "Arjun Mehta",
+          "Chris Porter",
+          "Sam Torres",
+          "Kevin Doyle",
+          "Matt Fisher"
+        ]
+      },
+      {
+        "name": "Second Chapter",
+        "members": [
+          "Megan Walsh",
+          "Nina Shah",
+          "Laura Bennett",
+          "Emily Hart",
+          "Paige Wilson"
+        ]
+      },
+      {
+        "name": "The Know It Alls",
+        "members": [
+          "Owen Brooks",
+          "Lucy Ford",
+          "Ravi Kapoor",
+          "Ben Carter"
+        ]
+      }
     ],
     "disputes": 2,
-    "ambiguous_names": ["Sam"]
+    "ambiguous_names": [
+      "Sam"
+    ]
   }
 }

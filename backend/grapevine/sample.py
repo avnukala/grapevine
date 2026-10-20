@@ -1,4 +1,7 @@
-"""Builds a sample conversation MP3 and its hand labels from a script, with macOS `say` voices."""
+"""Builds a sample conversation MP3 and its hand labels from a script, with macOS `say` voices.
+
+A voice is a `say` voice name, or an object with the name, a pitch shift in semitones, and a rate in words
+per minute. Several macOS voices sound alike to speaker models, so a shift keeps the speakers distinct."""
 
 import json
 import subprocess
@@ -14,10 +17,17 @@ from grapevine.audio import SAMPLE_RATE, decode
 GAP_MS = 500
 
 
-def synthesize(text: str, voice: str, workdir: Path, index: int) -> np.ndarray:
+def synthesize(text: str, voice: str | dict, workdir: Path, index: int) -> np.ndarray:
+    spec = {"name": voice} if isinstance(voice, str) else voice
     aiff = workdir / f"{index}.aiff"
-    subprocess.run(["say", "-v", voice, "-o", str(aiff), text], check=True)
-    return decode(aiff)
+    rate = ["-r", str(spec["rate"])] if "rate" in spec else []
+    subprocess.run(["say", "-v", spec["name"], *rate, "-o", str(aiff), text], check=True)
+    audio = decode(aiff)
+    if not spec.get("pitch"):
+        return audio
+    import librosa
+
+    return librosa.effects.pitch_shift(audio, sr=SAMPLE_RATE, n_steps=spec["pitch"]).astype(np.float32)
 
 
 def build(script_path: Path) -> None:

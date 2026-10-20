@@ -1,7 +1,7 @@
 {
   "audio": "friendsgiving-6p.mp3",
   "intro_end_ms": 41811,
-  "duration_ms": 469268,
+  "duration_ms": 469287,
   "turns": [
     {
       "speaker": "Megan Walsh",
@@ -276,157 +276,157 @@
     {
       "speaker": "Nina Shah",
       "start_ms": 305785,
-      "end_ms": 309825,
+      "end_ms": 309831,
       "text": "Something very sad about a lighthouse. Emily picked it, obviously."
     },
     {
       "speaker": "Owen Brooks",
-      "start_ms": 310325,
-      "end_ms": 313507,
+      "start_ms": 310331,
+      "end_ms": 313513,
       "text": "Megan, didn't you say your brother was coming?"
     },
     {
       "speaker": "Megan Walsh",
-      "start_ms": 314007,
-      "end_ms": 320215,
+      "start_ms": 314013,
+      "end_ms": 320221,
       "text": "Andrew Walsh, yes, my little brother. He's driving down from Fort Collins, and he is always late."
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 320715,
-      "end_ms": 328589,
+      "start_ms": 320721,
+      "end_ms": 328595,
       "text": "And my coworker Andrew Collins might stop by too. He just moved here from Boston and doesn't know anyone yet, so I invited him."
     },
     {
       "speaker": "Owen Brooks",
-      "start_ms": 329089,
-      "end_ms": 331257,
+      "start_ms": 329095,
+      "end_ms": 331263,
       "text": "Two Andrews. Got it."
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 331757,
-      "end_ms": 337739,
+      "start_ms": 331763,
+      "end_ms": 337745,
       "text": "Andrew Collins and I sit next to each other at Deloitte. He's the one who taught me to snowboard last winter."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 338239,
-      "end_ms": 343345,
+      "start_ms": 338245,
+      "end_ms": 343351,
       "text": "Oh, I owe Andrew twenty dollars from the Broncos game. Remind me when he gets here."
     },
     {
       "speaker": "Ben Carter",
-      "start_ms": 343845,
-      "end_ms": 349610,
+      "start_ms": 343851,
+      "end_ms": 349616,
       "text": "Speaking of food, can we please eat? The turkey has been resting for like an hour."
     },
     {
       "speaker": "Nina Shah",
-      "start_ms": 357610,
-      "end_ms": 360973,
+      "start_ms": 357616,
+      "end_ms": 360979,
       "text": "Okay, this stuffing is incredible. Who made this?"
     },
     {
       "speaker": "Owen Brooks",
-      "start_ms": 361473,
-      "end_ms": 365647,
+      "start_ms": 361479,
+      "end_ms": 365653,
       "text": "That's me. My grandma's recipe. A lot of sausage."
     },
     {
       "speaker": "Megan Walsh",
-      "start_ms": 366147,
-      "end_ms": 374348,
+      "start_ms": 366153,
+      "end_ms": 374354,
       "text": "Owen and I work together at Children's Hospital. He started there in 2019, and he's the only physical therapist the kids actually like."
     },
     {
       "speaker": "Owen Brooks",
-      "start_ms": 374848,
-      "end_ms": 401390,
+      "start_ms": 374854,
+      "end_ms": 401396,
       "text": "That's because I let them race wheelchairs down the hallway. Last spring I had a twelve year old recovering from knee surgery, a really quiet kid, and he wouldn't do any of his exercises. So I told him, if you do all your reps for a week, we race. He did every single one. On Friday we raced down the third floor hallway, he beat me by a mile, and a surgeon came around the corner and nearly got run over."
     },
     {
       "speaker": "Megan Walsh",
-      "start_ms": 401890,
-      "end_ms": 404428,
+      "start_ms": 401896,
+      "end_ms": 404434,
       "text": "I was the one who had to write the incident report."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 404928,
-      "end_ms": 405811,
+      "start_ms": 404934,
+      "end_ms": 405817,
       "text": "That's amazing."
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 406311,
-      "end_ms": 411186,
+      "start_ms": 406317,
+      "end_ms": 411192,
       "text": "So, are we doing the Thanksgiving thing where everyone says what they're grateful for?"
     },
     {
       "speaker": "Nina Shah",
-      "start_ms": 411686,
-      "end_ms": 415659,
+      "start_ms": 411692,
+      "end_ms": 415665,
       "text": "Ugh, fine. I'm grateful I finally passed my car inspection."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 416159,
-      "end_ms": 421101,
+      "start_ms": 416165,
+      "end_ms": 421107,
       "text": "I'm grateful for Tyler, obviously. And for Owen, for not making this weird."
     },
     {
       "speaker": "Owen Brooks",
-      "start_ms": 421601,
-      "end_ms": 424943,
+      "start_ms": 421607,
+      "end_ms": 424949,
       "text": "I'm grateful nobody fell on me at the gym this year."
     },
     {
       "speaker": "Ben Carter",
-      "start_ms": 425443,
-      "end_ms": 432271,
+      "start_ms": 425449,
+      "end_ms": 432277,
       "text": "I'm grateful for my arm, which works fine now, no thanks to that pickup truck in 2012."
     },
     {
       "speaker": "Megan Walsh",
-      "start_ms": 432771,
-      "end_ms": 434001,
+      "start_ms": 432777,
+      "end_ms": 434007,
       "text": "2013."
     },
     {
       "speaker": "Megan Walsh",
-      "start_ms": 434501,
-      "end_ms": 453453,
+      "start_ms": 434507,
+      "end_ms": 453459,
       "text": "Okay, my turn. I'm grateful for all of you. When I moved out here for Chris in 2016, I didn't know a single person in Denver except him. And now I've got the book club, I've got band nights, and I've got Hannah and Owen dragging me to the climbing gym even though I hate it. This table is my whole family out here."
     },
     {
       "speaker": "Nina Shah",
-      "start_ms": 453953,
-      "end_ms": 455748,
+      "start_ms": 453959,
+      "end_ms": 455767,
       "text": "Stop, you're going to make me cry."
     },
     {
       "speaker": "Chris Porter",
-      "start_ms": 456248,
-      "end_ms": 459072,
+      "start_ms": 456267,
+      "end_ms": 459091,
       "text": "And I'm grateful that Megan knows how to pitch a tent."
     },
     {
       "speaker": "Ben Carter",
-      "start_ms": 459572,
-      "end_ms": 463386,
+      "start_ms": 459591,
+      "end_ms": 463405,
       "text": "Has anyone heard from Andrew? Should we save him a plate?"
     },
     {
       "speaker": "Megan Walsh",
-      "start_ms": 463886,
-      "end_ms": 466025,
+      "start_ms": 463905,
+      "end_ms": 466044,
       "text": "Save him two. He's always starving."
     },
     {
       "speaker": "Hannah Kim",
-      "start_ms": 466525,
-      "end_ms": 468768,
+      "start_ms": 466544,
+      "end_ms": 468787,
       "text": "Okay, somebody pass the pie."
     }
   ]
