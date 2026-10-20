@@ -3,17 +3,18 @@ global relationships. Only conflicts go to manual review: facts that disagree, a
 match with high confidence."""
 
 import json
+from difflib import SequenceMatcher
 from itertools import combinations
 from typing import Literal
 
 from grapevine.actions import ActionError, active_prompt
 from grapevine.graph import Graph, Record
 from grapevine.llm import LLM, Call
-from grapevine.prompter import show_prompt
 from grapevine.store import Store
 
 PROMPT_VERSION = "merger-v1"
-SAME_PERSON_CONFIDENCE = 0.9
+SAME_PERSON_CONFIDENCE = 0.95
+SPELLING_MATCH = 0.6
 
 MergeAction = Literal["keep", "keep_both", "remove_edge", "merge_people", "keep_apart"]
 
@@ -22,7 +23,7 @@ SYSTEM = """You merge what several conversations told about a group of friends i
 Write:
 - relationships: for each relationship ref, a "summary" of 1 or 2 sentences from all its facts, a "label" of 1 to 3 words, and a "status" (current or past).
 - conflicts: facts from different sessions that cannot both be true, for example two different years for the same event. Give the fact refs and a short "question" that asks which one is right. Do not list facts that only add detail.
-- same_person: for each candidate pair, whether the two records are the same person, with a "confidence" from 0 to 1. Use the names, the aliases, and what the facts say about them."""
+- same_person: one entry for each pair under CANDIDATE PAIRS and no other pair. "a" and "b" are the two ids, and "confidence" from 0 to 1 says how sure you are that they are the same person. Names that differ by a spelling mistake, such as "Sam Taurus" and "Sam Torres", are often the same person. Use the names, the aliases, and what the facts say about them."""
 
 SCHEMA = {
     "type": "object",
@@ -63,6 +64,12 @@ SCHEMA = {
         },
     },
 }
+
+
+def review(store: Store, **prompt) -> None:
+    """Adds an item to the merge review. Unlike the live prompt panel, the review shows every item."""
+    if not any(p["text"] == prompt["text"] for p in store.graph.active_prompts()):
+        store.add_prompt(**prompt)
 
 
 def canonical(store: Store, person_id: int) -> int:
@@ -135,7 +142,7 @@ def combine_relationships(store: Store, graphs: list[Graph]) -> None:
         statuses = {r["status"] for r in rels}
         if len(statuses) > 1 or len({m[:4] for m in met}) > 1:
             names = " and ".join(store.graph.people[p]["name"].split()[0] for p in (a, b))
-            show_prompt(
+            review(
                 store,
                 text=f"Sessions disagree about {names} ({category}): "
                 + "; ".join(f"{r['status']}, met {r['met_on'] or '?'}" for r in rels),
@@ -145,17 +152,34 @@ def combine_relationships(store: Store, graphs: list[Graph]) -> None:
             )
 
 
+def misspelled(x: str, y: str) -> bool:
+    """Whether two full names could be one name that Whisper spelled two ways, such as Sam Torres and Sam
+    Taurus. First names must be close, and last names must be close once their vowels are dropped."""
+    a, b = x.lower().split(), y.lower().split()
+    if len(a) < 2 or len(b) < 2:
+        return False
+
+    def consonants(word: str) -> str:
+        return "".join(c for c in word if c not in "aeiouy")
+
+    first = SequenceMatcher(None, a[0], b[0]).ratio()
+    last = SequenceMatcher(None, consonants(a[-1]), consonants(b[-1])).ratio()
+    return first >= SPELLING_MATCH and last >= 0.75
+
+
 def candidate_pairs(store: Store) -> list[tuple[int, int]]:
     """Pairs of people whose names could mean the same person, such as "Andrew" and "Andrew Gao"."""
 
     def could_match(x: Record, y: Record) -> bool:
-        if x["name"].lower() == y["name"].lower():
+        names_x = {x["name"].lower(), *(a.lower() for a in x["aliases"])}
+        names_y = {y["name"].lower(), *(a.lower() for a in y["aliases"])}
+        if x["name"].lower() in names_y or y["name"].lower() in names_x:
             return True
         for short, full in ((x, y), (y, x)):
             names = {full["name"].split()[0].lower(), *(a.lower() for a in full["aliases"])}
             if " " not in short["name"] and short["name"].lower() in names:
                 return True
-        return False
+        return misspelled(x["name"], y["name"])
 
     people = list(store.graph.people.values())
     return [(x["id"], y["id"]) for x, y in combinations(people, 2) if could_match(x, y)]
@@ -175,7 +199,10 @@ def user_message(store: Store, pairs: list[tuple[int, int]]) -> str:
             + " ".join(facts[:4])
         )
     lines += ["", "CANDIDATE PAIRS:"]
-    lines += [f"{graph.ref('p', a)} and {graph.ref('p', b)}" for a, b in pairs] or ["(none)"]
+    lines += [
+        f"{graph.ref('p', a)} {graph.people[a]['name']} and {graph.ref('p', b)} {graph.people[b]['name']}"
+        for a, b in pairs
+    ] or ["(none)"]
     lines += ["", "RELATIONSHIPS:"]
     for rel in graph.relationships.values():
         evidence = "; ".join(graph.facts[f]["text"] for f in rel["evidence"] if f in graph.facts)
@@ -205,7 +232,7 @@ async def merge(store: Store, llm: LLM, *, model: str, seed: int) -> None:
         for graph in graphs:
             for prompt in graph.active_prompts():
                 if prompt["reason"] == "conflict":
-                    show_prompt(
+                    review(
                         store,
                         text=prompt["text"],
                         reason="merge_conflict",
@@ -238,7 +265,7 @@ async def merge(store: Store, llm: LLM, *, model: str, seed: int) -> None:
             if len(fact_ids) < 2:
                 continue
             relationship_ids = [r["id"] for r in graph.relationships.values() if set(fact_ids) & set(r["evidence"])]
-            show_prompt(
+            review(
                 store,
                 text=conflict["question"],
                 reason="merge_conflict",
@@ -255,7 +282,7 @@ async def merge(store: Store, llm: LLM, *, model: str, seed: int) -> None:
             if match["confidence"] >= SAME_PERSON_CONFIDENCE:
                 merge_people(store, keep, other)
                 continue
-            show_prompt(
+            review(
                 store,
                 text=f"Is {graph.people[other]['name']} the same person as {graph.people[keep]['name']}?",
                 reason="merge_people",
