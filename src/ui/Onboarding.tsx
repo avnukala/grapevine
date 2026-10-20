@@ -44,10 +44,10 @@ export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
 
   return (
     <div className="flex h-full items-start justify-center overflow-auto p-8" data-testid="onboarding">
-      <Card className="w-full max-w-xl border-border/60 bg-card/80 shadow-2xl backdrop-blur">
+      <Card className="w-full max-w-xl border-border/60 bg-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="size-5 text-violet-700 dark:text-violet-300" /> Who is here?
+            <Sparkles className="size-5 text-primary" /> Who is here?
           </CardTitle>
           <CardDescription>
             Type the first and last name of each person. Grapevine uses this list to spell names correctly and to match
@@ -66,7 +66,7 @@ export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
             {names.map((name, index) => (
               <div key={index} className="flex items-center gap-2">
                 <span
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white transition-opacity"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-ink transition-opacity"
                   style={{
                     background: GROUP_COLORS[index % GROUP_COLORS.length],
                     opacity: name.trim() ? 1 : 0.25,
@@ -103,7 +103,7 @@ export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
               <Plus /> Add person
             </Button>
             {unclear && (
-              <p className="text-xs text-amber-700 dark:text-amber-300">
+              <p className="text-xs text-warn">
                 Two people have the same first name. Last names help tell them apart.
               </p>
             )}

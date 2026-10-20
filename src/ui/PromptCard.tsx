@@ -17,13 +17,13 @@ export type Answer =
 export const QUESTIONS = ["which_person", "which_speaker", "conflict"];
 
 const STYLE: Record<string, { icon: typeof HelpCircle; accent: string; title: string }> = {
-  which_person: { icon: Users, accent: "border-l-amber-400", title: "Who do you mean?" },
-  which_speaker: { icon: Users, accent: "border-l-amber-400", title: "Who is speaking?" },
-  conflict: { icon: Scale, accent: "border-l-red-400", title: "Facts disagree" },
-  merge_conflict: { icon: Scale, accent: "border-l-red-400", title: "Sessions disagree" },
-  merge_people: { icon: Users, accent: "border-l-amber-400", title: "Same person?" },
+  which_person: { icon: Users, accent: "border-l-warn", title: "Who do you mean?" },
+  which_speaker: { icon: Users, accent: "border-l-warn", title: "Who is speaking?" },
+  conflict: { icon: Scale, accent: "border-l-alert", title: "Facts disagree" },
+  merge_conflict: { icon: Scale, accent: "border-l-alert", title: "Sessions disagree" },
+  merge_people: { icon: Users, accent: "border-l-warn", title: "Same person?" },
 };
-const SUGGESTION = { icon: MessageCircleQuestion, accent: "border-l-violet-400", title: "Ask the room" };
+const SUGGESTION = { icon: MessageCircleQuestion, accent: "border-l-primary", title: "Ask the room" };
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -43,7 +43,7 @@ export function PromptCard({ prompt, state, onAnswer, onDismiss }: PromptCardPro
   return (
     <div
       className={cn(
-        "animate-in fade-in slide-in-from-right-4 rounded-xl border border-l-4 border-border bg-card/90 p-4 shadow-2xl backdrop-blur",
+        "animate-in fade-in slide-in-from-right-4 rounded-xl border border-l-4 border-border bg-card p-4",
         style.accent,
       )}
       data-testid="prompt"

@@ -49,8 +49,8 @@ export function Transcript(props: TranscriptProps) {
             key={segment.id}
             className={cn(
               "flex items-start gap-3 rounded-lg px-2 py-1.5 transition",
-              current && "bg-amber-300/10 ring-1 ring-amber-300/40",
-              unknown && "bg-orange-500/5",
+              current && "bg-warn/10 ring-1 ring-warn/40",
+              unknown && "bg-alert/5",
             )}
           >
             <button
@@ -62,16 +62,16 @@ export function Transcript(props: TranscriptProps) {
             </button>
             <span
               className={cn(
-                "flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white",
-                unknown && "ring-2 ring-orange-400",
+                "flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-ink",
+                unknown && "ring-2 ring-alert",
               )}
-              style={{ background: unknown ? "#9a3412" : GENDER_COLORS[gender][1] }}
+              style={{ background: unknown ? "var(--alert)" : GENDER_COLORS[gender] }}
             >
               {unknown ? "?" : naming ? "…" : initials(name)}
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-xs">
-                <span className={cn("font-semibold", unknown && "text-orange-700 dark:text-orange-300")}>{name}</span>
+                <span className={cn("font-semibold", unknown && "text-alert")}>{name}</span>
                 {segment.speaker_confidence !== null && (
                   <span className="text-muted-foreground tabular-nums">voice {Math.round(segment.speaker_confidence * 100)}%</span>
                 )}
@@ -108,14 +108,14 @@ function PartialLine({ state, partial }: PartialLineProps) {
       <span className="mt-0.5 w-9 shrink-0 text-right font-mono text-[11px] text-muted-foreground tabular-nums">
         {clock(partial.startMs)}
       </span>
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-speak text-[9px] font-bold text-ink">
         {partial.personId === null ? "…" : initials(name)}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-xs">
           <span className="font-semibold">{name}</span>
-          <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
-            <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" /> speaking
+          <span className="flex items-center gap-1 text-speak">
+            <span className="size-1.5 animate-pulse rounded-full bg-speak" /> speaking
           </span>
         </div>
         <p className="text-sm leading-snug text-muted-foreground">
@@ -135,7 +135,7 @@ interface WhoSpokeProps {
 function WhoSpoke({ state, onPick }: WhoSpokeProps) {
   const [name, setName] = useState("");
   return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-orange-700 dark:text-orange-300">
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-alert">
       Who spoke?
       {roomIds(state).map((id) => (
         <Button key={id} size="xs" variant="secondary" onClick={() => onPick({ person_id: id })}>

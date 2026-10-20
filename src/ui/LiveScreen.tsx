@@ -40,7 +40,7 @@ export function ViewSwitch({ view, onView }: ViewSwitchProps) {
       size="sm"
       value={view}
       onValueChange={(value) => value && onView(value as View)}
-      className="bg-card/80 backdrop-blur"
+      className="bg-card"
     >
       <ToggleGroupItem value="graph" aria-label="Graph">
         <Network /> Graph
@@ -66,7 +66,7 @@ export function Stats({ state }: StatsProps) {
   return (
     <div className="flex gap-1.5" data-testid="stats">
       {counts.map(([label, count]) => (
-        <Badge key={label} variant="secondary" className="bg-card/80 backdrop-blur">
+        <Badge key={label} variant="secondary" className="bg-card">
           <span className="font-semibold tabular-nums">{count}</span>
           <span className="text-muted-foreground">{label}</span>
         </Badge>
@@ -153,8 +153,8 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
       />
 
       {going && going.id !== runId && (
-        <div className="flex items-center gap-3 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-sm" data-testid="going">
-          <span className="size-2 animate-pulse rounded-full bg-red-500" />
+        <div className="flex items-center gap-3 border-b border-alert/30 bg-alert/10 px-4 py-2 text-sm" data-testid="going">
+          <span className="size-2 animate-pulse rounded-full bg-alert" />
           Run {going.id} ({going.kind}) is still going. Only one run can go at a time.
           <Button size="sm" variant="secondary" onClick={() => open(going)}>
             Open it
@@ -196,15 +196,15 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
           <div className="pointer-events-none absolute top-4 left-4 z-10 flex flex-col gap-3 [&>*]:pointer-events-auto">
             <div className="flex items-center gap-2">
               <ViewSwitch view={view} onView={setView} />
-              <Badge variant="outline" className="gap-1.5 bg-card/80 backdrop-blur" data-testid="run-status">
-                {runActive && <span className="size-2 animate-pulse rounded-full bg-red-500" />}
+              <Badge variant="outline" className="gap-1.5 bg-card" data-testid="run-status">
+                {runActive && <span className="size-2 animate-pulse rounded-full bg-alert" />}
                 {runId ? `Run ${runId} · ${status ?? ""} · ${PHASE_LABELS[state.phase]}` : "No run"}
               </Badge>
             </div>
             {view === "graph" && <Stats state={state} />}
             {state.phase === "intro" && runId !== null && (
-              <div className="w-72 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm backdrop-blur" data-testid="intro">
-                <div className="font-semibold text-emerald-700 dark:text-emerald-300">Introductions</div>
+              <div className="w-72 rounded-xl border border-speak/30 bg-speak/10 p-3 text-sm" data-testid="intro">
+                <div className="font-semibold text-speak">Introductions</div>
                 <p className="mt-1 text-muted-foreground">Each person says "I'm" and their name, then a few sentences.</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {roomIds(state).map((id) => {
@@ -232,7 +232,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
             <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10 flex items-end gap-4">
               <div
                 className={cn(
-                  "pointer-events-auto max-w-3xl flex-1 rounded-xl border border-border bg-card/80 p-3 shadow-2xl backdrop-blur",
+                  "pointer-events-auto max-w-3xl flex-1 rounded-xl border border-border bg-card p-3",
                   Object.keys(state.segments).length === 0 && !runActive && "hidden",
                 )}
               >
@@ -241,7 +241,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
               </div>
               <div className="pointer-events-auto ml-auto flex flex-col items-end gap-2">
                 <WeightPanel factors={factors} onChange={onFactors} />
-                <div className="flex gap-3 rounded-lg border border-border bg-card/80 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur">
+                <div className="flex gap-3 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] text-muted-foreground">
                   {CATEGORY_LIST.map((c) => (
                     <span key={c} className="flex items-center gap-1.5">
                       <span className="h-0.5 w-3 rounded" style={{ background: CATEGORIES[c].color }} />

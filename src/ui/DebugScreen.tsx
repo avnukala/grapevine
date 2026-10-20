@@ -202,12 +202,12 @@ function ModelCalls({ calls, onSeek }: ModelCallsProps) {
             <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-xs">
               <span className="font-mono text-muted-foreground">#{call.id}</span>
               <Badge variant="secondary">{call.worker}</Badge>
-              <span className={cn("tabular-nums", call.latency_ms > 3000 && "text-amber-700 dark:text-amber-300")}>
+              <span className={cn("tabular-nums", call.latency_ms > 3000 && "text-warn")}>
                 {call.cached ? "reused" : `${call.latency_ms}ms`}
               </span>
               <span className="text-muted-foreground">{call.prompt_version}</span>
               {call.audio_ms !== null && (
-                <button className="ml-auto font-mono text-violet-700 dark:text-violet-300 hover:underline" onClick={() => onSeek(call.audio_ms!)}>
+                <button className="ml-auto font-mono text-primary hover:underline" onClick={() => onSeek(call.audio_ms!)}>
                   @{(call.audio_ms / 1000).toFixed(1)}s
                 </button>
               )}
@@ -219,7 +219,7 @@ function ModelCalls({ calls, onSeek }: ModelCallsProps) {
               <pre className="max-h-72 overflow-auto rounded-md bg-background p-2 whitespace-pre-wrap">
                 {call.request.messages[1]?.content}
               </pre>
-              <pre className="max-h-72 overflow-auto rounded-md bg-background p-2 whitespace-pre-wrap text-emerald-700 dark:text-emerald-200">
+              <pre className="max-h-72 overflow-auto rounded-md bg-background p-2 whitespace-pre-wrap text-speak">
                 {prettyJson(call.response)}
               </pre>
             </div>
@@ -250,11 +250,11 @@ function ChangeLog({ changes, currentMs, state, onSeek }: ChangeLogProps) {
     <ol className="space-y-0.5 font-mono text-[11px]" data-testid="change-log">
       {changes.map((change) => (
         <li key={change.seq} className={cn("flex gap-2 px-1 py-0.5", change.audio_ms > currentMs && "opacity-35")}>
-          <button className="w-12 shrink-0 text-right text-violet-700 dark:text-violet-300 hover:underline" onClick={() => onSeek(change.audio_ms)}>
+          <button className="w-12 shrink-0 text-right text-primary hover:underline" onClick={() => onSeek(change.audio_ms)}>
             {(change.audio_ms / 1000).toFixed(1)}s
           </button>
           <span className="w-9 shrink-0 text-muted-foreground">#{change.seq}</span>
-          <span className="w-20 shrink-0 text-amber-700 dark:text-amber-200">{change.op.type}</span>
+          <span className="w-20 shrink-0 text-warn">{change.op.type}</span>
           <span className="min-w-0 truncate" title={describe(change, state)}>
             {describe(change, state)}
           </span>

@@ -30,8 +30,8 @@ export function PersonDetails({ state, personId, onClose }: PersonDetailsProps) 
             <SheetHeader>
               <div className="flex items-center gap-3">
                 <span
-                  className="flex size-12 items-center justify-center rounded-full text-base font-bold text-white shadow-lg"
-                  style={{ background: `linear-gradient(135deg, ${GENDER_COLORS[person.gender].join(", ")})` }}
+                  className="flex size-12 items-center justify-center rounded-full text-base font-bold text-ink"
+                  style={{ background: GENDER_COLORS[person.gender] }}
                 >
                   {initials(person.name)}
                 </span>
@@ -78,8 +78,8 @@ export function PersonDetails({ state, personId, onClose }: PersonDetailsProps) 
                   <li key={f.id} className="flex gap-2 text-sm">
                     <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ background: KIND_COLORS[f.kind] }} />
                     <div>
-                      <span className={f.disputed ? "text-red-700 dark:text-red-300" : ""}>{f.text}</span>
-                      {f.disputed && <TriangleAlert className="ml-1 inline size-3.5 text-red-700 dark:text-red-300" />}
+                      <span className={f.disputed ? "text-alert" : ""}>{f.text}</span>
+                      {f.disputed && <TriangleAlert className="ml-1 inline size-3.5 text-alert" />}
                       {(f.when_text || f.start_date) && (
                         <div className="text-xs text-muted-foreground">{f.when_text ?? f.start_date}</div>
                       )}

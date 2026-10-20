@@ -246,7 +246,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
               className={i % 2 ? "fill-foreground/[0.015]" : "fill-foreground/[0.035]"}
             />
           ))}
-          <rect x={-LABEL_WIDTH} y={AXIS_HEIGHT} width={width} height={eventsHeight} className="fill-violet-400/[0.05]" />
+          <rect x={-LABEL_WIDTH} y={AXIS_HEIGHT} width={width} height={eventsHeight} className="fill-primary/[0.05]" />
         </g>
         <g transform={`translate(${LABEL_WIDTH},0)`}>
           <svg ref={chartRef} width={plotWidth} height={height} className="cursor-grab overflow-hidden" data-testid="timeline-chart">
@@ -283,7 +283,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
                         height={EVENT_ROW - 6}
                         rx={6}
                         fill="url(#event-fill)"
-                        className={lit ? "stroke-amber-300 [filter:drop-shadow(0_0_8px_rgb(252_211_77))]" : "stroke-violet-300/50"}
+                        className={lit ? "stroke-warn" : "stroke-primary/50"}
                       />
                       <text
                         x={w > item.event.name.length * 6.5 + 16 ? x0 + 8 : x0 + w + 6}
@@ -323,9 +323,9 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
                           cy={laneY(lane)}
                           r={lit ? 8 : 6}
                           fill={KIND_COLORS[item.fact.kind]}
-                          stroke={item.fact.disputed ? "#f87171" : "var(--background)"}
+                          stroke={item.fact.disputed ? "var(--alert)" : "var(--background)"}
                           strokeWidth={item.fact.disputed ? 3 : 2}
-                          className={lit ? "[filter:drop-shadow(0_0_8px_rgb(252_211_77))]" : ""}
+                          className={lit ? "" : ""}
                         />
                       ))}
                     </g>
@@ -365,14 +365,14 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
           </svg>
         </g>
         <g>
-          <text x={16} y={AXIS_HEIGHT + 22} className="fill-violet-300 text-[11px] font-semibold tracking-wider uppercase">
+          <text x={16} y={AXIS_HEIGHT + 22} className="fill-primary text-[11px] font-semibold tracking-wider uppercase">
             Events
           </text>
           {lanes.map((lane, i) => {
             const gender = state.people[lane.personId]?.gender ?? "unknown";
             return (
               <g key={lane.personId} transform={`translate(16,${laneY(i)})`}>
-                <circle r={12} cx={12} fill={GENDER_COLORS[gender][1]} />
+                <circle r={12} cx={12} fill={GENDER_COLORS[gender]} />
                 <text x={12} dy="0.35em" textAnchor="middle" className="fill-white text-[9px] font-bold">
                   {initials(lane.name)}
                 </text>
@@ -390,13 +390,13 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
         </g>
         <defs>
           <linearGradient id="event-fill" x1="0" x2="1">
-            <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.75} />
-            <stop offset="100%" stopColor="#ec4899" stopOpacity={0.55} />
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.6} />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.6} />
           </linearGradient>
         </defs>
       </svg>
 
-      <div className="sticky bottom-0 border-t border-border bg-background/85 backdrop-blur">
+      <div className="sticky bottom-0 border-t border-border bg-background">
         <svg width={width} height={BRUSH_HEIGHT} className="block" data-testid="timeline-brush">
           <g transform={`translate(${LABEL_WIDTH},0)`}>
             {items.map((item) =>
@@ -408,13 +408,13 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
                   width={Math.max(base(item.range.end) - base(item.range.start), 3)}
                   height={4}
                   rx={2}
-                  className="fill-violet-400/70"
+                  className="fill-primary/70"
                 />
               ) : (
-                <circle key={item.key} cx={base(mid(item.range))} cy={32} r={2} fill={item.kind === "fact" ? KIND_COLORS[item.fact.kind] : "#94a3b8"} />
+                <circle key={item.key} cx={base(mid(item.range))} cy={32} r={2} fill={item.kind === "fact" ? KIND_COLORS[item.fact.kind] : "var(--muted-foreground)"} />
               ),
             )}
-            <g ref={brushRef} className="[&_.selection]:fill-violet-400/15 [&_.selection]:stroke-violet-300/60" />
+            <g ref={brushRef} className="[&_.selection]:fill-primary/15 [&_.selection]:stroke-primary/60" />
           </g>
           <text x={16} y={26} className="fill-muted-foreground text-[10px] tracking-wider uppercase">
             Overview
@@ -429,7 +429,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
 
 function Legend() {
   return (
-    <div className="hidden items-center gap-3 rounded-md border border-border bg-card/80 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur lg:flex">
+    <div className="hidden items-center gap-3 rounded-md border border-border bg-card px-3 py-1.5 text-[11px] text-muted-foreground lg:flex">
       {Object.entries(KIND_COLORS).map(([kind, color]) => (
         <span key={kind} className="flex items-center gap-1">
           <span className="size-2 rounded-full" style={{ background: color }} />
@@ -437,7 +437,7 @@ function Legend() {
         </span>
       ))}
       <span className="flex items-center gap-1">
-        <span className="size-2 rotate-45 bg-emerald-400" />
+        <span className="size-2 rotate-45 bg-speak" />
         met
       </span>
     </div>
@@ -453,7 +453,7 @@ function HoverCardBox({ hover, state }: HoverCardBoxProps) {
   const { item } = hover;
   return (
     <div
-      className="pointer-events-none absolute z-20 w-72 rounded-lg border border-border bg-popover/95 p-3 text-sm shadow-xl backdrop-blur"
+      className="pointer-events-none absolute z-20 w-72 rounded-lg border border-border bg-popover p-3 text-sm"
       style={{ left: Math.min(hover.x + 14, window.innerWidth - 300), top: hover.y + 14 }}
     >
       {item.kind === "event" && (
@@ -523,14 +523,14 @@ function StoryFeed({ state, items, recent, focusKey, onFocus }: StoryFeedProps) 
             return (
               <li key={item.key} className="mb-5 ml-5" data-testid="story">
                 <span
-                  className={`absolute -left-[7px] mt-1.5 size-3.5 rounded-full border-2 border-background ${lit ? "bg-amber-300 shadow-[0_0_10px_rgb(252,211,77)]" : "bg-violet-400"}`}
+                  className={`absolute -left-[7px] mt-1.5 size-3.5 rounded-full border-2 border-background ${lit ? "bg-warn" : "bg-primary"}`}
                 />
                 <button className="w-full text-left" onClick={() => onFocus(item.key)}>
                   <Badge variant="secondary" className="mb-1 font-mono text-[10px]">
                     {item.event.start_date}
                     {item.event.when_text && item.event.when_text !== item.event.start_date ? ` · ${item.event.when_text}` : ""}
                   </Badge>
-                  <div className={`rounded-lg border p-3 transition ${lit ? "border-amber-300/60 bg-amber-300/5" : "border-border bg-card hover:bg-accent/40"}`}>
+                  <div className={`rounded-lg border p-3 transition ${lit ? "border-warn/60 bg-warn/5" : "border-border bg-card hover:bg-accent/40"}`}>
                     <div className="font-semibold">{item.event.name}</div>
                     {item.event.place && (
                       <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
@@ -543,7 +543,7 @@ function StoryFeed({ state, items, recent, focusKey, onFocus }: StoryFeedProps) 
                       {own.map((f) => (
                         <li key={f.id} className="flex gap-2 text-xs">
                           <span className="mt-1 size-1.5 shrink-0 rounded-full" style={{ background: KIND_COLORS[f.kind] }} />
-                          <span className={f.disputed ? "text-red-700 dark:text-red-300" : ""}>
+                          <span className={f.disputed ? "text-alert" : ""}>
                             {f.text}
                             {f.disputed && <TriangleAlert className="ml-1 inline size-3" />}
                           </span>
@@ -555,8 +555,8 @@ function StoryFeed({ state, items, recent, focusKey, onFocus }: StoryFeedProps) 
                         <span
                           key={p.person_id}
                           title={personName(state, p.person_id)}
-                          className="flex size-6 items-center justify-center rounded-full border-2 border-card text-[9px] font-bold text-white"
-                          style={{ background: GENDER_COLORS[state.people[p.person_id]?.gender ?? "unknown"][1] }}
+                          className="flex size-6 items-center justify-center rounded-full border-2 border-card text-[9px] font-bold text-ink"
+                          style={{ background: GENDER_COLORS[state.people[p.person_id]?.gender ?? "unknown"] }}
                         >
                           {initials(personName(state, p.person_id))}
                         </span>

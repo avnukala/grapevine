@@ -300,7 +300,7 @@ export function GraphView({ state, pulses, speakingId, factors, selectedId, onSe
     nodeGroups
       .select("circle.body")
       .attr("r", radius)
-      .attr("fill", (n) => `url(#node-${genders[n.id] as Gender})`);
+      .attr("fill", (n) => GENDER_COLORS[genders[n.id] as Gender]);
     nodeGroups
       .select("text.initials")
       .attr("font-size", (n) => (n.inRoom ? 14 : 11))
@@ -423,12 +423,6 @@ export function GraphView({ state, pulses, speakingId, factors, selectedId, onSe
   return (
     <svg ref={svgRef} className="graph size-full" data-testid="graph">
       <defs>
-        {Object.entries(GENDER_COLORS).map(([gender, [light, dark]]) => (
-          <radialGradient key={gender} id={`node-${gender}`} cx="35%" cy="30%" r="75%">
-            <stop offset="0%" stopColor={light} />
-            <stop offset="100%" stopColor={dark} />
-          </radialGradient>
-        ))}
         <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
           <circle cx="1" cy="1" r="1" fill="var(--foreground)" fillOpacity={0.08} />
         </pattern>

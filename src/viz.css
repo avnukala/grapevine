@@ -32,7 +32,7 @@ svg.graph .edges path.lit {
   opacity: 1;
   stroke-dasharray: 8 4;
   animation: dash-flow 0.6s linear infinite;
-  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 10px oklch(0.85 0.17 85 / 70%));
+  stroke: var(--warn);
 }
 
 svg.graph .edge-labels text {
@@ -47,14 +47,13 @@ svg.graph .edge-labels text {
 }
 
 svg.graph .captions rect {
-  fill: oklch(0.85 0.17 85);
-  filter: drop-shadow(0 4px 12px oklch(0.85 0.17 85 / 40%));
+  fill: var(--warn);
 }
 
 svg.graph .captions text {
   font-size: 11px;
   font-weight: 600;
-  fill: oklch(0.2 0.03 85);
+  fill: var(--ink);
 }
 
 svg.graph .captions g {
@@ -73,10 +72,8 @@ svg.graph .node {
 }
 
 svg.graph .node .body {
-  stroke: oklch(1 0 0 / 25%);
-  stroke-width: 1.5px;
-  filter: drop-shadow(0 6px 14px oklch(0 0 0 / 25%));
-  transition: filter 0.3s;
+  stroke: var(--background);
+  stroke-width: 2px;
 }
 
 svg.graph .node .halo {
@@ -92,7 +89,7 @@ svg.graph .node.in-room .halo {
 
 svg.graph .node .ripple {
   fill: none;
-  stroke: #34d399;
+  stroke: var(--speak);
   stroke-width: 2px;
   opacity: 0;
   transform-box: fill-box;
@@ -108,21 +105,23 @@ svg.graph .node.speaking .ripple.late {
 }
 
 svg.graph .node.speaking .body {
-  filter: drop-shadow(0 0 14px #34d399);
+  stroke: var(--speak);
+  stroke-width: 3px;
 }
 
 svg.graph .node.mentioned .body {
-  filter: drop-shadow(0 0 12px oklch(0.85 0.17 85));
+  stroke: var(--warn);
+  stroke-width: 3px;
 }
 
 svg.graph .node.selected .halo {
-  stroke: oklch(0.7 0.17 292);
+  stroke: var(--primary);
   stroke-width: 3px;
   stroke-dasharray: none;
 }
 
 svg.graph .node .initials {
-  fill: white;
+  fill: var(--ink);
   font-weight: 700;
   pointer-events: none;
   letter-spacing: 0.02em;

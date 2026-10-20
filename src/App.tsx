@@ -48,10 +48,10 @@ export default function App() {
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
       <TooltipProvider>
         <div className="flex h-svh flex-col">
-          <header className="flex h-12 shrink-0 items-center gap-6 border-b border-border bg-card/60 px-4 backdrop-blur">
+          <header className="flex h-12 shrink-0 items-center gap-6 border-b border-border bg-card px-4">
             <div className="flex items-center gap-2 font-semibold tracking-tight">
-              <span className="flex size-7 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500">
-                <Grape className="size-4 text-white" />
+              <span className="flex size-7 items-center justify-center rounded-md bg-primary">
+                <Grape className="size-4 text-primary-foreground" />
               </span>
               Grapevine
             </div>
