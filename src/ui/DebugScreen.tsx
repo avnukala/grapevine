@@ -159,7 +159,7 @@ export function DebugScreen({ factors }: DebugScreenProps) {
             <TabsContent value="transcript">
               <Transcript
                 state={live.state}
-                voiceThreshold={Number(run?.config?.voice_threshold ?? 0.75)}
+                voiceThreshold={Number(run?.config?.voice_threshold ?? 0.86)}
                 currentMs={ms}
                 showTimings
                 onSeek={seek}

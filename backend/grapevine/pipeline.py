@@ -28,6 +28,8 @@ from grapevine.turns import Turn, TurnBuilder
 log = logging.getLogger(__name__)
 
 ACTIVITY_SILENCE_MS = 300
+VOICE_TIE = 0.02
+MAX_VOICES = 100
 SELF_INTRO = re.compile(r"\b(?:I'm|I am|my name is|name's|call me)\s+([A-Z][a-z]+)")
 
 
@@ -216,21 +218,45 @@ class Pipeline:
         await self.jobs.put(None)
 
     def _identify(self, label: str, voice: np.ndarray, *, intro: bool) -> tuple[str, float | None]:
-        """Saves voices during introductions and returns no score. Later, confirms the detected speaker by
-        voice, or picks the closest saved voice. A score under the threshold marks an unknown speaker."""
+        """Picks the voice label of a turn. The voice decides, and the detected speaker only breaks near ties,
+        because the speaker detector can merge two similar voices into one speaker.
+
+        During introductions it saves voices and returns no score. A detected speaker whose new turn sounds
+        unlike its saved voice is two people, so the turn gets its own label. Later, a score under the
+        threshold marks an unknown speaker."""
         voices = self.store.voices()
+        scores = {lbl: float(voice @ saved) for lbl, (_, saved) in voices.items()}
         if intro:
+            if label in scores and scores[label] < self.config.new_voice_threshold:
+                best = max(scores, key=scores.__getitem__)
+                label = best if scores[best] >= self.config.new_voice_threshold else self._new_label(label, voices)
             self._save_voice(label, voice)
             return label, None
-        scores = {lbl: float(voice @ saved) for lbl, (_, saved) in voices.items()}
-        if scores.get(label, 0.0) >= self.config.voice_threshold:
-            return label, scores[label]
+
         best = max(scores, key=scores.__getitem__, default=None)
-        if best is not None and scores[best] >= self.config.voice_threshold:
-            return best, scores[best]
-        if label not in voices:
+        if best is None:
             self._save_voice(label, voice)
-        return label, max(scores.values(), default=0.0)
+            return label, 0.0
+        chosen = label if label in scores and scores[label] >= scores[best] - VOICE_TIE else best
+        if scores[chosen] < self.config.voice_threshold and label not in voices:
+            self._save_voice(label, voice)
+            return label, scores[chosen]
+        return chosen, scores[chosen]
+
+    def _new_label(self, label: str, voices: dict) -> str:
+        return next(f"{label}+{n}" for n in range(1, MAX_VOICES) if f"{label}+{n}" not in voices)
+
+    def _settle_intro_voices(self) -> None:
+        """Gives a voice that no one named during introductions to the closest named voice, when it is close
+        enough. Such a voice is usually the second half of a long introduction."""
+        voices = self.store.voices()
+        named = {lbl: saved for lbl, (pid, saved) in voices.items() if pid is not None}
+        for label, (person_id, saved) in voices.items():
+            if person_id is not None or not named:
+                continue
+            best = max(named, key=lambda lbl: float(saved @ named[lbl]))
+            if float(saved @ named[best]) >= self.config.voice_threshold:
+                link_speaker(self.store, label, voices[best][0], threshold=self.config.voice_threshold)
 
     def _save_voice(self, label: str, voice: np.ndarray) -> None:
         total = self.voice_sums.get(label, np.zeros_like(voice)) + voice
@@ -248,6 +274,9 @@ class Pipeline:
                 case SegmentJob():
                     await self._extract(job)
                 case PromptJob():
+                    if job.trigger == "opener":
+                        self.store.audio_ms = job.at_ms
+                        self._settle_intro_voices()
                     call = prompter_call(
                         self.store,
                         job.trigger,

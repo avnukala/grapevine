@@ -50,7 +50,7 @@ RULES = {
 PROMPTS = [{"text": "Sophie and Ray, how did you meet?", "reason": "pause", "people": ["p1", "p3"]}]
 
 
-def replay(conn, chat):
+def replay(conn, chat, merged=None):
     run_id = conn.execute(
         "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'replay', '{}', 'test')"
     ).lastrowid
@@ -109,3 +109,13 @@ def test_unchanged_replay_reuses_every_model_call(conn):
     cached = conn.execute("SELECT MIN(cached) FROM model_calls WHERE run_id = ?", (second.run_id,)).fetchone()[0]
     assert cached == 1
     assert snapshot(second) == snapshot(first)
+
+
+def test_voices_split_people_the_speaker_detector_merged(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    store = replay(conn, FakeChat(RULES, PROMPTS), merged={2: 0})
+
+    segments = snapshot(store)["segments"]
+    assert segments[2] == ("Hi, I'm Sophie Moreau.", "Sophie Moreau")
+    assert segments[5] == ("We climb on Tuesdays.", "Ray Patel")
+    assert len({pid for pid in store.graph.speakers.values() if pid is not None}) == 3

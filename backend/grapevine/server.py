@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from grapevine import db
 from grapevine.actions import ActionError, assign_speaker, pick_person, pick_speaker, settle_conflict
 from grapevine.audio import file_chunks, mic_chunks
-from grapevine.config import DATA_DIR, DB_PATH, ROOT, run_config
+from grapevine.config import DATA_DIR, DB_PATH, ROOT, RunConfig, run_config
 from grapevine.graph import Record
 from grapevine.llm import LLM
 from grapevine.merge import merge, resolve_merge
@@ -63,7 +63,7 @@ def store_for(run_id: int) -> Store:
 
 def threshold(run_id: int) -> float:
     config = json.loads(conn.execute("SELECT config_json FROM runs WHERE id = ?", (run_id,)).fetchone()[0])
-    return config.get("voice_threshold", 0.75)
+    return config.get("voice_threshold", RunConfig().voice_threshold)
 
 
 @app.websocket("/ws")

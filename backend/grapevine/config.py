@@ -25,7 +25,8 @@ class RunConfig:
     diarizer_mode: str = "low_latency"
     diarizer_device: str = "mps"
     embedder: str = "microsoft/wavlm-base-plus-sv"
-    voice_threshold: float = 0.75
+    voice_threshold: float = 0.86
+    new_voice_threshold: float = 0.93
     transcriber: str = "mlx-community/whisper-large-v3-turbo"
     language: str = "en"
     turn_rules: TurnRules = field(default_factory=TurnRules)

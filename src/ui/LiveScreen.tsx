@@ -105,7 +105,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const run = session?.runs.find((r) => r.id === runId);
   const status = live.status ?? run?.status ?? null;
   const runActive = status === "running";
-  const threshold = Number(run?.config?.voice_threshold ?? 0.75);
+  const threshold = Number(run?.config?.voice_threshold ?? 0.86);
 
   const changed = useMemo(() => recent(live.changes, (c) => (c as TimedChange).receivedAt, now), [live.changes, now]);
   const lastSegment = Object.values(state.segments).sort((x, y) => y.id - x.id)[0];

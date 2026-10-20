@@ -42,7 +42,11 @@ def speaker_of(level: float) -> int | None:
 
 
 class FakeDetector:
-    """Labels speakers by the order they first talk, like Nemotron."""
+    """Labels speakers by the order they first talk, like Nemotron. `merged` maps a speaker to another
+    speaker whose label it gets, as when a real detector cannot tell two voices apart."""
+
+    def __init__(self, merged: dict[int, int] | None = None) -> None:
+        self.merged = merged or {}
 
     def start(self) -> None:
         self.pending = np.zeros(0, dtype=np.float32)
@@ -55,6 +59,7 @@ class FakeDetector:
         for i in range(count):
             speaker = speaker_of(float(self.pending[i * SAMPLES_PER_FRAME : (i + 1) * SAMPLES_PER_FRAME].mean()))
             if speaker is not None:
+                speaker = self.merged.get(speaker, speaker)
                 frames[i, self.order.setdefault(speaker, len(self.order))] = 0.9
         self.pending = self.pending[count * SAMPLES_PER_FRAME :]
         return frames
@@ -129,5 +134,5 @@ class FakeChat:
         return json.dumps(empty_output())
 
 
-def fake_models(lines: list[Line], chat: FakeChat) -> Models:
-    return Models(detector=FakeDetector(), embedder=FakeEmbedder(), transcriber=FakeTranscriber(lines), chat=chat)
+def fake_models(lines: list[Line], chat: FakeChat, merged: dict[int, int] | None = None) -> Models:
+    return Models(detector=FakeDetector(merged), embedder=FakeEmbedder(), transcriber=FakeTranscriber(lines), chat=chat)
