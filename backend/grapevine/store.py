@@ -124,16 +124,21 @@ class Store:
             self.emit({"type": "person", "person": person})
         return person
 
-    def update_person(self, person_id: int, *, add_aliases: list[str], gender: str | None) -> None:
+    def update_person(
+        self, person_id: int, *, add_aliases: list[str], gender: str | None, name: str | None = None
+    ) -> None:
         person = self.person(person_id)
-        known = {a.lower() for a in person["aliases"]} | {person["name"].lower()}
+        name = name or person["name"]
+        known = {a.lower() for a in person["aliases"]} | {name.lower()}
         aliases = person["aliases"] + [a for a in dict.fromkeys(add_aliases) if a.lower() not in known]
         gender = gender if gender and gender != "unknown" else person["gender"]
-        if aliases == person["aliases"] and gender == person["gender"] and person_id in self.graph.people:
+        unchanged = (name, aliases, gender) == (person["name"], person["aliases"], person["gender"])
+        if unchanged and person_id in self.graph.people:
             return
         with self.batch():
             self.conn.execute(
-                "UPDATE people SET aliases = ?, gender = ? WHERE id = ?", (json.dumps(aliases), gender, person_id)
+                "UPDATE people SET name = ?, aliases = ?, gender = ? WHERE id = ?",
+                (name, json.dumps(aliases), gender, person_id),
             )
             self.emit({"type": "person", "person": self.person(person_id)})
 

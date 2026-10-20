@@ -262,3 +262,56 @@ def test_an_unknown_speaker_can_dispute_a_fact(store):
     )
     [conflict] = store.graph.active_prompts()
     assert conflict["text"].startswith("People disagree.")
+
+
+def test_a_full_name_completes_a_person_known_by_first_name(store):
+    hannah = store.create_person(name="Hannah Kim", aliases=["Hannah"], gender="female")["id"]
+    apply(
+        store,
+        turn(store, hannah, "Tyler proposed."),
+        facts=[fact("Tyler proposed to Hannah Kim.", ["Tyler", "speaker"])],
+    )
+    tyler = person_named(store, "Tyler")
+    apply(
+        store,
+        turn(store, hannah, "Tyler Grant does not climb."),
+        facts=[fact("Tyler Grant does not climb.", ["Tyler Grant"])],
+    )
+
+    assert store.graph.people[tyler]["name"] == "Tyler Grant"
+    assert store.graph.people[tyler]["aliases"] == ["Tyler"]
+    assert store.graph.active_prompts() == []
+
+
+def test_names_that_are_not_names_add_no_person(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    apply(
+        store,
+        turn(store, ray, "The girl next door helped."),
+        facts=[fact("The girl next door helped Ray.", ["the girl next door", "Megan_in_the_room", "speaker"])],
+    )
+    assert [p["name"] for p in store.graph.people.values()] == ["Ray Patel"]
+
+
+def test_an_event_named_after_a_group_is_skipped(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    apply(
+        store,
+        turn(store, ray, "We are the Tuesday climbing crew."),
+        events=[
+            {
+                "ref": "Tuesday Climbing Crew",
+                "name": "Tuesday Climbing Crew",
+                "when_text": None,
+                "start_date": None,
+                "end_date": None,
+                "place": None,
+                "people": ["speaker"],
+            }
+        ],
+        facts=[
+            fact("Ray is in the Tuesday climbing crew.", ["speaker"], kind="membership", group="Tuesday climbing crew")
+        ],
+    )
+    assert store.graph.events == {}
+    assert len(store.graph.groups) == 1

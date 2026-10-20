@@ -9,7 +9,7 @@ from grapevine.llm import Call
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches
 
-PROMPT_VERSION = "extract-v3"
+PROMPT_VERSION = "extract-v4"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
 
@@ -39,7 +39,9 @@ FACTS
 
 RELATIONSHIPS
 - Add one entry for each pair whose relationship the turn tells about, for example coworkers, cousins, roommates, exes, or old friends. A pair has at most one entry per category, for example a past romantic one and a current friend one.
-- category: romantic, family, friend, professional, or other.
+- Every fact of kind relationship needs a matching entry here.
+- category: romantic (dating, partners, married, engaged, exes), family (parents, siblings, cousins, in-laws), friend, professional (coworkers, bosses, clients, classmates), or other (bandmates, roommates, teammates when not friends).
+- Exes are romantic with status past. If they stayed friends, add a second entry: friend, current.
 - label: a 1 to 3 word term, for example "college roommate", "ex-girlfriend", "cousin", "coworker".
 - status: current or past. met_on: when they met as a date, or null. met_event: an event id or name, or null.
 - closeness 1 to 5, recency 1 to 5 (5 means in touch now), sentiment -2 to 2. Null when the turn gives no signal.
@@ -130,6 +132,7 @@ SCHEMA = _object(
 
 DATE_PATTERN = re.compile(r"\d{4}(-\d{2}(-\d{2})?)?")
 SEASONS = ("spring", "summer", "fall", "autumn", "winter")
+PERSON_NAME = re.compile(r"[A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*){0,3}")
 SPEAKER_REFS = {"speaker", "the speaker", "unknown speaker", "i", "me", "myself"}
 RECENT_TURNS = 4
 
@@ -276,7 +279,7 @@ def apply_output(store: Store, held: Held) -> None:
 
     waiting: dict[str, Ambiguity] = {}
     with store.batch():
-        events = apply_events(store, output["events"], people, teller)
+        events = apply_events(store, output["events"], output["facts"], people, teller)
 
         for index, fact in enumerate(output["facts"]):
             if index in held.fact_ids:
@@ -351,11 +354,18 @@ def resolve(
     if len(matches) > 1:
         return Ambiguity(ref, [p["id"] for p in matches])
     if not matches:
-        name = entry["name"] if entry else ref
+        name = (entry["name"] if entry else ref).strip()
+        if not PERSON_NAME.fullmatch(name):
+            return None
         aliases = entry["aliases"] if entry else []
-        if " " in name and name.split()[0] not in aliases:
-            aliases = [name.split()[0], *aliases]
-        return store.create_person(name=name, aliases=aliases, gender=entry["gender"] if entry else "unknown")["id"]
+        gender = entry["gender"] if entry else "unknown"
+        if " " in name:
+            first = name.split()[0]
+            if (known := first_name_person(store, first)) is not None:
+                store.update_person(known, add_aliases=[first, *aliases], gender=gender, name=name)
+                return known
+            aliases = [first, *aliases] if first not in aliases else aliases
+        return store.create_person(name=name, aliases=aliases, gender=gender)["id"]
 
     person = matches[0]
     if ambiguity := first_name_only(store, person, text):
@@ -363,6 +373,14 @@ def resolve(
     if entry:
         store.update_person(person["id"], add_aliases=entry["aliases"], gender=entry["gender"])
     return person["id"]
+
+
+def first_name_person(store: Store, first: str) -> int | None:
+    """The one person known only by this first name, who a full name such as "Tyler Grant" now completes."""
+    rows = store.conn.execute(
+        "SELECT id FROM people WHERE merged_into_id IS NULL AND lower(name) = lower(?)", (first,)
+    ).fetchall()
+    return rows[0][0] if len(rows) == 1 and len(name_matches(store.conn, first)) == 1 else None
 
 
 def first_name_only(store: Store, person: Record, text: str) -> Ambiguity | None:
@@ -379,10 +397,16 @@ def first_name_only(store: Store, person: Record, text: str) -> Ambiguity | None
     return Ambiguity(first, [p["id"] for p in others])
 
 
-def apply_events(store: Store, events: list[Record], people, teller: Teller) -> dict[str, int]:
-    """Writes the events of an output and maps each event ref to its id."""
+def apply_events(store: Store, events: list[Record], facts: list[Record], people, teller: Teller) -> dict[str, int]:
+    """Writes the events of an output and maps each event ref to its id. The model sometimes lists a named
+    group as an event, so an event named after a group is skipped."""
     ids: dict[str, int] = {}
+    groups = [g["name"].lower() for g in store.graph.groups.values()] + [
+        f["group"].lower() for f in facts if f["group"]
+    ]
     for event in events:
+        if any(group in event["name"].lower() for group in groups):
+            continue
         event_id = store.graph.lookup("e", event["ref"])
         if event_id is None:
             event_id = next(
