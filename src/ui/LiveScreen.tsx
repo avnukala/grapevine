@@ -11,7 +11,7 @@ import { CATEGORIES, CATEGORY_LIST } from "../state/categories";
 import { liveFacts, personName, roomIds } from "../state/derive";
 import type { WeightFactors } from "../state/derive";
 import { recent } from "../state/pulses";
-import type { Phase, Prompt, RunState, Segment, Session } from "../state/types";
+import type { Phase, Prompt, Run, RunState, Segment, Session } from "../state/types";
 import { useNow, useRun } from "../state/useRun";
 import type { TimedChange } from "../state/useRun";
 import { GraphView } from "./GraphView";
@@ -93,13 +93,28 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const now = useNow();
   const { state } = live;
 
+  const [going, setGoing] = useState<Run | null>(null);
+
   const refresh = useCallback(async () => {
-    setSessions(await api.sessions());
+    const [all, current] = await Promise.all([api.sessions(), api.activeRun()]);
+    setSessions(all);
+    setGoing(current);
   }, []);
   useEffect(() => {
     void refresh();
   }, [refresh, live.status]);
 
+  const open = (run: Run) => {
+    setOnboarding(false);
+    setSessionId(run.session_id);
+    setRunId(run.id);
+  };
+  useEffect(() => {
+    void api.activeRun().then((run) => run && open(run));
+  }, []);
+  useEffect(() => {
+    if (live.error) toast.error(live.error);
+  }, [live.error]);
 
   const session = sessions.find((s) => s.id === sessionId) ?? null;
   const run = session?.runs.find((r) => r.id === runId);
@@ -137,8 +152,22 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
         onOnboard={() => setOnboarding(true)}
       />
 
+      {going && going.id !== runId && (
+        <div className="flex items-center gap-3 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-sm" data-testid="going">
+          <span className="size-2 animate-pulse rounded-full bg-red-500" />
+          Run {going.id} ({going.kind}) is still going. Only one run can go at a time.
+          <Button size="sm" variant="secondary" onClick={() => open(going)}>
+            Open it
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => guard(() => api.stop(going.id).then(refresh))}>
+            Stop it
+          </Button>
+        </div>
+      )}
+
       {onboarding ? (
         <Onboarding
+          blocked={going !== null}
           onCreated={async (id, newRunId) => {
             await refresh();
             setSessionId(id);

@@ -32,6 +32,7 @@ export const api = {
     call<Session>(`/api/sessions/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   startRun: (body: { session_id: number; source: Source; speed?: number | null; config?: Record<string, unknown> }) =>
     post<Run>("/api/runs", body),
+  activeRun: () => call<Run | null>("/api/runs/active"),
   run: (id: number) => call<Run & { session: Session | null }>(`/api/runs/${id}`),
   changes: (id: number) => call<Change[]>(`/api/runs/${id}/changes`),
   modelCalls: (id: number) => call<ModelCall[]>(`/api/runs/${id}/model_calls`),

@@ -218,6 +218,12 @@ async def new_run(body: NewRun) -> Record:
     return run_record(run_id)
 
 
+@app.get("/api/runs/active")
+def going_run() -> Record | None:
+    """The run that is still going, if any. The server runs one at a time."""
+    return run_record(next(iter(active))) if active else None
+
+
 def run_record(run_id: int) -> Record:
     row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
     return {**dict(row), "config": json.loads(row["config_json"]), "active": run_id in active}

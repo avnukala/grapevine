@@ -8,11 +8,12 @@ import { api } from "../api";
 import { GROUP_COLORS, initials } from "../state/categories";
 
 interface OnboardingProps {
+  blocked: boolean;
   onCreated: (sessionId: number, runId: number | null) => Promise<void>;
   onCancel: (() => void) | null;
 }
 
-export function Onboarding({ onCreated, onCancel }: OnboardingProps) {
+export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
   const [title, setTitle] = useState("");
   const [names, setNames] = useState(["", ""]);
   const [busy, setBusy] = useState(false);
@@ -132,7 +133,7 @@ export function Onboarding({ onCreated, onCancel }: OnboardingProps) {
           <Button variant="outline" disabled={busy || roster.length === 0} onClick={() => create(false)}>
             Create only
           </Button>
-          <Button disabled={busy || roster.length === 0} onClick={() => create(true)}>
+          <Button disabled={busy || blocked || roster.length === 0} onClick={() => create(true)}>
             <Mic /> Start live with {roster.length} {roster.length === 1 ? "person" : "people"}
           </Button>
         </CardFooter>
