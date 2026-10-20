@@ -1,6 +1,6 @@
 """The end-of-session pass: a larger model writes stories and relationship summaries from the facts of a run."""
 
-from grapevine.llm import LLM, Call
+from grapevine.llm import LLM, Call, watch_on
 from grapevine.store import Store
 
 PROMPT_VERSION = "summarizer-v1"
@@ -76,7 +76,8 @@ async def summarize(store: Store, llm: LLM, *, model: str, seed: int) -> None:
     if not store.graph.facts:
         return
     call = Call("summarizer", model, PROMPT_VERSION, SYSTEM, user_message(store), SCHEMA, seed, max_tokens=3000)
-    result = await llm.call(call, run_id=store.run_id, audio_ms=store.audio_ms)
+    watch = watch_on(store, worker="summarizer")
+    result = await llm.call(call, run_id=store.run_id, audio_ms=store.audio_ms, watch=watch)
     if result.output is None:
         return
     graph = store.graph

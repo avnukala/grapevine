@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -36,8 +37,9 @@ class Transcriber(Protocol):
 
 
 class ChatModel(Protocol):
-    async def complete(self, request: dict) -> str:
-        """Sends an OpenAI chat completion request and returns the message content."""
+    async def complete(self, request: dict, on_text: Callable[[str], None] | None = None) -> str:
+        """Sends an OpenAI chat completion request and returns the message content. `on_text` gets the content
+        so far each time more of it arrives."""
 
 
 @dataclass
@@ -160,9 +162,16 @@ class OpenAIChat:
 
         self.client = AsyncOpenAI(base_url=base_url, api_key="local")
 
-    async def complete(self, request: dict) -> str:
-        response = await self.client.chat.completions.create(**request)
-        return response.choices[0].message.content or ""
+    async def complete(self, request: dict, on_text: Callable[[str], None] | None = None) -> str:
+        if on_text is None:
+            response = await self.client.chat.completions.create(**request)
+            return response.choices[0].message.content or ""
+        text = ""
+        async for chunk in await self.client.chat.completions.create(**request, stream=True):
+            if chunk.choices and (delta := chunk.choices[0].delta.content):
+                text += delta
+                on_text(text)
+        return text
 
 
 def model_file_hash(path: str | None) -> str:

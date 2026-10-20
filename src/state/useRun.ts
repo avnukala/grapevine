@@ -8,7 +8,15 @@ export type ServerMessage =
   | { type: "activity"; run_id: number; speaker_label: string | null; person_id: number | null }
   | { type: "status"; run_id: number; status: string }
   | { type: "partial"; run_id: number; start_ms: number; text: null }
-  | { type: "partial"; run_id: number; start_ms: number; text: string; speaker_label: string; person_id: number | null }
+  | {
+      type: "partial";
+      run_id: number;
+      start_ms: number;
+      text: string;
+      speaker_label: string | null;
+      person_id: number | null;
+    }
+  | { type: "thinking"; run_id: number; worker: Worker; segment_id?: number; text: string | null }
   | { type: "connected" };
 
 const listeners = new Set<(message: ServerMessage) => void>();
@@ -35,10 +43,19 @@ export interface TimedChange extends Change {
 }
 
 // The words of a turn that is still going. The server sends it only for runs at real time, and never saves it.
-export interface Partial {
+export interface Preview {
   startMs: number;
-  label: string;
+  label: string | null;
   personId: number | null;
+  text: string;
+}
+
+export type Worker = "extractor" | "prompter" | "reviewer" | "summarizer";
+
+// The output of a model call that is still going, as the model writes it.
+export interface Thinking {
+  worker: Worker;
+  segmentId: number | null;
   text: string;
 }
 
@@ -46,7 +63,8 @@ export interface LiveRun {
   changes: TimedChange[];
   state: RunState;
   speaking: { label: string | null; personId: number | null };
-  partial: Partial | null;
+  partial: Preview | null;
+  thinking: Partial<Record<Worker, Thinking>>;
   status: string | null;
   error: string | null;
 }
@@ -55,7 +73,8 @@ export interface LiveRun {
 export function useRun(runId: number | null): LiveRun {
   const [changes, setChanges] = useState<TimedChange[]>([]);
   const [speaking, setSpeaking] = useState<LiveRun["speaking"]>({ label: null, personId: null });
-  const [partial, setPartial] = useState<Partial | null>(null);
+  const [partial, setPartial] = useState<Preview | null>(null);
+  const [thinking, setThinking] = useState<LiveRun["thinking"]>({});
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,6 +82,7 @@ export function useRun(runId: number | null): LiveRun {
     setChanges([]);
     setSpeaking({ label: null, personId: null });
     setPartial(null);
+    setThinking({});
     setStatus(null);
     setError(null);
     if (runId === null) return;
@@ -93,6 +113,15 @@ export function useRun(runId: number | null): LiveRun {
         setStatus(message.status);
         setPartial(null);
       }
+      if (message.type === "thinking") {
+        const { worker, text, segment_id: segmentId = null } = message;
+        setThinking((current) => {
+          const next = { ...current };
+          if (text === null) delete next[worker];
+          else next[worker] = { worker, segmentId, text };
+          return next;
+        });
+      }
       if (message.type === "partial" && message.text === null) {
         setPartial((current) => (current && current.startMs <= message.start_ms ? null : current));
       }
@@ -109,7 +138,7 @@ export function useRun(runId: number | null): LiveRun {
   }, [runId]);
 
   const state = useMemo(() => changes.reduce((s, c) => applyOp(s, c.op), emptyState()), [changes]);
-  return { changes, state, speaking, partial, status, error };
+  return { changes, state, speaking, partial, thinking, status, error };
 }
 
 // Re-renders every `ms` so views can age out short-lived highlights.

@@ -6,14 +6,35 @@ import json
 import logging
 import sqlite3
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
 from grapevine.models import ChatModel
+from grapevine.store import Store
 
-Worker = Literal["extractor", "prompter", "summarizer", "merger", "judge"]
+Worker = Literal["extractor", "prompter", "reviewer", "summarizer", "merger", "judge"]
 
 log = logging.getLogger(__name__)
+
+WATCH_MS = 80
+Watch = Callable[[str | None], None]
+
+
+def watch_on(store: Store, **tags: object) -> Watch:
+    """Sends the output of a model call to clients while the model writes it, at most every WATCH_MS. None
+    means the call is over."""
+    last = 0.0
+
+    def send(text: str | None) -> None:
+        nonlocal last
+        now = time.monotonic()
+        if text is not None and now - last < WATCH_MS / 1000:
+            return
+        last = now
+        store.notify({"type": "thinking", **tags, "text": text})
+
+    return send
 
 
 @dataclass(frozen=True)
@@ -41,13 +62,15 @@ class LLM:
         self.model_file_hash = model_file_hash
         self.reuse = reuse
 
-    async def call(self, call: Call, *, run_id: int, audio_ms: int) -> Result:
-        """Returns the parsed JSON output, or None when the model returned something that is not valid JSON."""
+    async def call(self, call: Call, *, run_id: int, audio_ms: int, watch: Watch | None = None) -> Result:
+        """Returns the parsed JSON output, or None when the model returned something that is not valid JSON.
+        `watch` gets the output as the model writes it, or all at once for a stored response, then None."""
         request = {
             "model": call.model,
             "messages": [{"role": "system", "content": call.system}, {"role": "user", "content": call.user}],
             "temperature": 0,
             "seed": call.seed,
+            "reasoning_effort": "none",
             "max_tokens": call.max_tokens,
             "response_format": {
                 "type": "json_schema",
@@ -64,8 +87,11 @@ class LLM:
                 "SELECT response_json FROM model_calls WHERE input_hash = ? ORDER BY id LIMIT 1", (input_hash,)
             ).fetchone()
         started = time.monotonic()
-        content = stored[0] if stored else await self.chat.complete(request)
+        content = stored[0] if stored else await self.chat.complete(request, watch)
         latency_ms = 0 if stored else int((time.monotonic() - started) * 1000)
+        if watch:
+            watch(content)
+            watch(None)
 
         cursor = self.conn.execute(
             "INSERT INTO model_calls (run_id, worker, model, model_file_hash, prompt_version, seed, input_hash, "

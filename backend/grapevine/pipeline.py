@@ -19,7 +19,7 @@ import numpy as np
 from grapevine.audio import SAMPLE_RATE
 from grapevine.config import RunConfig
 from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload
-from grapevine.llm import LLM
+from grapevine.llm import LLM, watch_on
 from grapevine.models import Models
 from grapevine.names import misspelled, spell_names
 from grapevine.prompter import prompter_call, show_prompt, suggest
@@ -30,7 +30,10 @@ from grapevine.turns import Turn, TurnBuilder
 log = logging.getLogger(__name__)
 
 ACTIVITY_SILENCE_MS = 300
-PARTIAL_MS = 1000
+PARTIAL_MS = 300
+MIN_PARTIAL_MS = 500
+MAX_PARTIAL_MS = 15000
+SPEECH_RMS = 0.01
 VOICE_TIE = 0.02
 MIN_VOICE_MS = 2000
 # A turn under MIN_VOICE_MS by the same speaker still scores 0.8 or more against their voice.
@@ -132,6 +135,7 @@ class Pipeline:
         self.active_label: str | None = None
         self.intro_over = False
         self.partials = False
+        self.closed_ms = 0
         self.whisper = asyncio.Lock()
 
     async def run(self, chunks: AsyncIterator[np.ndarray]) -> None:
@@ -235,6 +239,7 @@ class Pipeline:
 
     async def _turns(self, turns: list[Turn]) -> None:
         for turn in turns:
+            self.closed_ms = turn.end_ms
             self.paused = False
             await self.turns.put(turn)
 
@@ -276,27 +281,32 @@ class Pipeline:
         await self.jobs.put(None)
 
     async def _partials(self) -> None:
-        """Shows the words of the open turn while it is still going, for a run that keeps pace with real
-        time. The text is only a preview: it is not saved, and the final transcription of a turn never waits
-        for it."""
+        """Shows the words of speech that no turn holds yet, for a run that keeps pace with real time. The
+        speaker detector opens a turn more than a second after speech starts, so loud audio after the last
+        turn starts a preview before that. The text is only a preview: it is not saved, and the final
+        transcription of a turn never waits for it."""
         while True:
             await asyncio.sleep(PARTIAL_MS / 1000)
-            speaker, start_ms = self.builder.speaker, self.builder.start_ms
+            speaker = self.builder.speaker
             end_ms = self.audio.size * 1000 // SAMPLE_RATE
-            if speaker is None or self.whisper.locked() or end_ms - start_ms < PARTIAL_MS:
+            start_ms = max(self.builder.start_ms if speaker is not None else self.closed_ms, end_ms - MAX_PARTIAL_MS)
+            if self.whisper.locked() or end_ms - start_ms < MIN_PARTIAL_MS:
+                continue
+            recent = self.audio.slice(max(start_ms, end_ms - 1000), end_ms)
+            if speaker is None and float(np.sqrt(np.mean(recent**2))) < SPEECH_RMS:
                 continue
             async with self.whisper:
                 audio = self.audio.slice(start_ms, end_ms)
                 text = await asyncio.to_thread(self.models.transcriber.transcribe, audio, self.roster)
-            if (self.builder.speaker, self.builder.start_ms) != (speaker, start_ms) or not text:
+            if not text or self.closed_ms > start_ms:
                 continue
-            label = f"spk{speaker}"
+            label = f"spk{speaker}" if speaker is not None else None
             self.store.notify(
                 {
                     "type": "partial",
                     "start_ms": start_ms,
                     "speaker_label": label,
-                    "person_id": self.store.graph.speakers.get(label),
+                    "person_id": self.store.graph.speakers.get(label) if label else None,
                     "text": spell_names(text, self.roster),
                 }
             )
@@ -412,7 +422,8 @@ class Pipeline:
             context=self.config.context,
         )
         started = time.monotonic()
-        result = await self.llm.call(call, run_id=self.store.run_id, audio_ms=segment["end_ms"])
+        watch = watch_on(self.store, worker="extractor", segment_id=segment["id"])
+        result = await self.llm.call(call, run_id=self.store.run_id, audio_ms=segment["end_ms"], watch=watch)
         extract_ms = int((time.monotonic() - started) * 1000)
 
         self.store.audio_ms = segment["end_ms"]

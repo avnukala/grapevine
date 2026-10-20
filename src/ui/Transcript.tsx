@@ -3,10 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { GENDER_COLORS, initials } from "../state/categories";
+import { GENDER_COLORS, KIND_COLORS, initials } from "../state/categories";
 import { personName, roomIds } from "../state/derive";
 import type { RunState, Segment } from "../state/types";
-import type { Partial } from "../state/useRun";
+import { parsePartialJson } from "../state/partialJson";
+import type { Preview, Thinking } from "../state/useRun";
 
 interface TranscriptProps {
   state: RunState;
@@ -14,7 +15,8 @@ interface TranscriptProps {
   limit?: number;
   currentMs?: number | null;
   showTimings?: boolean;
-  partial?: Partial | null;
+  partial?: Preview | null;
+  extracting?: Thinking | null;
   onAssign?: (segment: Segment, answer: { person_id: number } | { new_name: string }) => void;
   onSeek?: (ms: number) => void;
 }
@@ -29,7 +31,7 @@ function clock(ms: number): string {
 }
 
 export function Transcript(props: TranscriptProps) {
-  const { state, voiceThreshold, limit, currentMs, showTimings, partial, onAssign, onSeek } = props;
+  const { state, voiceThreshold, limit, currentMs, showTimings, partial, extracting, onAssign, onSeek } = props;
   const segments = Object.values(state.segments).sort((x, y) => x.start_ms - y.start_ms);
   const shown = limit ? segments.slice(-(partial ? limit - 1 : limit)) : segments;
   return (
@@ -77,6 +79,11 @@ export function Transcript(props: TranscriptProps) {
                 )}
               </div>
               <p className="text-sm leading-snug">{segment.text}</p>
+              {extracting?.segmentId === segment.id ? (
+                <ExtractedList items={extractedSoFar(extracting.text, name)} live />
+              ) : (
+                <ExtractedList items={factsOf(state, segment.id)} live={false} />
+              )}
               {unknown && onAssign && <WhoSpoke state={state} onPick={(answer) => onAssign(segment, answer)} />}
               {showTimings && Object.keys(segment.timings).length > 0 && (
                 <div className="mt-1 flex flex-wrap gap-1">
@@ -91,18 +98,18 @@ export function Transcript(props: TranscriptProps) {
           </li>
         );
       })}
-      {partial && <PartialLine state={state} partial={partial} />}
+      {partial && <PreviewLine state={state} partial={partial} />}
     </ol>
   );
 }
 
-interface PartialLineProps {
+interface PreviewLineProps {
   state: RunState;
-  partial: Partial;
+  partial: Preview;
 }
 
-function PartialLine({ state, partial }: PartialLineProps) {
-  const name = partial.personId === null ? `Someone (${partial.label})` : personName(state, partial.personId);
+function PreviewLine({ state, partial }: PreviewLineProps) {
+  const name = partial.personId !== null ? personName(state, partial.personId) : "Someone";
   return (
     <li className="flex items-start gap-3 rounded-lg px-2 py-1.5" data-testid="partial">
       <span className="mt-0.5 w-9 shrink-0 text-right font-mono text-[11px] text-muted-foreground tabular-nums">
@@ -119,11 +126,72 @@ function PartialLine({ state, partial }: PartialLineProps) {
           </span>
         </div>
         <p className="text-sm leading-snug text-muted-foreground">
-          {partial.text}
+          {partial.text.split(" ").map((word, i) => (
+            <span key={i} className="animate-in duration-300 fade-in">
+              {word}{" "}
+            </span>
+          ))}
           <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-muted-foreground align-middle" />
         </p>
       </div>
     </li>
+  );
+}
+
+interface Extracted {
+  kind: keyof typeof KIND_COLORS | "event";
+  text: string;
+}
+
+// What the model is pulling out of a turn while it writes, from its unfinished JSON.
+function extractedSoFar(text: string, speaker: string): Extracted[] {
+  const output = parsePartialJson(text) as {
+    facts?: { kind?: Extracted["kind"]; text?: string }[];
+    events?: { name?: string; start_date?: string | null }[];
+    relationships?: { a?: string; b?: string; label?: string }[];
+  };
+  const who = (ref?: string) => (ref === "speaker" ? speaker : (ref ?? "…"));
+  return [
+    ...(output?.facts ?? []).filter((f) => f.text).map((f) => ({ kind: f.kind ?? "personal", text: f.text! })),
+    ...(output?.events ?? [])
+      .filter((e) => e.name)
+      .map((e) => ({ kind: "event" as const, text: `${e.name}${e.start_date ? ` (${e.start_date})` : ""}` })),
+    ...(output?.relationships ?? [])
+      .filter((r) => r.label)
+      .map((r) => ({ kind: "relationship" as const, text: `${who(r.a)} and ${who(r.b)}: ${r.label}` })),
+  ];
+}
+
+function factsOf(state: RunState, segmentId: number): Extracted[] {
+  return Object.values(state.facts)
+    .filter((f) => f.segment_ids.includes(segmentId) && f.revised_by_fact_id === null)
+    .map((f) => ({ kind: f.kind, text: f.text }));
+}
+
+interface ExtractedListProps {
+  items: Extracted[];
+  live: boolean;
+}
+
+function ExtractedList({ items, live }: ExtractedListProps) {
+  if (items.length === 0 && !live) return null;
+  return (
+    <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground" data-testid={live ? "extracting" : "extracted"}>
+      {items.map((item, i) => (
+        <li key={i} className="flex items-baseline gap-1.5 animate-in duration-300 fade-in">
+          <span
+            className="size-1.5 shrink-0 translate-y-[-1px] rounded-full"
+            style={{ background: item.kind === "event" ? "var(--primary)" : KIND_COLORS[item.kind] }}
+          />
+          {item.text}
+        </li>
+      ))}
+      {live && (
+        <li className="flex items-center gap-1.5 text-primary">
+          <span className="size-1.5 animate-pulse rounded-full bg-primary" /> reading
+        </li>
+      )}
+    </ul>
   );
 }
 

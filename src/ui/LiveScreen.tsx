@@ -20,6 +20,7 @@ import { PersonDetails } from "./PersonDetails";
 import type { Answer } from "./PromptCard";
 import { PromptPanel } from "./PromptPanel";
 import { SessionControls } from "./SessionControls";
+import { StoryWriter } from "./StoryWriter";
 import { TimelineView } from "./TimelineView";
 import { Transcript } from "./Transcript";
 import { WeightPanel } from "./WeightPanel";
@@ -221,6 +222,10 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
             )}
           </div>
 
+          {(live.thinking.reviewer ?? live.thinking.summarizer) && (
+            <StoryWriter thinking={(live.thinking.reviewer ?? live.thinking.summarizer)!} />
+          )}
+
           <PromptPanel
             state={state}
             className={view === "timeline" ? "top-auto right-[380px] bottom-16" : undefined}
@@ -236,7 +241,14 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
                   Object.keys(state.segments).length === 0 && !runActive && "hidden",
                 )}
               >
-                <Transcript state={state} voiceThreshold={threshold} limit={3} partial={live.partial} onAssign={onAssign} />
+                <Transcript
+                  state={state}
+                  voiceThreshold={threshold}
+                  limit={3}
+                  partial={live.partial}
+                  extracting={live.thinking.extractor}
+                  onAssign={onAssign}
+                />
                 {runActive && <TypedTurn runId={runId!} />}
               </div>
               <div className="pointer-events-auto ml-auto flex flex-col items-end gap-2">

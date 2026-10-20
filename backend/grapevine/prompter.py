@@ -4,7 +4,7 @@ from itertools import combinations
 from typing import Literal
 
 from grapevine.graph import Record
-from grapevine.llm import LLM, Call
+from grapevine.llm import LLM, Call, watch_on
 from grapevine.store import Store
 
 PROMPT_VERSION = "prompter-v1"
@@ -115,7 +115,7 @@ def prompter_call(store: Store, trigger: Trigger, *, until_ms: int, model: str, 
 
 
 async def suggest(store: Store, llm: LLM, call: Call, *, at_ms: int) -> None:
-    result = await llm.call(call, run_id=store.run_id, audio_ms=at_ms)
+    result = await llm.call(call, run_id=store.run_id, audio_ms=at_ms, watch=watch_on(store, worker="prompter"))
     if result.output is None:
         return
     store.audio_ms = at_ms
