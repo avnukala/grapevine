@@ -106,9 +106,10 @@ def fact(text: str, people: list[str], **fields: object) -> dict:
 class FakeChat:
     """Answers each extractor call by the first rule whose key appears in the new turn."""
 
-    def __init__(self, rules: dict[str, dict], prompts: list[dict] | None = None) -> None:
+    def __init__(self, rules: dict[str, dict], prompts: list[dict] | None = None, merged: dict | None = None) -> None:
         self.rules = rules
         self.prompts = prompts or []
+        self.merged = merged or {"relationships": [], "conflicts": [], "same_person": []}
         self.requests: list[dict] = []
 
     async def complete(self, request: dict) -> str:
@@ -119,6 +120,8 @@ class FakeChat:
                 return json.dumps({"prompts": self.prompts})
             case "summarizer":
                 return json.dumps({"stories": [], "relationships": []})
+            case "merger":
+                return json.dumps(self.merged)
         new_turn = user.split("NEW TURN", 1)[1]
         for key, output in self.rules.items():
             if key in new_turn:
