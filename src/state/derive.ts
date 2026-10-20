@@ -15,9 +15,10 @@ export function visiblePeople(state: RunState): Person[] {
   return Object.values(state.people).filter((p) => p.merged_into_id === null);
 }
 
+// Everyone on the roster, and anyone a voice belongs to. Mirrors `Graph.room` in graph.py.
 export function roomIds(state: RunState): number[] {
   const ids = Object.values(state.speakers).filter((id): id is number => id !== null);
-  return [...new Set(ids)];
+  return [...new Set([...state.roster, ...ids])];
 }
 
 export function liveFacts(state: RunState): Fact[] {

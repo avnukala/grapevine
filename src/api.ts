@@ -21,7 +21,7 @@ export type Source = "file" | "mic" | "text";
 export const api = {
   sessions: () => call<Session[]>("/api/sessions"),
   audioFiles: () => call<string[]>("/api/audio-files"),
-  newSession: (body: { name: string; audio_uri?: string | null; intro_end_ms?: number | null }) =>
+  newSession: (body: { name: string; audio_uri?: string | null; intro_end_ms?: number | null; roster?: string[] }) =>
     post<Session>("/api/sessions", body),
   upload: (file: File) => {
     const form = new FormData();

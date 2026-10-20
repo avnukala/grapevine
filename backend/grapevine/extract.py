@@ -196,7 +196,7 @@ def user_message(store: Store, *, segment: Record, speaker_id: int | None, today
     """Lists only what this run already knows. People from other sessions still match by name when the
     output is applied, so an unchanged replay sends the same input."""
     graph = store.graph
-    room = {pid for pid in graph.speakers.values() if pid is not None}
+    room = set(graph.room())
     turns = sorted(graph.segments.values(), key=lambda s: s["start_ms"])
     recent = [s for s in turns if s["start_ms"] < segment["start_ms"]][-RECENT_TURNS:]
     window = " ".join(s["text"] for s in [*recent, segment])

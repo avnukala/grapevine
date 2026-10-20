@@ -3,18 +3,17 @@ global relationships. Only conflicts go to manual review: facts that disagree, a
 match with high confidence."""
 
 import json
-from difflib import SequenceMatcher
 from itertools import combinations
 from typing import Literal
 
 from grapevine.actions import ActionError, active_prompt
 from grapevine.graph import Graph, Record
 from grapevine.llm import LLM, Call
+from grapevine.names import misspelled
 from grapevine.store import Store
 
 PROMPT_VERSION = "merger-v1"
 SAME_PERSON_CONFIDENCE = 0.95
-SPELLING_MATCH = 0.6
 
 MergeAction = Literal["keep", "keep_both", "remove_edge", "merge_people", "keep_apart"]
 
@@ -150,21 +149,6 @@ def combine_relationships(store: Store, graphs: list[Graph]) -> None:
                 person_ids=[a, b],
                 payload={"fact_ids": merged["evidence"], "relationship_ids": [merged["id"]]},
             )
-
-
-def misspelled(x: str, y: str) -> bool:
-    """Whether two full names could be one name that Whisper spelled two ways, such as Sam Torres and Sam
-    Taurus. First names must be close, and last names must be close once their vowels are dropped."""
-    a, b = x.lower().split(), y.lower().split()
-    if len(a) < 2 or len(b) < 2:
-        return False
-
-    def consonants(word: str) -> str:
-        return "".join(c for c in word if c not in "aeiouy")
-
-    first = SequenceMatcher(None, a[0], b[0]).ratio()
-    last = SequenceMatcher(None, consonants(a[-1]), consonants(b[-1])).ratio()
-    return first >= SPELLING_MATCH and last >= 0.75
 
 
 def candidate_pairs(store: Store) -> list[tuple[int, int]]:

@@ -26,15 +26,25 @@ def session(conn: sqlite3.Connection, session_id: int) -> Record:
     row = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
     if row is None:
         raise KeyError(f"no session {session_id}")
-    return dict(row)
+    return session_record(row)
+
+
+def session_record(row: sqlite3.Row) -> Record:
+    return {**dict(row), "roster": json.loads(row["roster"])}
 
 
 def create_session(
-    conn: sqlite3.Connection, *, name: str, recorded_at: str, audio_uri: str | None, intro_end_ms: int | None
+    conn: sqlite3.Connection,
+    *,
+    name: str,
+    recorded_at: str,
+    audio_uri: str | None,
+    intro_end_ms: int | None,
+    roster: list[str],
 ) -> Record:
     cursor = conn.execute(
-        "INSERT INTO sessions (name, recorded_at, audio_uri, intro_end_ms) VALUES (?, ?, ?, ?)",
-        (name, recorded_at, audio_uri, intro_end_ms),
+        "INSERT INTO sessions (name, recorded_at, audio_uri, intro_end_ms, roster) VALUES (?, ?, ?, ?, ?)",
+        (name, recorded_at, audio_uri, intro_end_ms, json.dumps(roster)),
     )
     return session(conn, cursor.lastrowid)
 
@@ -46,7 +56,7 @@ def audio_path(audio_uri: str) -> Path:
 
 def session_for_audio(conn: sqlite3.Connection, path: Path) -> Record:
     """Finds the session of an audio file, or creates it. A sample with a `.labels.json` file next to it
-    gets its name, date, and end of introductions from the labels and script."""
+    gets its name, date, end of introductions, and roster from the labels and script."""
     uri = str(path.resolve().relative_to(ROOT)) if path.resolve().is_relative_to(ROOT) else str(path.resolve())
     row = conn.execute("SELECT id FROM sessions WHERE audio_uri = ? ORDER BY id LIMIT 1", (uri,)).fetchone()
     if row:
@@ -61,6 +71,7 @@ def session_for_audio(conn: sqlite3.Connection, path: Path) -> Record:
         recorded_at=script.get("recorded_at", date.today().isoformat()),
         audio_uri=uri,
         intro_end_ms=labels.get("intro_end_ms"),
+        roster=list(script.get("voices", {})),
     )
 
 
@@ -160,7 +171,13 @@ def start_pipeline(
     store = Store(conn, run_id, broadcast)
     llm = LLM(conn, models.chat, model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
     pipeline = Pipeline(
-        store, models, llm, config, today=session["recorded_at"][:10], intro_end_ms=session["intro_end_ms"]
+        store,
+        models,
+        llm,
+        config,
+        today=session["recorded_at"][:10],
+        intro_end_ms=session["intro_end_ms"],
+        roster=session["roster"],
     )
     return ActiveRun(run_id, store, pipeline)
 

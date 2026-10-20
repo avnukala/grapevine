@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -20,12 +19,12 @@ interface SessionControlsProps {
   onSession: (id: number | null) => void;
   onRun: (id: number | null) => void;
   onRefresh: () => Promise<void>;
+  onOnboard: () => void;
 }
 
 export function SessionControls(props: SessionControlsProps) {
-  const { sessions, sessionId, runId, runActive, phase, onSession, onRun, onRefresh } = props;
+  const { sessions, sessionId, runId, runActive, phase, onSession, onRun, onRefresh, onOnboard } = props;
   const [files, setFiles] = useState<string[]>([]);
-  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const session = sessions.find((s) => s.id === sessionId) ?? null;
   const run = session?.runs.find((r) => r.id === runId) ?? null;
@@ -131,23 +130,9 @@ export function SessionControls(props: SessionControlsProps) {
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-96 space-y-4">
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!name.trim()) return;
-              void act(async () => {
-                const created = await api.newSession({ name: name.trim() });
-                setName("");
-                onSession(created.id);
-              });
-            }}
-          >
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name a live session" />
-            <Button size="sm" disabled={busy}>
-              Create
-            </Button>
-          </form>
+          <Button className="w-full" onClick={onOnboard}>
+            <Mic /> New live session
+          </Button>
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border px-3 py-3 text-sm text-muted-foreground hover:bg-accent/40">
             <Upload className="size-4" /> Upload a recording
             <input

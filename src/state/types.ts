@@ -111,7 +111,8 @@ export type Op =
   | { type: "relationship"; relationship: Relationship }
   | { type: "relationship_removed"; id: number }
   | { type: "prompt"; prompt: Prompt }
-  | { type: "phase"; phase: Phase };
+  | { type: "phase"; phase: Phase }
+  | { type: "roster"; person_ids: number[] };
 
 export interface Change {
   seq: number;
@@ -131,6 +132,7 @@ export interface RunState {
   members: Record<string, Member>;
   relationships: Record<number, Relationship>;
   prompts: Record<number, Prompt>;
+  roster: number[];
   phase: Phase;
 }
 
@@ -153,6 +155,7 @@ export interface Session {
   audio_uri: string | null;
   notes: string | null;
   intro_end_ms: number | null;
+  roster: string[];
   runs: Run[];
 }
 

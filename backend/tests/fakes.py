@@ -81,7 +81,7 @@ class FakeTranscriber:
     def __init__(self, lines: list[Line]) -> None:
         self.lines = list(lines)
 
-    def transcribe(self, audio: np.ndarray) -> str:
+    def transcribe(self, audio: np.ndarray, names: list[str]) -> str:
         speaker = speaker_of(float(np.median(audio)))
         line = next(line for line in self.lines if line.speaker == speaker)
         self.lines.remove(line)

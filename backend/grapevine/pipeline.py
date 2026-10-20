@@ -21,6 +21,7 @@ from grapevine.config import RunConfig
 from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload
 from grapevine.llm import LLM
 from grapevine.models import Models
+from grapevine.names import misspelled, spell_names
 from grapevine.prompter import prompter_call, show_prompt, suggest
 from grapevine.store import Store, name_matches
 from grapevine.summarize import summarize
@@ -42,14 +43,16 @@ def goes_by(person: dict, name: str) -> bool:
     return first in {person["name"].split()[0].lower(), *(a.lower() for a in person["aliases"])}
 
 
-def said_name(text: str, model_name: str | None, *, intro: bool, unnamed: bool) -> str | None:
+def said_name(text: str, model_name: str | None, *, intro: bool, unnamed: bool, roster: list[str]) -> str | None:
     """The name speakers give for themselves. The model's name counts only when the turn says it. Outside
     introductions, the turn must also say "I'm" or "my name is" before the name. A full name at the start
-    of a turn, as in "Chris Porter, I'm an accountant", counts only for an unnamed voice in introductions."""
+    of a turn, as in "Chris Porter, I'm an accountant", counts only for an unnamed voice in introductions,
+    and only when it is on the roster if there is one, so a reply like "Most Sundays." names no one."""
     first_names = [m[1] for m in SELF_INTRO.finditer(text)]
     if intro and model_name and all(word in text for word in model_name.split()):
         return model_name
-    if intro and unnamed and (leading := LEADING_NAME.match(text)):
+    leading = LEADING_NAME.match(text)
+    if intro and unnamed and leading and (not roster or leading[1] in roster):
         return leading[1]
     if not first_names:
         return None
@@ -97,7 +100,15 @@ class AudioBuffer:
 
 class Pipeline:
     def __init__(
-        self, store: Store, models: Models, llm: LLM, config: RunConfig, *, today: str, intro_end_ms: int | None
+        self,
+        store: Store,
+        models: Models,
+        llm: LLM,
+        config: RunConfig,
+        *,
+        today: str,
+        intro_end_ms: int | None,
+        roster: list[str],
     ) -> None:
         self.store = store
         self.models = models
@@ -105,6 +116,7 @@ class Pipeline:
         self.config = config
         self.today = today
         self.intro_end_ms = intro_end_ms
+        self.roster = roster
         self.builder = TurnBuilder(config.turn_rules)
         self.audio = AudioBuffer()
         self.turns: asyncio.Queue[Turn | PromptJob | None] = asyncio.Queue()
@@ -121,6 +133,7 @@ class Pipeline:
         self.models.detector.start()
         self.intro_over = self.intro_end_ms == 0
         self.store.set_phase("conversation" if self.intro_over else "intro")
+        self._seat_roster()
         workers = [asyncio.create_task(self._transcribe_turns()), asyncio.create_task(self._extract_jobs())]
         try:
             async for chunk in chunks:
@@ -142,9 +155,26 @@ class Pipeline:
         await summarize(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed)
         self.store.set_phase("ended")
 
+    def _seat_roster(self) -> None:
+        """Puts the people the room typed in before the session into the graph. A typed name that one known
+        person has keeps that person, so a session adds to what earlier sessions said about them."""
+        with self.store.batch():
+            ids = []
+            for name in self.roster:
+                matches = [p for p in name_matches(self.store.conn, name) if p["name"] == name]
+                if len(matches) == 1:
+                    self.store.show_person(matches[0]["id"])
+                    ids.append(matches[0]["id"])
+                else:
+                    first = name.split()[0]
+                    aliases = [first] if first != name else []
+                    ids.append(self.store.create_person(name=name, aliases=aliases, gender="unknown")["id"])
+            if ids:
+                self.store.emit({"type": "roster", "person_ids": ids})
+
     async def add_text(self, speaker: str, text: str) -> dict:
         """Adds a typed turn, for a run without audio. The speaker is a name, and a new name adds a person."""
-        matches = name_matches(self.store.conn, speaker)
+        matches = self._roster_matches(speaker) or name_matches(self.store.conn, speaker)
         person_id = matches[0]["id"] if matches else None
         if person_id is None:
             first = speaker.split()[0]
@@ -214,7 +244,9 @@ class Pipeline:
             embed_ms = int((time.monotonic() - started) * 1000)
             for start_ms, end_ms, voice in pieces:
                 started = time.monotonic()
-                text = await asyncio.to_thread(self.models.transcriber.transcribe, self.audio.slice(start_ms, end_ms))
+                audio = self.audio.slice(start_ms, end_ms)
+                text = await asyncio.to_thread(self.models.transcriber.transcribe, audio, self.roster)
+                text = spell_names(text, self.roster)
                 transcribe_ms = int((time.monotonic() - started) * 1000)
                 if not text:
                     continue
@@ -355,7 +387,9 @@ class Pipeline:
             intro = segment["speaker_confidence"] is None
             name = None
             if speaker_id is None or intro:
-                name = said_name(segment["text"], output["speaker_name"], intro=intro, unnamed=speaker_id is None)
+                name = said_name(
+                    segment["text"], output["speaker_name"], intro=intro, unnamed=speaker_id is None, roster=self.roster
+                )
             if name and speaker_id is not None and goes_by(self.store.person(speaker_id), name):
                 name = None
             if name and (speaker_id is not None or self._sounds_unlike_label(segment)):
@@ -394,7 +428,7 @@ class Pipeline:
     def _name_speaker(self, segment: dict, name: str, held: Held) -> int | None:
         """Links a voice to the person who said their name. Asks the room when the name fits several people."""
         entry = next((p for p in held.output["people"] if p["name"].lower() == name.lower()), None)
-        matches = name_matches(self.store.conn, name)
+        matches = self._roster_matches(name) or name_matches(self.store.conn, name)
         if len(matches) > 1:
             show_prompt(
                 self.store,
@@ -414,6 +448,15 @@ class Pipeline:
             )["id"]
         link_speaker(self.store, segment["speaker_label"], person_id, threshold=self.config.voice_threshold)
         return person_id
+
+    def _roster_matches(self, name: str) -> list[dict]:
+        """Roster people a self-introduction could mean: by first name or alias for one word, else by the
+        full name, spelled right or nearly so."""
+        people = [self.store.graph.people[pid] for pid in self.store.graph.roster]
+        if " " not in name:
+            return [p for p in people if goes_by(p, name)]
+        exact = [p for p in people if p["name"].lower() == name.lower()]
+        return exact or [p for p in people if misspelled(p["name"], name)]
 
 
 def link_speaker(store: Store, label: str, person_id: int, *, threshold: float) -> None:

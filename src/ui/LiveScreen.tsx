@@ -1,4 +1,4 @@
-import { CalendarRange, Network, Send } from "lucide-react";
+import { CalendarRange, Check, Network, Send } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import type { Phase, Prompt, RunState, Segment, Session } from "../state/types";
 import { useNow, useRun } from "../state/useRun";
 import type { TimedChange } from "../state/useRun";
 import { GraphView } from "./GraphView";
+import { Onboarding } from "./Onboarding";
 import { PersonDetails } from "./PersonDetails";
 import type { Answer } from "./PromptCard";
 import { PromptPanel } from "./PromptPanel";
@@ -87,6 +88,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const [runId, setRunId] = useState<number | null>(null);
   const [view, setView] = useState<View>("graph");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [onboarding, setOnboarding] = useState(true);
   const live = useRun(runId);
   const now = useNow();
   const { state } = live;
@@ -97,9 +99,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   useEffect(() => {
     void refresh();
   }, [refresh, live.status]);
-  useEffect(() => {
-    if (live.error) toast.error(live.error);
-  }, [live.error]);
+
 
   const session = sessions.find((s) => s.id === sessionId) ?? null;
   const run = session?.runs.find((r) => r.id === runId);
@@ -128,88 +128,106 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
         runActive={runActive}
         phase={state.phase}
         onSession={(id) => {
+          setOnboarding(false);
           setSessionId(id);
           setRunId(sessions.find((s) => s.id === id)?.runs[0]?.id ?? null);
         }}
         onRun={setRunId}
         onRefresh={refresh}
+        onOnboard={() => setOnboarding(true)}
       />
 
-      <div className="relative min-h-0 flex-1">
-        <div className="absolute inset-0">
-          {view === "graph" ? (
-            <GraphView
-              state={state}
-              pulses={changed.pulses}
-              speakingId={speakingId}
-              factors={factors}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
-          ) : (
-            <TimelineView state={state} recentFactIds={changed.factIds} recentEventIds={changed.eventIds} />
-          )}
-        </div>
-
-        <div className="pointer-events-none absolute top-4 left-4 z-10 flex flex-col gap-3 [&>*]:pointer-events-auto">
-          <div className="flex items-center gap-2">
-            <ViewSwitch view={view} onView={setView} />
-            <Badge variant="outline" className="gap-1.5 bg-card/80 backdrop-blur" data-testid="run-status">
-              {runActive && <span className="size-2 animate-pulse rounded-full bg-red-500" />}
-              {runId ? `Run ${runId} · ${status ?? ""} · ${PHASE_LABELS[state.phase]}` : "No run"}
-            </Badge>
-          </div>
-          {view === "graph" && <Stats state={state} />}
-          {state.phase === "intro" && runId !== null && (
-            <div className="w-72 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm backdrop-blur" data-testid="intro">
-              <div className="font-semibold text-emerald-300">Introductions</div>
-              <p className="mt-1 text-muted-foreground">Each person says their name and a few sentences.</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {roomIds(state).map((id) => (
-                  <Badge key={id} variant="secondary">
-                    {personName(state, id)}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <PromptPanel
-          state={state}
-          className={view === "timeline" ? "top-auto right-[380px] bottom-16" : undefined}
-          onAnswer={onAnswer}
-          onDismiss={onDismiss}
+      {onboarding ? (
+        <Onboarding
+          onCreated={async (id, newRunId) => {
+            await refresh();
+            setSessionId(id);
+            setRunId(newRunId);
+            setOnboarding(false);
+          }}
+          onCancel={sessionId !== null ? () => setOnboarding(false) : null}
         />
+      ) : (
+        <div className="relative min-h-0 flex-1">
+          <div className="absolute inset-0">
+            {view === "graph" ? (
+              <GraphView
+                state={state}
+                pulses={changed.pulses}
+                speakingId={speakingId}
+                factors={factors}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
+            ) : (
+              <TimelineView state={state} recentFactIds={changed.factIds} recentEventIds={changed.eventIds} />
+            )}
+          </div>
 
-        {view === "graph" && (
-          <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10 flex items-end gap-4">
-            <div
-              className={cn(
-                "pointer-events-auto max-w-3xl flex-1 rounded-xl border border-border bg-card/80 p-3 shadow-2xl backdrop-blur",
-                Object.keys(state.segments).length === 0 && !runActive && "hidden",
-              )}
-            >
-              <Transcript state={state} voiceThreshold={threshold} limit={3} onAssign={onAssign} />
-              {runActive && <TypedTurn runId={runId!} />}
+          <div className="pointer-events-none absolute top-4 left-4 z-10 flex flex-col gap-3 [&>*]:pointer-events-auto">
+            <div className="flex items-center gap-2">
+              <ViewSwitch view={view} onView={setView} />
+              <Badge variant="outline" className="gap-1.5 bg-card/80 backdrop-blur" data-testid="run-status">
+                {runActive && <span className="size-2 animate-pulse rounded-full bg-red-500" />}
+                {runId ? `Run ${runId} · ${status ?? ""} · ${PHASE_LABELS[state.phase]}` : "No run"}
+              </Badge>
             </div>
-            <div className="pointer-events-auto ml-auto flex flex-col items-end gap-2">
-              <WeightPanel factors={factors} onChange={onFactors} />
-              <div className="flex gap-3 rounded-lg border border-border bg-card/80 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur">
-                {CATEGORY_LIST.map((c) => (
-                  <span key={c} className="flex items-center gap-1.5">
-                    <span className="h-0.5 w-3 rounded" style={{ background: CATEGORIES[c].color }} />
-                    {c}
+            {view === "graph" && <Stats state={state} />}
+            {state.phase === "intro" && runId !== null && (
+              <div className="w-72 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm backdrop-blur" data-testid="intro">
+                <div className="font-semibold text-emerald-300">Introductions</div>
+                <p className="mt-1 text-muted-foreground">Each person says "I'm" and their name, then a few sentences.</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {roomIds(state).map((id) => {
+                    const heard = Object.values(state.speakers).includes(id);
+                    return (
+                      <Badge key={id} variant={heard ? "default" : "outline"} className={heard ? "" : "text-muted-foreground"}>
+                        {heard && <Check />}
+                        {personName(state, id)}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <PromptPanel
+            state={state}
+            className={view === "timeline" ? "top-auto right-[380px] bottom-16" : undefined}
+            onAnswer={onAnswer}
+            onDismiss={onDismiss}
+          />
+
+          {view === "graph" && (
+            <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10 flex items-end gap-4">
+              <div
+                className={cn(
+                  "pointer-events-auto max-w-3xl flex-1 rounded-xl border border-border bg-card/80 p-3 shadow-2xl backdrop-blur",
+                  Object.keys(state.segments).length === 0 && !runActive && "hidden",
+                )}
+              >
+                <Transcript state={state} voiceThreshold={threshold} limit={3} onAssign={onAssign} />
+                {runActive && <TypedTurn runId={runId!} />}
+              </div>
+              <div className="pointer-events-auto ml-auto flex flex-col items-end gap-2">
+                <WeightPanel factors={factors} onChange={onFactors} />
+                <div className="flex gap-3 rounded-lg border border-border bg-card/80 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur">
+                  {CATEGORY_LIST.map((c) => (
+                    <span key={c} className="flex items-center gap-1.5">
+                      <span className="h-0.5 w-3 rounded" style={{ background: CATEGORIES[c].color }} />
+                      {c}
+                    </span>
+                  ))}
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-0 w-3 border-t border-dashed border-muted-foreground" /> past
                   </span>
-                ))}
-                <span className="flex items-center gap-1.5">
-                  <span className="h-0 w-3 border-t border-dashed border-muted-foreground" /> past
-                </span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       <PersonDetails state={state} personId={selectedId} onClose={() => setSelectedId(null)} />
     </div>

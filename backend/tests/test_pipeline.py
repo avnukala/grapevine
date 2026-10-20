@@ -1,8 +1,9 @@
 import asyncio
+from dataclasses import replace
 
 from grapevine.config import RunConfig
 from grapevine.llm import LLM
-from grapevine.pipeline import Pipeline
+from grapevine.pipeline import Pipeline, said_name
 from grapevine.store import Store
 from tests.fakes import FakeChat, Line, chunks, fact, fake_models, render
 
@@ -50,16 +51,22 @@ RULES = {
 PROMPTS = [{"text": "Sophie and Ray, how did you meet?", "reason": "pause", "people": ["p1", "p3"]}]
 
 
-def replay(conn, chat, merged=None):
+def replay(conn, chat, merged=None, *, lines=LINES, roster=()):
     run_id = conn.execute(
         "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'replay', '{}', 'test')"
     ).lastrowid
     store = Store(conn, run_id)
     llm = LLM(conn, chat, model_file_hash="test", reuse=True)
     pipeline = Pipeline(
-        store, fake_models(LINES, chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=INTRO_END_MS
+        store,
+        fake_models(lines, chat, merged),
+        llm,
+        RunConfig(),
+        today="2025-10-18",
+        intro_end_ms=INTRO_END_MS,
+        roster=list(roster),
     )
-    asyncio.run(pipeline.run(chunks(render(LINES, 24000))))
+    asyncio.run(pipeline.run(chunks(render(lines, 24000))))
     return store
 
 
@@ -143,6 +150,7 @@ def test_a_turn_that_two_merged_voices_share_splits_by_voice(conn):
         RunConfig(),
         today="2025-10-18",
         intro_end_ms=7600,
+        roster=[],
     )
     asyncio.run(pipeline.run(chunks(render(lines, 11000))))
 
@@ -176,6 +184,7 @@ def test_a_new_name_under_a_named_voice_gets_its_own_voice(conn):
         RunConfig(),
         today="2025-10-18",
         intro_end_ms=7600,
+        roster=[],
     )
     asyncio.run(pipeline.run(chunks(render(lines, 11000))))
 
@@ -185,3 +194,28 @@ def test_a_new_name_under_a_named_voice_gets_its_own_voice(conn):
         "Jasper Lin",
         "Sophie Moreau",
     ]
+
+
+def test_the_roster_seats_people_and_fixes_how_their_names_are_spelled(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    lines = [replace(LINES[0], text="Hey, I'm Ray Patell."), replace(LINES[1], text="I'm Jasper Lind."), *LINES[2:]]
+    store = replay(conn, FakeChat(RULES), lines=lines, roster=["Ray Patel", "Jasper Lin", "Sophie Moreau"])
+
+    names = {pid: p["name"] for pid, p in store.graph.people.items()}
+    assert [names[pid] for pid in store.graph.roster] == ["Ray Patel", "Jasper Lin", "Sophie Moreau"]
+    assert snapshot(store)["segments"][:3] == [
+        ("Hey, I'm Ray Patel.", "Ray Patel"),
+        ("I'm Jasper Lin.", "Jasper Lin"),
+        ("Hi, I'm Sophie Moreau.", "Sophie Moreau"),
+    ]
+    assert sorted(names.values()) == ["Jasper Lin", "Ray Patel", "Sophie Moreau"]
+
+
+def test_a_leading_full_name_names_a_voice_only_when_it_is_on_the_roster():
+    def heard(text, roster):
+        return said_name(text, None, intro=True, unnamed=True, roster=roster)
+
+    assert heard("Chris Porter, I'm an accountant.", []) == "Chris Porter"
+    assert heard("Most Sundays.", []) == "Most Sundays"
+    assert heard("Most Sundays.", ["Chris Porter"]) is None
+    assert heard("Chris Porter, I'm an accountant.", ["Chris Porter"]) == "Chris Porter"

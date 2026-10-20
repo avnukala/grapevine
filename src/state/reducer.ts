@@ -13,6 +13,7 @@ export function emptyState(): RunState {
     members: {},
     relationships: {},
     prompts: {},
+    roster: [],
     phase: "intro",
   };
 }
@@ -46,6 +47,8 @@ export function applyOp(state: RunState, op: Op): RunState {
       return { ...state, prompts: { ...state.prompts, [op.prompt.id]: op.prompt } };
     case "phase":
       return { ...state, phase: op.phase };
+    case "roster":
+      return { ...state, roster: op.person_ids };
   }
 }
 

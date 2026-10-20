@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     recorded_at TEXT NOT NULL,
     audio_uri TEXT,
     notes TEXT,
-    intro_end_ms INTEGER
+    intro_end_ms INTEGER,
+    roster TEXT NOT NULL DEFAULT '[]'
 );
 CREATE TABLE IF NOT EXISTS runs (
     id INTEGER PRIMARY KEY,
@@ -174,4 +175,6 @@ def connect(path: Path) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA)
+    if "roster" not in {row["name"] for row in conn.execute("PRAGMA table_info(sessions)")}:
+        conn.execute("ALTER TABLE sessions ADD COLUMN roster TEXT NOT NULL DEFAULT '[]'")
     return conn

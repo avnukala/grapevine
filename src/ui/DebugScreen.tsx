@@ -289,5 +289,7 @@ function describe(change: Change, state: RunState): string {
       return `[${op.prompt.reason}] ${op.prompt.text}${op.prompt.dismissed_at_ms !== null ? " (dismissed)" : ""}`;
     case "phase":
       return op.phase;
+    case "roster":
+      return `roster ${op.person_ids.map((id) => personName(state, id)).join(", ")}`;
   }
 }

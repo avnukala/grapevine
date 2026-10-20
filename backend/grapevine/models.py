@@ -32,7 +32,7 @@ class VoiceEmbedder(Protocol):
 
 
 class Transcriber(Protocol):
-    def transcribe(self, audio: np.ndarray) -> str: ...
+    def transcribe(self, audio: np.ndarray, names: list[str]) -> str: ...
 
 
 class ChatModel(Protocol):
@@ -139,13 +139,15 @@ class WhisperTranscriber:
         self.model_id = model_id
         self.language = language
 
-    def transcribe(self, audio: np.ndarray) -> str:
+    def transcribe(self, audio: np.ndarray, names: list[str]) -> str:
+        """Transcribes a turn. The names of the people in the room steer how Whisper spells them."""
         result = self.mlx_whisper.transcribe(
             audio,
             path_or_hf_repo=self.model_id,
             language=self.language,
             temperature=0.0,
             condition_on_previous_text=False,
+            initial_prompt=", ".join(names) + "." if names else None,
         )
         return result["text"].strip()
 

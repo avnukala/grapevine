@@ -24,6 +24,7 @@ class Graph:
     members: dict[tuple[int, int, int | None], Record] = field(default_factory=dict)
     relationships: dict[int, Record] = field(default_factory=dict)
     prompts: dict[int, Record] = field(default_factory=dict)
+    roster: list[int] = field(default_factory=list)
     phase: Phase = "intro"
 
     def apply(self, op: Record) -> None:
@@ -52,8 +53,14 @@ class Graph:
                 self.prompts[op["prompt"]["id"]] = op["prompt"]
             case "phase":
                 self.phase = op["phase"]
+            case "roster":
+                self.roster = op["person_ids"]
             case _:
                 assert_never(kind)
+
+    def room(self) -> list[int]:
+        """The people in the room: everyone on the roster, and anyone a voice belongs to."""
+        return list(dict.fromkeys([*self.roster, *(p for p in self.speakers.values() if p is not None)]))
 
     def live_facts(self) -> list[Record]:
         """Facts that no later fact revised."""

@@ -72,7 +72,7 @@ def show_prompt(
 
 def user_message(store: Store, trigger: Trigger, *, until_ms: int) -> str:
     graph = store.graph
-    room = sorted({pid for pid in graph.speakers.values() if pid is not None})
+    room = sorted(graph.room())
     segments = sorted((s for s in graph.segments.values() if s["start_ms"] < until_ms), key=lambda s: s["start_ms"])
     talk_ms = {pid: 0 for pid in room}
     for segment in segments:
@@ -119,7 +119,7 @@ async def suggest(store: Store, llm: LLM, call: Call, *, at_ms: int) -> None:
     if result.output is None:
         return
     store.audio_ms = at_ms
-    room = [pid for pid in store.graph.speakers.values() if pid is not None]
+    room = store.graph.room()
     for prompt in result.output["prompts"][:MAX_SHOWN]:
         ids = [pid for ref in prompt["people"] if (pid := store.graph.lookup("p", ref)) in room]
         show_prompt(

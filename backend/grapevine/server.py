@@ -34,6 +34,7 @@ from grapevine.runs import (
     run_pipeline,
     session,
     session_for_audio,
+    session_record,
     set_status,
     start_pipeline,
 )
@@ -90,7 +91,7 @@ def audio_files() -> list[str]:
 def sessions() -> list[Record]:
     rows = conn.execute("SELECT * FROM sessions ORDER BY id DESC").fetchall()
     runs = conn.execute("SELECT id, session_id, kind, accepted, status, created_at, code_version FROM runs").fetchall()
-    return [{**dict(s), "runs": [dict(r) for r in runs if r["session_id"] == s["id"]][::-1]} for s in rows]
+    return [{**session_record(s), "runs": [dict(r) for r in runs if r["session_id"] == s["id"]][::-1]} for s in rows]
 
 
 class NewSession(BaseModel):
@@ -98,6 +99,7 @@ class NewSession(BaseModel):
     audio_uri: str | None = None
     recorded_at: str | None = None
     intro_end_ms: int | None = None
+    roster: list[str] = []
 
 
 @app.post("/api/sessions")
@@ -113,6 +115,7 @@ def new_session(body: NewSession) -> Record:
         recorded_at=body.recorded_at or date.today().isoformat(),
         audio_uri=body.audio_uri,
         intro_end_ms=body.intro_end_ms,
+        roster=clean_roster(body.roster),
     )
 
 
@@ -131,18 +134,27 @@ def upload_session(file: UploadFile) -> Record:
         recorded_at=date.today().isoformat(),
         audio_uri=str(target.relative_to(ROOT)),
         intro_end_ms=None,
+        roster=[],
     )
+
+
+def clean_roster(names: list[str]) -> list[str]:
+    """Typed names with spaces tidied, blanks dropped, and each name once."""
+    return list(dict.fromkeys(n for name in names if (n := " ".join(name.split()))))
 
 
 class SessionUpdate(BaseModel):
     name: str | None = None
     notes: str | None = None
     intro_end_ms: int | None = None
+    roster: list[str] | None = None
 
 
 @app.patch("/api/sessions/{session_id}")
 def update_session(session_id: int, body: SessionUpdate) -> Record:
     for key, value in body.model_dump(exclude_none=True).items():
+        if key == "roster":
+            value = json.dumps(clean_roster(value))
         conn.execute(f"UPDATE sessions SET {key} = ? WHERE id = ?", (value, session_id))
     return session(conn, session_id)
 
