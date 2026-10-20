@@ -33,7 +33,7 @@ VOICE_TIE = 0.02
 MIN_VOICE_MS = 2000
 SETTLE_MARGIN = 0.05
 MAX_VOICES = 100
-LEADING_NAME = re.compile(r"(?:(?:Hi|Hey|Hello|So),?\s+)?([A-Z][a-z]+ [A-Z][a-z]+)[,.]")
+LEADING_NAME = re.compile(r"(?:(?:Hi|Hey|Hello|So),?\s+)?([A-Z][a-z]+ [A-Z][a-z]+)(?:[,.]|$)")
 SELF_INTRO = re.compile(r"\b(?:I'm|I am|my name is|name's|call me)\s+([A-Z][a-z]+)\b(?!['’]s)")
 
 

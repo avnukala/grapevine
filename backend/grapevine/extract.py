@@ -311,7 +311,7 @@ def apply_output(store: Store, held: Held) -> None:
                     "label": rel["label"],
                     "summary": rel["summary"],
                     "status": rel["status"],
-                    "met_on": clean_date(rel["met_on"]) or met_on(store, evidence),
+                    "met_on": clean_date(rel["met_on"]) or met_on(store, ids, evidence),
                     "met_event_id": events.get(rel["met_event"] or ""),
                     "closeness": rel["closeness"],
                     "recency": rel["recency"],
@@ -333,9 +333,10 @@ def apply_output(store: Store, held: Held) -> None:
             )
 
 
-def met_on(store: Store, evidence: list[int]) -> str | None:
-    """The date of a supporting fact that tells how the pair met."""
-    for fact_id in evidence:
+def met_on(store: Store, pair: list[int], evidence: list[int]) -> str | None:
+    """The date of a fact that tells how the pair met: a supporting fact first, else any fact about both."""
+    about_both = [f["id"] for f in store.graph.live_facts() if set(pair) <= {p["person_id"] for p in f["people"]}]
+    for fact_id in [*evidence, *about_both]:
         fact = store.graph.facts[fact_id]
         if fact["start_date"] and re.search(r"\bmet\b|\bmeet\b", fact["text"].lower()):
             return fact["start_date"]

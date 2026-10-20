@@ -328,3 +328,35 @@ def test_a_first_name_means_the_person_this_run_talked_about(store):
         person_named(store, "Andrew Gao"),
         ray,
     }
+
+
+def test_a_relationship_takes_the_date_of_a_fact_about_how_the_pair_met(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    store.create_person(name="Jasper Lin", aliases=["Jasper"], gender="male")
+    apply(
+        store,
+        turn(store, ray, "Jasper and I met in 2016."),
+        facts=[fact("Ray Patel and Jasper Lin met at Cornell.", ["speaker", "Jasper Lin"], start_date="2016")],
+    )
+    apply(
+        store,
+        turn(store, ray, "He is my best friend."),
+        relationships=[
+            {
+                "a": "speaker",
+                "b": "Jasper Lin",
+                "category": "friend",
+                "label": "best friend",
+                "status": "current",
+                "met_on": None,
+                "met_event": None,
+                "closeness": 5,
+                "recency": 5,
+                "sentiment": 2,
+                "summary": "",
+                "facts": [],
+            }
+        ],
+    )
+    [rel] = store.graph.relationships.values()
+    assert rel["met_on"] == "2016"
