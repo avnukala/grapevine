@@ -315,3 +315,16 @@ def test_an_event_named_after_a_group_is_skipped(store):
     )
     assert store.graph.events == {}
     assert len(store.graph.groups) == 1
+
+
+def test_a_first_name_means_the_person_this_run_talked_about(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    store.conn.execute("INSERT INTO people (name, aliases) VALUES ('Andrew Walsh', '[\"Andrew\"]')")
+    apply(store, turn(store, ray, "Andrew Gao is a doctor."), facts=[fact("Andrew Gao is a doctor.", ["Andrew Gao"])])
+    apply(store, turn(store, ray, "Andrew came with us."), facts=[fact("Andrew came with Ray.", ["Andrew", "speaker"])])
+
+    assert store.graph.active_prompts() == []
+    assert {p["person_id"] for p in store.graph.facts[max(store.graph.facts)]["people"]} == {
+        person_named(store, "Andrew Gao"),
+        ray,
+    }

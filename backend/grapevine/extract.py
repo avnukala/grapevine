@@ -348,9 +348,9 @@ def resolve(
         return teller.person_id
     if ref in answers:
         return answers[ref]
-    matches = name_matches(store.conn, ref)
+    matches = in_run_first(store, name_matches(store.conn, ref))
     if not matches and entry:
-        matches = name_matches(store.conn, entry["name"])
+        matches = in_run_first(store, name_matches(store.conn, entry["name"]))
     if len(matches) > 1:
         return Ambiguity(ref, [p["id"] for p in matches])
     if not matches:
@@ -375,6 +375,13 @@ def resolve(
     return person["id"]
 
 
+def in_run_first(store: Store, matches: list[Record]) -> list[Record]:
+    """Narrows name matches to the people this run already talked about, when any match is one of them.
+    People are global, so "Andrew" would otherwise fit every Andrew from every session."""
+    in_run = [p for p in matches if p["id"] in store.graph.people]
+    return in_run or matches
+
+
 def first_name_person(store: Store, first: str) -> int | None:
     """The one person known only by this first name, who a full name such as "Tyler Grant" now completes."""
     rows = store.conn.execute(
@@ -386,7 +393,7 @@ def first_name_person(store: Store, first: str) -> int | None:
 def first_name_only(store: Store, person: Record, text: str) -> Ambiguity | None:
     """The model may pick one Andrew when the turn only says "Andrew". The room decides instead."""
     first = person["name"].split()[0]
-    others = name_matches(store.conn, first)
+    others = in_run_first(store, name_matches(store.conn, first))
     if len(others) < 2:
         return None
     said = set(re.findall(r"[a-z']+", text.lower()))
