@@ -1,0 +1,433 @@
+{
+  "audio": "friendsgiving-6p.mp3",
+  "intro_end_ms": 41811,
+  "duration_ms": 469268,
+  "turns": [
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 500,
+      "end_ms": 8321,
+      "text": "Hi everyone, I'm Megan Walsh. I'm a pediatric nurse at Children's Hospital, and this is my house, so welcome to Friendsgiving."
+    },
+    {
+      "speaker": "Chris Porter",
+      "start_ms": 8821,
+      "end_ms": 15488,
+      "text": "I'm Chris Porter, Megan's husband. I'm an accountant at Deloitte, and I play keyboard in a band on the weekends."
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 15988,
+      "end_ms": 22022,
+      "text": "I'm Nina Shah. I teach high school chemistry here in Denver, and I moved out from Chicago a few years ago."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "start_ms": 22522,
+      "end_ms": 29256,
+      "text": "Hey, I'm Owen Brooks. I'm a physical therapist, and I spend most of my free time climbing."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 29756,
+      "end_ms": 34547,
+      "text": "I'm Hannah Kim. I'm a lawyer at a small firm downtown, and I just got engaged."
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 35047,
+      "end_ms": 41561,
+      "text": "And I'm Ben Carter. I teach music at a high school, and I sing in the band Chris just mentioned."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 42061,
+      "end_ms": 46582,
+      "text": "Okay, before anyone touches the turkey, Hannah, show everyone the ring."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 47082,
+      "end_ms": 56852,
+      "text": "Fine, fine. Here it is. Tyler proposed last month in Sedona, at sunrise, at the top of a red rock trail. I was sweaty and I had no makeup on."
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 57352,
+      "end_ms": 59117,
+      "text": "No way! It's gorgeous."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "start_ms": 59617,
+      "end_ms": 64153,
+      "text": "Congrats, Hannah. Seriously. Tyler is a good guy."
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 64653,
+      "end_ms": 68741,
+      "text": "Wait, is it weird that Owen is the first one to congratulate you?"
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 69241,
+      "end_ms": 77882,
+      "text": "Ha, not at all. Owen and I dated for almost five years, but that ended in 2021, and honestly we are way better as friends."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "start_ms": 78382,
+      "end_ms": 86780,
+      "text": "We met at the climbing gym in 2016. She fell off an easy route and landed right on top of me. That was our meet cute."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 87280,
+      "end_ms": 89320,
+      "text": "I slipped. There is a difference."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 89820,
+      "end_ms": 94181,
+      "text": "And now you two are still in the same climbing crew. The Sunday Sends, right?"
+    },
+    {
+      "speaker": "Owen Brooks",
+      "start_ms": 94681,
+      "end_ms": 104119,
+      "text": "Yep. Me, Hannah, Sam Torres, and Kevin Doyle. Every Sunday morning at the gym in Golden, and then breakfast burritos after."
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 104619,
+      "end_ms": 106771,
+      "text": "Tyler doesn't climb though, does he?"
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 107271,
+      "end_ms": 112879,
+      "text": "Tyler Grant does not climb. Tyler Grant watches golf on television. We are working on it."
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 113379,
+      "end_ms": 114395,
+      "text": "Ha, true."
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 114895,
+      "end_ms": 120546,
+      "text": "Okay, Megan, Chris, you have to tell the Bonnaroo story. I've only ever heard pieces of it."
+    },
+    {
+      "speaker": "Chris Porter",
+      "start_ms": 121046,
+      "end_ms": 143351,
+      "text": "Alright. So it's Bonnaroo, June 2015, in Tennessee, and it's about a hundred degrees. My tent collapses on the very first night because I set it up on a slope, like an idiot. And the girl in the tent next to mine just walks over with a mallet and a bag of extra stakes, and rebuilds the whole thing in ten minutes without saying a single word. That was Megan."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 143851,
+      "end_ms": 147480,
+      "text": "He was holding the instructions upside down. I couldn't watch."
+    },
+    {
+      "speaker": "Chris Porter",
+      "start_ms": 147980,
+      "end_ms": 161587,
+      "text": "Then we ended up at the same show that night, and she recognized me as the tent guy. We spent the rest of the weekend together. After that we flew back and forth between Denver and Nashville for about a year, until she finally moved out here."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 162087,
+      "end_ms": 168863,
+      "text": "And four years later we got married in Asheville. October 2019. It poured rain for the whole ceremony."
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 169363,
+      "end_ms": 175332,
+      "text": "I officiated that wedding, by the way. I got ordained online for twenty dollars."
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 175832,
+      "end_ms": 178422,
+      "text": "Wait, Ben, how do you and Megan know each other?"
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 178922,
+      "end_ms": 185471,
+      "text": "Megan is my cousin. Our moms are sisters. We grew up two streets apart in Ohio."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 185971,
+      "end_ms": 188486,
+      "text": "He used to steal my bike. Every single summer."
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 188986,
+      "end_ms": 190934,
+      "text": "Borrow. I borrowed it."
+    },
+    {
+      "speaker": "Chris Porter",
+      "start_ms": 191434,
+      "end_ms": 195116,
+      "text": "Ben is also the one who got me into the band. The Late Shift."
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 195616,
+      "end_ms": 219185,
+      "text": "Right, so the band is me on vocals and guitar, Rob Hayes on bass, Danny Cruz on drums, and Chris on keyboard. Rob and I started it back in college. We met in the jazz ensemble in 2010, and we've been playing bars around Denver ever since. We have a gig at the Bluebird in January, if anyone wants to come."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "start_ms": 219685,
+      "end_ms": 220899,
+      "text": "I'll be there."
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 221399,
+      "end_ms": 224891,
+      "text": "Ben, is that the scar from the car accident? On your arm?"
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 225391,
+      "end_ms": 242633,
+      "text": "Yeah. That was 2012. I was driving back from a gig in Boulder, it was snowing, and a pickup truck slid right through a red light and hit my passenger side. I broke my arm in two places, and I couldn't play guitar for six months."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 243133,
+      "end_ms": 249750,
+      "text": "Ben, that was 2013. I was in nursing school. I remember coming to the hospital between exams."
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 250250,
+      "end_ms": 256288,
+      "text": "No, it was definitely 2012. It was the winter before I graduated."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 256788,
+      "end_ms": 261602,
+      "text": "I'm telling you, it was 2013. I have a photo of your cast somewhere."
+    },
+    {
+      "speaker": "Chris Porter",
+      "start_ms": 262102,
+      "end_ms": 263801,
+      "text": "I am staying out of this one."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 271801,
+      "end_ms": 274837,
+      "text": "So, Nina, how long have you been in Denver now?"
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 275337,
+      "end_ms": 282984,
+      "text": "I moved here from Chicago in 2018. No wait, it was 2019. Right after the school year ended, that summer."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 283484,
+      "end_ms": 285001,
+      "text": "And then you joined the book club."
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 285501,
+      "end_ms": 292287,
+      "text": "Yes! Second Chapter. That's actually how Megan and I met, in 2020, on a video call during lockdown."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 292787,
+      "end_ms": 299215,
+      "text": "It's me, Nina, Laura Bennett, and Emily Hart. We read one book a month, and mostly we drink wine."
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 299715,
+      "end_ms": 303443,
+      "text": "Laura and I went to college together. She's the one who got me into it."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 303943,
+      "end_ms": 305285,
+      "text": "What are you reading right now?"
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 305785,
+      "end_ms": 309825,
+      "text": "Something very sad about a lighthouse. Emily picked it, obviously."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "start_ms": 310325,
+      "end_ms": 313507,
+      "text": "Megan, didn't you say your brother was coming?"
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 314007,
+      "end_ms": 320215,
+      "text": "Andrew Walsh, yes, my little brother. He's driving down from Fort Collins, and he is always late."
+    },
+    {
+      "speaker": "Chris Porter",
+      "start_ms": 320715,
+      "end_ms": 328589,
+      "text": "And my coworker Andrew Collins might stop by too. He just moved here from Boston and doesn't know anyone yet, so I invited him."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "start_ms": 329089,
+      "end_ms": 331257,
+      "text": "Two Andrews. Got it."
+    },
+    {
+      "speaker": "Chris Porter",
+      "start_ms": 331757,
+      "end_ms": 337739,
+      "text": "Andrew Collins and I sit next to each other at Deloitte. He's the one who taught me to snowboard last winter."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 338239,
+      "end_ms": 343345,
+      "text": "Oh, I owe Andrew twenty dollars from the Broncos game. Remind me when he gets here."
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 343845,
+      "end_ms": 349610,
+      "text": "Speaking of food, can we please eat? The turkey has been resting for like an hour."
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 357610,
+      "end_ms": 360973,
+      "text": "Okay, this stuffing is incredible. Who made this?"
+    },
+    {
+      "speaker": "Owen Brooks",
+      "start_ms": 361473,
+      "end_ms": 365647,
+      "text": "That's me. My grandma's recipe. A lot of sausage."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 366147,
+      "end_ms": 374348,
+      "text": "Owen and I work together at Children's Hospital. He started there in 2019, and he's the only physical therapist the kids actually like."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "start_ms": 374848,
+      "end_ms": 401390,
+      "text": "That's because I let them race wheelchairs down the hallway. Last spring I had a twelve year old recovering from knee surgery, a really quiet kid, and he wouldn't do any of his exercises. So I told him, if you do all your reps for a week, we race. He did every single one. On Friday we raced down the third floor hallway, he beat me by a mile, and a surgeon came around the corner and nearly got run over."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 401890,
+      "end_ms": 404428,
+      "text": "I was the one who had to write the incident report."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 404928,
+      "end_ms": 405811,
+      "text": "That's amazing."
+    },
+    {
+      "speaker": "Chris Porter",
+      "start_ms": 406311,
+      "end_ms": 411186,
+      "text": "So, are we doing the Thanksgiving thing where everyone says what they're grateful for?"
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 411686,
+      "end_ms": 415659,
+      "text": "Ugh, fine. I'm grateful I finally passed my car inspection."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 416159,
+      "end_ms": 421101,
+      "text": "I'm grateful for Tyler, obviously. And for Owen, for not making this weird."
+    },
+    {
+      "speaker": "Owen Brooks",
+      "start_ms": 421601,
+      "end_ms": 424943,
+      "text": "I'm grateful nobody fell on me at the gym this year."
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 425443,
+      "end_ms": 432271,
+      "text": "I'm grateful for my arm, which works fine now, no thanks to that pickup truck in 2012."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 432771,
+      "end_ms": 434001,
+      "text": "2013."
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 434501,
+      "end_ms": 453453,
+      "text": "Okay, my turn. I'm grateful for all of you. When I moved out here for Chris in 2016, I didn't know a single person in Denver except him. And now I've got the book club, I've got band nights, and I've got Hannah and Owen dragging me to the climbing gym even though I hate it. This table is my whole family out here."
+    },
+    {
+      "speaker": "Nina Shah",
+      "start_ms": 453953,
+      "end_ms": 455748,
+      "text": "Stop, you're going to make me cry."
+    },
+    {
+      "speaker": "Chris Porter",
+      "start_ms": 456248,
+      "end_ms": 459072,
+      "text": "And I'm grateful that Megan knows how to pitch a tent."
+    },
+    {
+      "speaker": "Ben Carter",
+      "start_ms": 459572,
+      "end_ms": 463386,
+      "text": "Has anyone heard from Andrew? Should we save him a plate?"
+    },
+    {
+      "speaker": "Megan Walsh",
+      "start_ms": 463886,
+      "end_ms": 466025,
+      "text": "Save him two. He's always starving."
+    },
+    {
+      "speaker": "Hannah Kim",
+      "start_ms": 466525,
+      "end_ms": 468768,
+      "text": "Okay, somebody pass the pie."
+    }
+  ]
+}
