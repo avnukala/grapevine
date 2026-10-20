@@ -1,0 +1,115 @@
+"""Command line: replay a recording, score a run, or serve the API."""
+
+import argparse
+import asyncio
+import json
+import logging
+import statistics
+from pathlib import Path
+
+from grapevine import db
+from grapevine.audio import file_chunks
+from grapevine.config import DB_PATH, ROOT, run_config
+from grapevine.runs import create_run, load_models, open_store, run_pipeline, session_for_audio, start_pipeline
+from grapevine.score import score
+
+
+def parse_overrides(pairs: list[str]) -> dict:
+    overrides: dict = {}
+    for pair in pairs:
+        key, value = pair.split("=", 1)
+        target = overrides
+        if key.startswith("turn_rules."):
+            target = overrides.setdefault("turn_rules", {})
+            key = key.removeprefix("turn_rules.")
+        target[key] = json.loads(value) if value[:1] in "0123456789-[{tfn" else value
+    return overrides
+
+
+async def replay(audio: Path, *, speed: float | None, overrides: dict) -> int:
+    conn = db.connect(DB_PATH)
+    config = run_config(overrides)
+    session = session_for_audio(conn, audio)
+    run_id = create_run(conn, session_id=session["id"], kind="replay", config=config)
+    print(f"run {run_id} on session {session['id']} ({session['name']})")
+    active = start_pipeline(
+        conn, run_id=run_id, session=session, config=config, models=load_models(config), broadcast=None
+    )
+    await run_pipeline(conn, active, file_chunks(audio, speed=speed, stop=active.stop))
+    return run_id
+
+
+def report(run_id: int) -> None:
+    conn = db.connect(DB_PATH)
+    store = open_store(conn, run_id)
+    graph = store.graph
+    run = conn.execute(
+        "SELECT runs.*, sessions.audio_uri FROM runs JOIN sessions ON sessions.id = runs.session_id WHERE runs.id = ?",
+        (run_id,),
+    ).fetchone()
+    names = {pid: p["name"] for pid, p in graph.people.items()}
+    print(
+        f"\nrun {run_id}: {len(graph.segments)} segments, {len(graph.people)} people, {len(graph.facts)} facts, "
+        f"{len(graph.relationships)} relationships, {len(graph.events)} events, {len(graph.prompts)} prompts"
+    )
+    for segment in sorted(graph.segments.values(), key=lambda s: s["start_ms"]):
+        who = names.get(segment["person_id"], f"unknown {segment['speaker_label']}")
+        print(
+            f"  {segment['start_ms'] / 1000:6.1f}s {who:15} {segment['speaker_confidence'] or 0:.2f}  {segment['text']}"
+        )
+    totals = [s["timings"].get("total_ms") for s in graph.segments.values() if s["timings"].get("total_ms")]
+    extracts = [s["timings"].get("extract_ms") for s in graph.segments.values() if s["timings"].get("extract_ms")]
+    if totals:
+        print(
+            f"  speech end to facts: median {statistics.median(totals)} ms, max {max(totals)} ms; "
+            f"extraction median {statistics.median(extracts)} ms"
+        )
+    print("facts:")
+    for fact in graph.facts.values():
+        flags = (" REVISED" if fact["revised_by_fact_id"] else "") + (" DISPUTED" if fact["disputed"] else "")
+        print(f"  f{fact['id']} [{fact['kind']}, {fact['start_date'] or '-'}] {fact['text']}{flags}")
+    print("relationships:")
+    for rel in graph.relationships.values():
+        print(
+            f"  {names[rel['a']]} - {names[rel['b']]}: {rel['category']} '{rel['label']}' {rel['status']}"
+            f" met {rel['met_on']} c{rel['closeness']} r{rel['recency']} s{rel['sentiment']}"
+        )
+    print("events:", [f"{e['name']} ({e['start_date']})" for e in graph.events.values()])
+    print(
+        "groups:",
+        [
+            (g["name"], [names.get(m["person_id"]) for m in graph.members.values() if m["group_id"] == g["id"]])
+            for g in graph.groups.values()
+        ],
+    )
+    print("prompts:", [f"{p['reason']}: {p['text']}" for p in graph.prompts.values()])
+    audio = Path(run["audio_uri"])
+    audio = audio if audio.is_absolute() else ROOT / audio
+    if audio.with_name(audio.name.rsplit(".", 1)[0] + ".labels.json").exists():
+        print("score:", json.dumps(score(graph, audio), indent=2))
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
+    parser = argparse.ArgumentParser(prog="grapevine")
+    commands = parser.add_subparsers(dest="command", required=True)
+    replay_parser = commands.add_parser("replay", help="run the pipeline over an audio file")
+    replay_parser.add_argument("audio", type=Path)
+    replay_parser.add_argument("--speed", type=float, help="stream in real time at this speed; default is offline")
+    replay_parser.add_argument("--set", action="append", default=[], help="override a run setting, key=value")
+    report_parser = commands.add_parser("report", help="print and score a run")
+    report_parser.add_argument("run_id", type=int)
+    serve_parser = commands.add_parser("serve", help="serve the API and WebSocket")
+    serve_parser.add_argument("--port", type=int, default=8787)
+    args = parser.parse_args()
+
+    match args.command:
+        case "replay":
+            run_id = asyncio.run(replay(args.audio, speed=args.speed, overrides=parse_overrides(args.set)))
+            report(run_id)
+        case "report":
+            report(args.run_id)
+        case "serve":
+            import uvicorn
+
+            uvicorn.run("grapevine.server:app", port=args.port, log_level="info")

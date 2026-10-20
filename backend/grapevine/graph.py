@@ -1,0 +1,88 @@
+"""The in-memory graph of one run, rebuilt from its change ops.
+
+Each op carries the full record it writes, so applying an op replaces the record. The client
+applies the same ops with the same rules in `src/state/reducer.ts`.
+"""
+
+import re
+from dataclasses import dataclass, field
+from typing import Any, Literal, assert_never
+
+Phase = Literal["intro", "conversation", "ended"]
+RefKind = Literal["p", "e", "f", "r"]
+Record = dict[str, Any]
+
+
+@dataclass
+class Graph:
+    people: dict[int, Record] = field(default_factory=dict)
+    speakers: dict[str, int | None] = field(default_factory=dict)
+    segments: dict[int, Record] = field(default_factory=dict)
+    facts: dict[int, Record] = field(default_factory=dict)
+    events: dict[int, Record] = field(default_factory=dict)
+    groups: dict[int, Record] = field(default_factory=dict)
+    members: dict[tuple[int, int, int | None], Record] = field(default_factory=dict)
+    relationships: dict[int, Record] = field(default_factory=dict)
+    prompts: dict[int, Record] = field(default_factory=dict)
+    phase: Phase = "intro"
+
+    def apply(self, op: Record) -> None:
+        kind = op["type"]
+        match kind:
+            case "person":
+                self.people[op["person"]["id"]] = op["person"]
+            case "speaker":
+                self.speakers[op["speaker"]["label"]] = op["speaker"]["person_id"]
+            case "segment":
+                self.segments[op["segment"]["id"]] = op["segment"]
+            case "fact":
+                self.facts[op["fact"]["id"]] = op["fact"]
+            case "event":
+                self.events[op["event"]["id"]] = op["event"]
+            case "group":
+                self.groups[op["group"]["id"]] = op["group"]
+            case "member":
+                member = op["member"]
+                self.members[(member["group_id"], member["person_id"], member["source_fact_id"])] = member
+            case "relationship":
+                self.relationships[op["relationship"]["id"]] = op["relationship"]
+            case "relationship_removed":
+                self.relationships.pop(op["id"], None)
+            case "prompt":
+                self.prompts[op["prompt"]["id"]] = op["prompt"]
+            case "phase":
+                self.phase = op["phase"]
+            case _:
+                assert_never(kind)
+
+    def live_facts(self) -> list[Record]:
+        """Facts that no later fact revised."""
+        return [f for f in self.facts.values() if f["revised_by_fact_id"] is None]
+
+    def active_prompts(self) -> list[Record]:
+        return [p for p in self.prompts.values() if p["dismissed_at_ms"] is None]
+
+    def _records(self, kind: RefKind) -> dict[int, Record]:
+        match kind:
+            case "p":
+                return self.people
+            case "e":
+                return self.events
+            case "f":
+                return self.facts
+            case "r":
+                return self.relationships
+            case _:
+                assert_never(kind)
+
+    def ref(self, kind: RefKind, record_id: int) -> str:
+        """Numbers records 1, 2, 3 in the order the run first wrote them. Model prompts use these refs, so an
+        unchanged replay sends the same text although its database ids differ."""
+        return f"{kind}{list(self._records(kind)).index(record_id) + 1}"
+
+    def lookup(self, kind: RefKind, ref: str | None) -> int | None:
+        match = re.match(rf"{kind}(\d+)", ref or "")
+        ids = list(self._records(kind))
+        if match is None or not 0 < int(match[1]) <= len(ids):
+            return None
+        return ids[int(match[1]) - 1]
