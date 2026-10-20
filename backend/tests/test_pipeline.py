@@ -124,10 +124,10 @@ def test_voices_split_people_the_speaker_detector_merged(conn):
 def test_a_turn_that_two_merged_voices_share_splits_by_voice(conn):
     conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
     lines = [
-        Line(0, 500, 2000, "Hey, I'm Ray Patel."),
-        Line(2, 2300, 4000, "Hi, I'm Sophie Moreau."),
-        Line(1, 4500, 6000, "I'm Jasper Lin."),
-        Line(2, 7000, 9000, "Ray and I met at Cornell in 2016."),
+        Line(0, 500, 2700, "Hey, I'm Ray Patel."),
+        Line(2, 3000, 5200, "Hi, I'm Sophie Moreau."),
+        Line(1, 5700, 7200, "I'm Jasper Lin."),
+        Line(2, 8000, 10000, "Ray and I met at Cornell in 2016."),
     ]
     chat = FakeChat({**RULES, "I'm Ray Patel": {"speaker_name": "Ray Patel"}})
     store = Store(
@@ -142,9 +142,9 @@ def test_a_turn_that_two_merged_voices_share_splits_by_voice(conn):
         LLM(conn, chat, model_file_hash="t", reuse=True),
         RunConfig(),
         today="2025-10-18",
-        intro_end_ms=6500,
+        intro_end_ms=7600,
     )
-    asyncio.run(pipeline.run(chunks(render(lines, 10000))))
+    asyncio.run(pipeline.run(chunks(render(lines, 11000))))
 
     assert snapshot(store)["segments"] == [
         ("Hey, I'm Ray Patel.", "Ray Patel"),

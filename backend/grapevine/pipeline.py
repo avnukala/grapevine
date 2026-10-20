@@ -30,7 +30,8 @@ log = logging.getLogger(__name__)
 
 ACTIVITY_SILENCE_MS = 300
 VOICE_TIE = 0.02
-MIN_VOICE_MS = 1000
+MIN_VOICE_MS = 2000
+SETTLE_MARGIN = 0.05
 MAX_VOICES = 100
 SELF_INTRO = re.compile(r"\b(?:I'm|I am|my name is|name's|call me)\s+([A-Z][a-z]+)")
 
@@ -223,7 +224,8 @@ class Pipeline:
 
     def _pieces(self, turn: Turn) -> list[tuple[int, int, np.ndarray]]:
         """Splits a turn at its pauses where the voice changes, since the speaker detector can give two
-        similar voices one label. Each piece comes with its voice."""
+        similar voices one label. Each piece comes with its voice. A piece shorter than MIN_VOICE_MS joins
+        the piece before it, because the voice of a short piece is not reliable."""
         bounds = [turn.start_ms, *turn.pauses, turn.end_ms]
         pieces: list[tuple[int, int, np.ndarray]] = []
         for start_ms, end_ms in pairwise(bounds):
@@ -271,14 +273,16 @@ class Pipeline:
 
     def _settle_intro_voices(self) -> None:
         """Gives a voice that no one named during introductions to the closest named voice, when it is close
-        enough. Such a voice is usually the second half of a long introduction."""
+        enough and clearly closer than any other. Such a voice is usually the second half of a long
+        introduction."""
         voices = self.store.voices()
         named = {lbl: saved for lbl, (pid, saved) in voices.items() if pid is not None}
         for label, (person_id, saved) in voices.items():
             if person_id is not None or not named:
                 continue
-            best = max(named, key=lambda lbl: float(saved @ named[lbl]))
-            if float(saved @ named[best]) >= self.config.voice_threshold:
+            ranked = sorted((float(saved @ voice), lbl) for lbl, voice in named.items())[::-1]
+            (score, best), runner_up = ranked[0], (ranked[1][0] if len(ranked) > 1 else 0.0)
+            if score >= self.config.voice_threshold and score - runner_up >= SETTLE_MARGIN:
                 link_speaker(self.store, label, voices[best][0], threshold=self.config.voice_threshold)
 
     def _save_voice(self, label: str, voice: np.ndarray) -> None:

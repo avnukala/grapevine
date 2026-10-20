@@ -12,6 +12,7 @@ from grapevine.audio import SAMPLE_RATE
 
 FRAME_MS = 10
 MAX_SPEAKERS = 8
+MIN_EMBED_SAMPLES = SAMPLE_RATE // 2
 
 
 class SpeakerDetector(Protocol):
@@ -119,7 +120,10 @@ class WavLMEmbedder:
         self.model = WavLMForXVector.from_pretrained(model_id).eval()
 
     def embed(self, audio: np.ndarray) -> np.ndarray:
-        inputs = self.extractor(audio[: SAMPLE_RATE * 10], sampling_rate=SAMPLE_RATE, return_tensors="pt")
+        audio = audio[: SAMPLE_RATE * 10]
+        if len(audio) < MIN_EMBED_SAMPLES:
+            audio = np.pad(audio, (0, MIN_EMBED_SAMPLES - len(audio)))
+        inputs = self.extractor(audio, sampling_rate=SAMPLE_RATE, return_tensors="pt")
         with self.torch.inference_mode():
             vector = self.model(**inputs).embeddings[0].numpy()
         return vector / np.linalg.norm(vector)
