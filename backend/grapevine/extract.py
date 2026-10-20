@@ -475,12 +475,14 @@ def dispute(store: Store, old: int, new: int, *, model_call_id: int) -> None:
         return
     store.update_fact(old, disputed=1, model_call_id=model_call_id)
     first, second = store.graph.facts[old], store.graph.facts[new]
-    tellers = [store.person(f["told_by_person_id"])["name"].split()[0] for f in (first, second)]
+    tellers = [
+        store.person(f["told_by_person_id"])["name"].split()[0] for f in (first, second) if f["told_by_person_id"]
+    ]
     show_prompt(
         store,
-        text=f"{' and '.join(tellers)} disagree. “{first['text']}” or “{second['text']}”?",
+        text=f"{' and '.join(tellers) if len(tellers) == 2 else 'People'} disagree. “{first['text']}” or “{second['text']}”?",
         reason="conflict",
-        person_ids=[f["told_by_person_id"] for f in (first, second)],
+        person_ids=[f["told_by_person_id"] for f in (first, second) if f["told_by_person_id"]],
         payload={"fact_ids": [old, new]},
         model_call_id=model_call_id,
     )

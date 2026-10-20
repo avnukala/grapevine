@@ -249,3 +249,16 @@ def test_prompt_lists_people_by_name_and_facts_by_id(store):
     assert "- Ray Patel (aliases: Ray) [in the room]" in message
     assert f"{store.graph.ref('f', max(store.graph.facts))} told by Ray Patel: Ray Patel lives in Brooklyn." in message
     assert message.endswith("NEW TURN (speaker: Ray Patel):\nI live in Brooklyn.")
+
+
+def test_an_unknown_speaker_can_dispute_a_fact(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    apply(store, turn(store, ray, "I broke my arm in 2017."), facts=[fact("Ray broke his arm in 2017.", ["speaker"])])
+    first = max(store.graph.facts)
+    apply(
+        store,
+        turn(store, None, "No, 2018."),
+        facts=[fact("Ray broke his arm in 2018.", ["Ray Patel"], disputes=f"f{first}")],
+    )
+    [conflict] = store.graph.active_prompts()
+    assert conflict["text"].startswith("People disagree.")
