@@ -123,6 +123,7 @@ export function GraphView({ state, pulses, speakingId, factors, selectedId, onSe
   const svgRef = useRef<SVGSVGElement>(null);
   const nodesRef = useRef(new Map<number, Node>());
   const simRef = useRef<d3.Simulation<Node, PairLink> | null>(null);
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
 
   useEffect(() => {
@@ -133,12 +134,12 @@ export function GraphView({ state, pulses, speakingId, factors, selectedId, onSe
     observer.observe(svg);
     const root = d3.select(svg);
     const layer = root.select<SVGGElement>("g.layer");
-    root.call(
-      d3
-        .zoom<SVGSVGElement, unknown>()
-        .scaleExtent([0.3, 3])
-        .on("zoom", (event) => layer.attr("transform", event.transform)),
-    );
+    const zoom = d3
+      .zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.3, 3])
+      .on("zoom", (event) => layer.attr("transform", event.transform));
+    zoomRef.current = zoom;
+    root.call(zoom);
     return () => {
       observer.disconnect();
       simRef.current?.stop();
@@ -369,7 +370,8 @@ export function GraphView({ state, pulses, speakingId, factors, selectedId, onSe
       .force("inertia-end", inertia(nodes, "end"))
       .alpha(0.6)
       .alphaDecay(0.015)
-      .on("tick", ticked);
+      .on("tick", ticked)
+      .on("end", () => fitIfOutside(svgRef.current!, zoomRef.current!, nodes, width, height));
     ticked();
   }, [people, room, roomList, labels, relationships, hulls, genders, names, factors, size, onSelect]);
 
@@ -446,6 +448,30 @@ export function GraphView({ state, pulses, speakingId, factors, selectedId, onSe
       </g>
     </svg>
   );
+}
+
+// Zooms out to show every node when the layout settles with some outside the view. A view that already
+// shows everything stays as the user left it.
+function fitIfOutside(
+  svg: SVGSVGElement,
+  zoom: d3.ZoomBehavior<SVGSVGElement, unknown>,
+  nodes: Node[],
+  width: number,
+  height: number,
+): void {
+  if (nodes.length === 0) return;
+  const t = d3.zoomTransform(svg);
+  const pad = 60;
+  const [x0, x1] = d3.extent(nodes, (n) => n.x ?? 0) as [number, number];
+  const [y0, y1] = d3.extent(nodes, (n) => n.y ?? 0) as [number, number];
+  const inside = t.applyX(x0) > pad && t.applyX(x1) < width - pad && t.applyY(y0) > pad && t.applyY(y1) < height - pad;
+  if (inside) return;
+  const k = Math.min(1, (width - 2 * pad) / Math.max(x1 - x0, 1), (height - 2 * pad - 80) / Math.max(y1 - y0, 1));
+  const target = d3.zoomIdentity
+    .translate(width / 2, height / 2 - 20)
+    .scale(k)
+    .translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+  d3.select(svg).transition().duration(600).call(zoom.transform, target);
 }
 
 function shorten(text: string, max = 52): string {
