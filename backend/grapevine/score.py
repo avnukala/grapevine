@@ -2,6 +2,7 @@
 
 import json
 import re
+from difflib import SequenceMatcher
 from pathlib import Path
 
 from grapevine.graph import Graph, Record
@@ -21,6 +22,12 @@ def word_error_rate(reference: list[str], hypothesis: list[str]) -> float:
             current.append(min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (ref_word != hyp_word)))
         previous = current
     return previous[-1] / max(1, len(reference))
+
+
+def similar(expected: str, found: str) -> bool:
+    """Group names match loosely, because Whisper hears "Sunday Sends" as "Sunday Sands"."""
+    a, b = " ".join(words(expected)).removeprefix("the "), " ".join(words(found)).removeprefix("the ")
+    return SequenceMatcher(None, a, b).ratio() >= 0.75 or a in b or b in a
 
 
 def same_person(name: str, label: str) -> bool:
@@ -84,7 +91,7 @@ def facts(graph: Graph, expected: Record) -> Record:
     found_events = [e["name"] for e in expected["events"] if e["year"] in event_years]
     found_groups = []
     for group in expected["groups"]:
-        ids = [g["id"] for g in graph.groups.values() if words(group["name"])[-1] in words(g["name"])]
+        ids = [g["id"] for g in graph.groups.values() if similar(group["name"], g["name"])]
         members = {m["person_id"] for m in graph.members.values() if m["group_id"] in ids}
         if {person(n) for n in group["members"]} <= members:
             found_groups.append(group["name"])

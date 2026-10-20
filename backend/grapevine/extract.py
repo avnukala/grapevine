@@ -9,7 +9,7 @@ from grapevine.llm import Call
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches
 
-PROMPT_VERSION = "extract-v4"
+PROMPT_VERSION = "extract-v5"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
 
@@ -240,6 +240,8 @@ def user_message(store: Store, *, segment: Record, speaker_id: int | None, today
     lines += ["", "RECENT TURNS:"]
     lines += [f"{name(s['person_id'])}: {s['text']}" for s in recent] or ["(none)"]
     speaker = name(speaker_id) if speaker_id else f"unknown, voice {segment['speaker_label']}"
+    if speaker_id is None and graph.phase == "intro":
+        speaker += ", introducing themselves, so set speaker_name to the name they give"
     lines += ["", f"NEW TURN (speaker: {speaker}):", segment["text"]]
     return "\n".join(lines)
 

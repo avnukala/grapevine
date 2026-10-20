@@ -33,6 +33,7 @@ VOICE_TIE = 0.02
 MIN_VOICE_MS = 2000
 SETTLE_MARGIN = 0.05
 MAX_VOICES = 100
+LEADING_NAME = re.compile(r"(?:(?:Hi|Hey|Hello|So),?\s+)?([A-Z][a-z]+ [A-Z][a-z]+)[,.]")
 SELF_INTRO = re.compile(r"\b(?:I'm|I am|my name is|name's|call me)\s+([A-Z][a-z]+)\b(?!['’]s)")
 
 
@@ -41,12 +42,15 @@ def goes_by(person: dict, name: str) -> bool:
     return first in {person["name"].split()[0].lower(), *(a.lower() for a in person["aliases"])}
 
 
-def said_name(text: str, model_name: str | None, *, intro: bool) -> str | None:
+def said_name(text: str, model_name: str | None, *, intro: bool, unnamed: bool) -> str | None:
     """The name speakers give for themselves. The model's name counts only when the turn says it. Outside
-    introductions, the turn must also say "I'm" or "my name is" before the name."""
+    introductions, the turn must also say "I'm" or "my name is" before the name. A full name at the start
+    of a turn, as in "Chris Porter, I'm an accountant", counts only for an unnamed voice in introductions."""
     first_names = [m[1] for m in SELF_INTRO.finditer(text)]
     if intro and model_name and all(word in text for word in model_name.split()):
         return model_name
+    if intro and unnamed and (leading := LEADING_NAME.match(text)):
+        return leading[1]
     if not first_names:
         return None
     if model_name and model_name.split()[0] in first_names and all(w in text for w in model_name.split()):
@@ -349,12 +353,12 @@ class Pipeline:
         if output is not None:
             teller = Teller(segment["id"], speaker_id, segment["speaker_confidence"] or 1.0, result.model_call_id)
             intro = segment["speaker_confidence"] is None
-            name = (
-                said_name(segment["text"], output["speaker_name"], intro=intro) if speaker_id is None or intro else None
-            )
+            name = None
+            if speaker_id is None or intro:
+                name = said_name(segment["text"], output["speaker_name"], intro=intro, unnamed=speaker_id is None)
             if name and speaker_id is not None and goes_by(self.store.person(speaker_id), name):
                 name = None
-            if name and speaker_id is not None:
+            if name and (speaker_id is not None or self._sounds_unlike_label(segment)):
                 segment = self._own_voice(segment)
             if name:
                 speaker_id = self._name_speaker(segment, name, Held(output, teller))
@@ -365,9 +369,17 @@ class Pipeline:
         total_ms = int((time.monotonic() - job.heard_at) * 1000)
         self.store.update_segment(segment["id"], timings={"extract_ms": extract_ms, "total_ms": total_ms})
 
+    def _sounds_unlike_label(self, segment: dict) -> bool:
+        """Whether a turn sounds unlike the voice its label saved from other turns."""
+        label = segment["speaker_label"]
+        voice, ms = self.segment_voices[segment["id"]]
+        saved = self.store.voices().get(label)
+        others_ms = self.voice_ms.get(label, 0) - (ms if ms >= MIN_VOICE_MS else 0)
+        return saved is not None and others_ms > 0 and float(voice @ saved[1]) < self.config.voice_threshold
+
     def _own_voice(self, segment: dict) -> dict:
         """Moves an introduction to a voice of its own. Someone said a new name under a voice that already
-        has a name, so the speaker detector merged two people for this turn."""
+        has a name, or that sounds like someone else, so the speaker detector merged two people here."""
         label = self._new_label(segment["speaker_label"], self.store.voices())
         voice, ms = self.segment_voices[segment["id"]]
         self.voice_sums[label] = voice * ms
