@@ -204,7 +204,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
             {view === "graph" && <Stats state={state} />}
             {state.phase === "intro" && runId !== null && (
               <div className="w-72 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm backdrop-blur" data-testid="intro">
-                <div className="font-semibold text-emerald-300">Introductions</div>
+                <div className="font-semibold text-emerald-700 dark:text-emerald-300">Introductions</div>
                 <p className="mt-1 text-muted-foreground">Each person says "I'm" and their name, then a few sentences.</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {roomIds(state).map((id) => {

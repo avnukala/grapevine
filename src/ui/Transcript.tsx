@@ -71,7 +71,7 @@ export function Transcript(props: TranscriptProps) {
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-xs">
-                <span className={cn("font-semibold", unknown && "text-orange-300")}>{name}</span>
+                <span className={cn("font-semibold", unknown && "text-orange-700 dark:text-orange-300")}>{name}</span>
                 {segment.speaker_confidence !== null && (
                   <span className="text-muted-foreground tabular-nums">voice {Math.round(segment.speaker_confidence * 100)}%</span>
                 )}
@@ -114,7 +114,7 @@ function PartialLine({ state, partial }: PartialLineProps) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-xs">
           <span className="font-semibold">{name}</span>
-          <span className="flex items-center gap-1 text-emerald-300">
+          <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
             <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" /> speaking
           </span>
         </div>
@@ -135,7 +135,7 @@ interface WhoSpokeProps {
 function WhoSpoke({ state, onPick }: WhoSpokeProps) {
   const [name, setName] = useState("");
   return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-orange-300">
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-orange-700 dark:text-orange-300">
       Who spoke?
       {roomIds(state).map((id) => (
         <Button key={id} size="xs" variant="secondary" onClick={() => onPick({ person_id: id })}>

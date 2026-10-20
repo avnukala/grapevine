@@ -1,5 +1,7 @@
-import { Grape } from "lucide-react";
+import { Grape, Moon, Sun } from "lucide-react";
+import { ThemeProvider, useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -43,37 +45,56 @@ export default function App() {
   };
 
   return (
-    <TooltipProvider>
-      <div className="flex h-svh flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-6 border-b border-border bg-card/60 px-4 backdrop-blur">
-          <div className="flex items-center gap-2 font-semibold tracking-tight">
-            <span className="flex size-7 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500">
-              <Grape className="size-4 text-white" />
-            </span>
-            Grapevine
-          </div>
-          <nav className="flex gap-1">
-            {LINKS.map((link) => (
-              <a
-                key={link.route}
-                href={link.href}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition hover:text-foreground",
-                  current === link.route && "bg-secondary text-foreground",
-                )}
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-        </header>
-        <main className="flex min-h-0 flex-1 flex-col">
-          {current === "live" && <LiveScreen factors={factors} onFactors={onFactors} />}
-          {current === "global" && <GlobalScreen factors={factors} />}
-          {current === "debug" && <DebugScreen factors={factors} />}
-        </main>
-      </div>
-      <Toaster position="bottom-right" />
-    </TooltipProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+      <TooltipProvider>
+        <div className="flex h-svh flex-col">
+          <header className="flex h-12 shrink-0 items-center gap-6 border-b border-border bg-card/60 px-4 backdrop-blur">
+            <div className="flex items-center gap-2 font-semibold tracking-tight">
+              <span className="flex size-7 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500">
+                <Grape className="size-4 text-white" />
+              </span>
+              Grapevine
+            </div>
+            <nav className="flex gap-1">
+              {LINKS.map((link) => (
+                <a
+                  key={link.route}
+                  href={link.href}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition hover:text-foreground",
+                    current === link.route && "bg-secondary text-foreground",
+                  )}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+            <ThemeToggle />
+          </header>
+          <main className="flex min-h-0 flex-1 flex-col">
+            {current === "live" && <LiveScreen factors={factors} onFactors={onFactors} />}
+            {current === "global" && <GlobalScreen factors={factors} />}
+            {current === "debug" && <DebugScreen factors={factors} />}
+          </main>
+        </div>
+  <Toaster position="bottom-right" />
+      </TooltipProvider>
+    </ThemeProvider>
+  );
+}
+
+function ThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const dark = resolvedTheme === "dark";
+  return (
+    <Button
+      size="icon"
+      variant="ghost"
+      className="ml-auto"
+      aria-label={dark ? "Use light mode" : "Use dark mode"}
+      onClick={() => setTheme(dark ? "light" : "dark")}
+    >
+      {dark ? <Sun /> : <Moon />}
+    </Button>
   );
 }

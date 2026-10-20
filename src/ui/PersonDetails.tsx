@@ -78,8 +78,8 @@ export function PersonDetails({ state, personId, onClose }: PersonDetailsProps) 
                   <li key={f.id} className="flex gap-2 text-sm">
                     <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ background: KIND_COLORS[f.kind] }} />
                     <div>
-                      <span className={f.disputed ? "text-red-300" : ""}>{f.text}</span>
-                      {f.disputed && <TriangleAlert className="ml-1 inline size-3.5 text-red-300" />}
+                      <span className={f.disputed ? "text-red-700 dark:text-red-300" : ""}>{f.text}</span>
+                      {f.disputed && <TriangleAlert className="ml-1 inline size-3.5 text-red-700 dark:text-red-300" />}
                       {(f.when_text || f.start_date) && (
                         <div className="text-xs text-muted-foreground">{f.when_text ?? f.start_date}</div>
                       )}

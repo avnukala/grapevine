@@ -429,15 +429,11 @@ export function GraphView({ state, pulses, speakingId, factors, selectedId, onSe
             <stop offset="100%" stopColor={dark} />
           </radialGradient>
         ))}
-        <radialGradient id="graph-bg" cx="50%" cy="45%" r="75%">
-          <stop offset="0%" stopColor="oklch(0.23 0.04 285)" />
-          <stop offset="100%" stopColor="oklch(0.14 0.012 275)" />
-        </radialGradient>
         <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" fill="oklch(1 0 0 / 7%)" />
+          <circle cx="1" cy="1" r="1" fill="var(--foreground)" fillOpacity={0.08} />
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill="url(#graph-bg)" />
+      <rect width="100%" height="100%" fill="var(--background)" />
       <rect width="100%" height="100%" fill="url(#dots)" />
       <g className="layer">
         <g className="hulls" />

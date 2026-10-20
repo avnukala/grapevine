@@ -243,7 +243,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
               y={lanesTop + i * LANE_HEIGHT}
               width={width}
               height={LANE_HEIGHT}
-              className={i % 2 ? "fill-white/[0.015]" : "fill-white/[0.035]"}
+              className={i % 2 ? "fill-foreground/[0.015]" : "fill-foreground/[0.035]"}
             />
           ))}
           <rect x={-LABEL_WIDTH} y={AXIS_HEIGHT} width={width} height={eventsHeight} className="fill-violet-400/[0.05]" />
@@ -253,7 +253,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
             <rect width={plotWidth} height={height} fill="transparent" />
             {ticks.map((tick) => (
               <g key={tick.getTime()} transform={`translate(${x(tick)},0)`}>
-                <line y1={AXIS_HEIGHT - 4} y2={height} className="stroke-white/[0.07]" />
+                <line y1={AXIS_HEIGHT - 4} y2={height} className="stroke-foreground/[0.08]" />
                 <text y={AXIS_HEIGHT - 12} textAnchor="middle" className="fill-muted-foreground text-[11px]">
                   {format(tick)}
                 </text>
@@ -323,7 +323,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
                           cy={laneY(lane)}
                           r={lit ? 8 : 6}
                           fill={KIND_COLORS[item.fact.kind]}
-                          stroke={item.fact.disputed ? "#f87171" : "oklch(0.16 0.015 275)"}
+                          stroke={item.fact.disputed ? "#f87171" : "var(--background)"}
                           strokeWidth={item.fact.disputed ? 3 : 2}
                           className={lit ? "[filter:drop-shadow(0_0_8px_rgb(252_211_77))]" : ""}
                         />
@@ -543,7 +543,7 @@ function StoryFeed({ state, items, recent, focusKey, onFocus }: StoryFeedProps) 
                       {own.map((f) => (
                         <li key={f.id} className="flex gap-2 text-xs">
                           <span className="mt-1 size-1.5 shrink-0 rounded-full" style={{ background: KIND_COLORS[f.kind] }} />
-                          <span className={f.disputed ? "text-red-300" : ""}>
+                          <span className={f.disputed ? "text-red-700 dark:text-red-300" : ""}>
                             {f.text}
                             {f.disputed && <TriangleAlert className="ml-1 inline size-3" />}
                           </span>

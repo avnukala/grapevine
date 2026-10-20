@@ -47,7 +47,7 @@ export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
       <Card className="w-full max-w-xl border-border/60 bg-card/80 shadow-2xl backdrop-blur">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="size-5 text-violet-300" /> Who is here?
+            <Sparkles className="size-5 text-violet-700 dark:text-violet-300" /> Who is here?
           </CardTitle>
           <CardDescription>
             Type the first and last name of each person. Grapevine uses this list to spell names correctly and to match
@@ -103,7 +103,7 @@ export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
               <Plus /> Add person
             </Button>
             {unclear && (
-              <p className="text-xs text-amber-300">
+              <p className="text-xs text-amber-700 dark:text-amber-300">
                 Two people have the same first name. Last names help tell them apart.
               </p>
             )}
