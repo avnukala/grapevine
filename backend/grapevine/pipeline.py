@@ -12,6 +12,7 @@ import time
 from bisect import bisect_left
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, replace
+from itertools import pairwise
 
 import numpy as np
 
@@ -29,13 +30,17 @@ log = logging.getLogger(__name__)
 
 ACTIVITY_SILENCE_MS = 300
 VOICE_TIE = 0.02
+MIN_VOICE_MS = 1000
 MAX_VOICES = 100
 SELF_INTRO = re.compile(r"\b(?:I'm|I am|my name is|name's|call me)\s+([A-Z][a-z]+)")
 
 
-def said_name(text: str, model_name: str | None) -> str | None:
-    """The name speakers give for themselves. The model's name counts only when the turn says it."""
+def said_name(text: str, model_name: str | None, *, intro: bool) -> str | None:
+    """The name speakers give for themselves. The model's name counts only when the turn says it. Outside
+    introductions, the turn must also say "I'm" or "my name is" before the name."""
     first_names = [m[1] for m in SELF_INTRO.finditer(text)]
+    if intro and model_name and all(word in text for word in model_name.split()):
+        return model_name
     if not first_names:
         return None
     if model_name and model_name.split()[0] in first_names and all(w in text for w in model_name.split()):
@@ -191,31 +196,49 @@ class Pipeline:
                 continue
             heard_at = self.audio.heard_at(turn.end_ms)
             detect_ms = int((time.monotonic() - heard_at) * 1000)
-            audio = self.audio.slice(turn.start_ms, turn.end_ms)
 
             started = time.monotonic()
-            text = await asyncio.to_thread(self.models.transcriber.transcribe, audio)
-            transcribe_ms = int((time.monotonic() - started) * 1000)
-            started = time.monotonic()
-            voice = await asyncio.to_thread(self.models.embedder.embed, audio)
+            pieces = await asyncio.to_thread(self._pieces, turn)
             embed_ms = int((time.monotonic() - started) * 1000)
-            if not text:
-                continue
-
-            intro = self.intro_end_ms is None or turn.start_ms < self.intro_end_ms
-            label, confidence = self._identify(f"spk{turn.speaker}", voice, intro=intro)
-            self.store.audio_ms = turn.end_ms
-            segment = self.store.add_segment(
-                start_ms=turn.start_ms,
-                end_ms=turn.end_ms,
-                speaker_label=label,
-                person_id=self._person(label, confidence),
-                confidence=confidence,
-                text=text,
-                timings={"detect_ms": detect_ms, "transcribe_ms": transcribe_ms, "embed_ms": embed_ms},
-            )
-            await self.jobs.put(SegmentJob(segment["id"], heard_at))
+            for start_ms, end_ms, voice in pieces:
+                started = time.monotonic()
+                text = await asyncio.to_thread(self.models.transcriber.transcribe, self.audio.slice(start_ms, end_ms))
+                transcribe_ms = int((time.monotonic() - started) * 1000)
+                if not text:
+                    continue
+                intro = self.intro_end_ms is None or start_ms < self.intro_end_ms
+                label, confidence = self._identify(f"spk{turn.speaker}", voice, intro=intro)
+                self.store.audio_ms = end_ms
+                segment = self.store.add_segment(
+                    start_ms=start_ms,
+                    end_ms=end_ms,
+                    speaker_label=label,
+                    person_id=self._person(label, confidence),
+                    confidence=confidence,
+                    text=text,
+                    timings={"detect_ms": detect_ms, "transcribe_ms": transcribe_ms, "embed_ms": embed_ms},
+                )
+                await self.jobs.put(SegmentJob(segment["id"], heard_at))
         await self.jobs.put(None)
+
+    def _pieces(self, turn: Turn) -> list[tuple[int, int, np.ndarray]]:
+        """Splits a turn at its pauses where the voice changes, since the speaker detector can give two
+        similar voices one label. Each piece comes with its voice."""
+        bounds = [turn.start_ms, *turn.pauses, turn.end_ms]
+        pieces: list[tuple[int, int, np.ndarray]] = []
+        for start_ms, end_ms in pairwise(bounds):
+            voice = self.models.embedder.embed(self.audio.slice(start_ms, end_ms))
+            if pieces:
+                last_start, _, last_voice = pieces[-1]
+                short = end_ms - start_ms < MIN_VOICE_MS
+                if short or float(voice @ last_voice) >= self.config.new_voice_threshold:
+                    joined = (
+                        self.models.embedder.embed(self.audio.slice(last_start, end_ms)) if not short else last_voice
+                    )
+                    pieces[-1] = (last_start, end_ms, joined)
+                    continue
+            pieces.append((start_ms, end_ms, voice))
+        return pieces
 
     def _identify(self, label: str, voice: np.ndarray, *, intro: bool) -> tuple[str, float | None]:
         """Picks the voice label of a turn. The voice decides, and the detected speaker only breaks near ties,
@@ -308,7 +331,8 @@ class Pipeline:
         output = result.output
         if output is not None:
             teller = Teller(segment["id"], speaker_id, segment["speaker_confidence"] or 1.0, result.model_call_id)
-            name = said_name(segment["text"], output["speaker_name"]) if speaker_id is None else None
+            intro = segment["speaker_confidence"] is None
+            name = said_name(segment["text"], output["speaker_name"], intro=intro) if speaker_id is None else None
             if name:
                 speaker_id = self._name_speaker(segment, name, Held(output, teller))
             if speaker_id is not None or not name:

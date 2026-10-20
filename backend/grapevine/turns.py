@@ -24,6 +24,8 @@ class Turn:
     speaker: int
     start_ms: int
     end_ms: int
+    pauses: tuple[int, ...] = ()
+    """The middle of each pause inside the turn, where another voice could take over."""
 
 
 class TurnBuilder:
@@ -37,6 +39,7 @@ class TurnBuilder:
         self.start_ms = 0
         self.voice_end_ms = 0
         self.last_pause_ms: int | None = None
+        self.pauses: list[int] = []
         self.challenger: int | None = None
         self.challenger_start_ms = 0
         self.last_speech_ms = 0
@@ -67,11 +70,12 @@ class TurnBuilder:
             gap = ms - self.voice_end_ms
             if gap >= self.rules.split_pause_ms:
                 self.last_pause_ms = self.voice_end_ms + gap // 2
+                self.pauses.append(self.last_pause_ms)
             self.voice_end_ms = ms + FRAME_MS
             self.challenger = None
             if self.last_pause_ms and ms - self.start_ms > self.rules.max_turn_ms:
                 cut = self.last_pause_ms
-                turn = Turn(self.speaker, self.start_ms, cut)
+                turn = Turn(self.speaker, self.start_ms, cut, tuple(p for p in self.pauses if p < cut))
                 self._open(self.speaker, cut)
                 self.voice_end_ms = ms + FRAME_MS
                 return [turn]
@@ -98,10 +102,11 @@ class TurnBuilder:
         self.start_ms = ms
         self.voice_end_ms = ms + FRAME_MS
         self.last_pause_ms = None
+        self.pauses = []
         self.challenger = None
 
     def _end(self, end_ms: int) -> list[Turn]:
-        turn = Turn(self.speaker, self.start_ms, end_ms)
+        turn = Turn(self.speaker, self.start_ms, end_ms, tuple(p for p in self.pauses if p < end_ms))
         self.speaker = None
         if turn.end_ms - turn.start_ms < self.rules.min_turn_ms:
             return []

@@ -19,7 +19,7 @@ def frames(*spans: tuple[int | None, int]) -> np.ndarray:
 def test_turn_ends_after_silence():
     builder = TurnBuilder(TurnRules(end_silence_ms=500))
     turns = builder.push(frames((None, 200), (0, 1000), (None, 300), (0, 500), (None, 600)))
-    assert turns == [Turn(0, 200, 2000)]
+    assert turns == [Turn(0, 200, 2000, pauses=(1350,))]
 
 
 def test_new_speaker_ends_the_turn_once_they_hold_the_floor():
