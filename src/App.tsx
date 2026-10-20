@@ -1,4 +1,8 @@
+import { Grape } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import type { WeightFactors } from "./state/derive";
 import { DebugScreen } from "./ui/DebugScreen";
 import { GlobalScreen } from "./ui/GlobalScreen";
@@ -17,6 +21,12 @@ function route(): Route {
   return "live";
 }
 
+const LINKS: { route: Route; href: string; label: string }[] = [
+  { route: "live", href: "#/", label: "Live" },
+  { route: "global", href: "#/global", label: "Global graph" },
+  ...(DEBUG ? [{ route: "debug" as Route, href: "#/debug", label: "Debug and replay" }] : []),
+];
+
 export default function App() {
   const [current, setCurrent] = useState<Route>(route);
   const [factors, setFactors] = useState<WeightFactors>(loadFactors);
@@ -33,24 +43,37 @@ export default function App() {
   };
 
   return (
-    <div className="app">
-      <nav className="topbar">
-        <h1>Grapevine</h1>
-        <a href="#/" className={current === "live" ? "on" : ""}>
-          Live
-        </a>
-        <a href="#/global" className={current === "global" ? "on" : ""}>
-          Global graph
-        </a>
-        {DEBUG && (
-          <a href="#/debug" className={current === "debug" ? "on" : ""}>
-            Debug and replay
-          </a>
-        )}
-      </nav>
-      {current === "live" && <LiveScreen factors={factors} onFactors={onFactors} />}
-      {current === "global" && <GlobalScreen factors={factors} />}
-      {current === "debug" && <DebugScreen factors={factors} />}
-    </div>
+    <TooltipProvider>
+      <div className="flex h-svh flex-col">
+        <header className="flex h-12 shrink-0 items-center gap-6 border-b border-border bg-card/60 px-4 backdrop-blur">
+          <div className="flex items-center gap-2 font-semibold tracking-tight">
+            <span className="flex size-7 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500">
+              <Grape className="size-4 text-white" />
+            </span>
+            Grapevine
+          </div>
+          <nav className="flex gap-1">
+            {LINKS.map((link) => (
+              <a
+                key={link.route}
+                href={link.href}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition hover:text-foreground",
+                  current === link.route && "bg-secondary text-foreground",
+                )}
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        </header>
+        <main className="flex min-h-0 flex-1 flex-col">
+          {current === "live" && <LiveScreen factors={factors} onFactors={onFactors} />}
+          {current === "global" && <GlobalScreen factors={factors} />}
+          {current === "debug" && <DebugScreen factors={factors} />}
+        </main>
+      </div>
+      <Toaster position="bottom-right" />
+    </TooltipProvider>
   );
 }

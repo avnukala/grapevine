@@ -1,9 +1,15 @@
+import { GitMerge, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "../api";
 import type { WeightFactors } from "../state/derive";
 import type { Prompt, Run, Session } from "../state/types";
 import { useRun } from "../state/useRun";
 import { GraphView } from "./GraphView";
+import { Stats, ViewSwitch } from "./LiveScreen";
 import type { View } from "./LiveScreen";
 import { PersonDetails } from "./PersonDetails";
 import { PromptCard } from "./PromptCard";
@@ -21,7 +27,6 @@ export function GlobalScreen({ factors }: GlobalScreenProps) {
   const [view, setView] = useState<View>("graph");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const { state } = useRun(mergeRun?.id ?? null);
 
   const load = useCallback(async () => {
@@ -38,65 +43,65 @@ export function GlobalScreen({ factors }: GlobalScreenProps) {
 
   async function runMerge() {
     setBusy(true);
-    setError(null);
     try {
       setMergeRun(await api.merge());
+      toast.success("Merged the accepted runs");
     } catch (e) {
-      setError(String(e));
+      toast.error(String(e));
     } finally {
       setBusy(false);
     }
   }
 
   const onAnswer = (prompt: Prompt, answer: Answer) =>
-    api.resolveMerge(mergeRun!.id, prompt.id, answer as { action: string; fact_id?: number }).catch((e) => setError(String(e)));
+    api.resolveMerge(mergeRun!.id, prompt.id, answer as { action: string; fact_id?: number }).catch((e) => toast.error(String(e)));
 
   return (
-    <div className="screen global" data-testid="global">
-      <div className="controls">
-        <button disabled={busy || accepted.length === 0} onClick={() => void runMerge()}>
-          {busy ? "Merging…" : "Merge accepted runs"}
-        </button>
-        <span className="muted">
-          Accepted: {accepted.map(({ session, run }) => `${session.name} (run ${run.id})`).join(", ") || "none yet"}
-        </span>
-        {mergeRun && <span className="muted">Showing merge run {mergeRun.id}</span>}
+    <div className="flex min-h-0 flex-1 flex-col" data-testid="global">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/30 px-4 py-2">
+        <Button size="sm" disabled={busy || accepted.length === 0} onClick={() => void runMerge()}>
+          <GitMerge /> {busy ? "Merging…" : "Merge accepted runs"}
+        </Button>
+        <span className="text-xs text-muted-foreground">Accepted:</span>
+        {accepted.map(({ session, run }) => (
+          <Badge key={run.id} variant="secondary">
+            {session.name} · run {run.id}
+          </Badge>
+        ))}
+        {accepted.length === 0 && <span className="text-xs text-muted-foreground">none yet</span>}
+        {mergeRun && (
+          <Badge variant="outline" className="ml-auto">
+            merge run {mergeRun.id}
+          </Badge>
+        )}
       </div>
-      {error && <div className="error">{error}</div>}
-      <div className="debug-body">
-        <div className="stage">
-          <div className="view-switch">
-            <button className={view === "graph" ? "on" : ""} onClick={() => setView("graph")}>
-              Graph
-            </button>
-            <button className={view === "timeline" ? "on" : ""} onClick={() => setView("timeline")}>
-              Timeline
-            </button>
+      <div className="flex min-h-0 flex-1">
+        <div className="relative min-w-0 flex-1">
+          <div className="absolute inset-0">
+            {view === "graph" ? (
+              <GraphView state={state} pulses={[]} speakingId={null} factors={factors} selectedId={selectedId} onSelect={setSelectedId} />
+            ) : (
+              <TimelineView state={state} recentFactIds={[]} recentEventIds={[]} />
+            )}
           </div>
-          {view === "graph" ? (
-            <GraphView
-              state={state}
-              pulses={[]}
-              speakingId={null}
-              factors={factors}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
-          ) : (
-            <TimelineView state={state} recentFactIds={[]} recentEventIds={[]} />
-          )}
-          {selectedId !== null && (
-            <PersonDetails state={state} personId={selectedId} onClose={() => setSelectedId(null)} />
-          )}
+          <div className="absolute top-4 left-4 z-10 flex flex-col gap-3">
+            <ViewSwitch view={view} onView={setView} />
+            {view === "graph" && <Stats state={state} />}
+          </div>
         </div>
-        <div className="side">
-          <h3>Review ({review.length})</h3>
-          {review.length === 0 && <p className="muted">No conflicts to review.</p>}
-          {review.map((prompt) => (
-            <PromptCard key={prompt.id} prompt={prompt} state={state} onAnswer={onAnswer} onDismiss={() => undefined} />
-          ))}
-        </div>
+        <ScrollArea className="w-[400px] shrink-0 border-l border-border bg-card/30">
+          <div className="space-y-3 p-4">
+            <h3 className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              <ShieldCheck className="size-4" /> Review ({review.length})
+            </h3>
+            {review.length === 0 && <p className="text-sm text-muted-foreground">No conflicts to review.</p>}
+            {review.map((prompt) => (
+              <PromptCard key={prompt.id} prompt={prompt} state={state} onAnswer={onAnswer} onDismiss={() => undefined} />
+            ))}
+          </div>
+        </ScrollArea>
       </div>
+      <PersonDetails state={state} personId={selectedId} onClose={() => setSelectedId(null)} />
     </div>
   );
 }

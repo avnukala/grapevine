@@ -1,3 +1,7 @@
+import { SlidersHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
 import { DEFAULT_FACTORS } from "../state/derive";
 import type { WeightFactors } from "../state/derive";
 
@@ -29,24 +33,33 @@ interface WeightPanelProps {
 export function WeightPanel({ factors, onChange }: WeightPanelProps) {
   const total = Object.values(factors).reduce((sum, w) => sum + w, 0) || 1;
   return (
-    <div className="weights" data-testid="weights">
-      {(Object.keys(LABELS) as (keyof WeightFactors)[]).map((key) => (
-        <label key={key}>
-          <span>{LABELS[key]}</span>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={factors[key]}
-            onChange={(e) => onChange({ ...factors, [key]: Number(e.target.value) })}
-          />
-          <span className="share">{Math.round((factors[key] / total) * 100)}%</span>
-        </label>
-      ))}
-      <button className="link" onClick={() => onChange(DEFAULT_FACTORS)}>
-        Reset
-      </button>
-    </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="outline">
+          <SlidersHorizontal /> Edge weight
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80" data-testid="weights">
+        <div className="mb-3 text-sm font-medium">Edge weight</div>
+        <div className="space-y-4">
+          {(Object.keys(LABELS) as (keyof WeightFactors)[]).map((key) => (
+            <div key={key} className="grid grid-cols-[96px_1fr_40px] items-center gap-3 text-sm">
+              <span className="text-muted-foreground">{LABELS[key]}</span>
+              <Slider
+                min={0}
+                max={1}
+                step={0.05}
+                value={[factors[key]]}
+                onValueChange={([value]) => onChange({ ...factors, [key]: value })}
+              />
+              <span className="text-right tabular-nums">{Math.round((factors[key] / total) * 100)}%</span>
+            </div>
+          ))}
+        </div>
+        <Button className="mt-4" size="sm" variant="ghost" onClick={() => onChange(DEFAULT_FACTORS)}>
+          Reset
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }

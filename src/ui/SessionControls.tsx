@@ -1,4 +1,12 @@
+import { Check, FastForward, FileAudio, Keyboard, Mic, Play, Plus, Square, Upload, UserCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { api } from "../api";
 import type { Source } from "../api";
 import type { Phase, Session } from "../state/types";
@@ -12,11 +20,10 @@ interface SessionControlsProps {
   onSession: (id: number | null) => void;
   onRun: (id: number | null) => void;
   onRefresh: () => Promise<void>;
-  onError: (message: string | null) => void;
 }
 
 export function SessionControls(props: SessionControlsProps) {
-  const { sessions, sessionId, runId, runActive, phase, onSession, onRun, onRefresh, onError } = props;
+  const { sessions, sessionId, runId, runActive, phase, onSession, onRun, onRefresh } = props;
   const [files, setFiles] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -29,12 +36,11 @@ export function SessionControls(props: SessionControlsProps) {
 
   async function act(task: () => Promise<unknown>) {
     setBusy(true);
-    onError(null);
     try {
       await task();
       await onRefresh();
     } catch (e) {
-      onError(String(e));
+      toast.error(String(e));
     } finally {
       setBusy(false);
     }
@@ -44,113 +50,137 @@ export function SessionControls(props: SessionControlsProps) {
     act(async () => onRun((await api.startRun({ session_id: sessionId!, source, speed })).id));
 
   return (
-    <div className="controls" data-testid="controls">
-      <select
-        value={sessionId ?? ""}
-        onChange={(e) => onSession(e.target.value ? Number(e.target.value) : null)}
-        aria-label="Session"
-      >
-        <option value="">Pick a session</option>
-        {sessions.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name} ({s.recorded_at})
-          </option>
-        ))}
-      </select>
-      {session && (
-        <select value={runId ?? ""} onChange={(e) => onRun(e.target.value ? Number(e.target.value) : null)} aria-label="Run">
-          <option value="">No run</option>
-          {session.runs.map((r) => (
-            <option key={r.id} value={r.id}>
-              Run {r.id}: {r.kind}, {r.status}
-              {r.accepted ? ", accepted" : ""}
-            </option>
+    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/30 px-4 py-2" data-testid="controls">
+      <Select value={sessionId ? String(sessionId) : undefined} onValueChange={(v) => onSession(Number(v))}>
+        <SelectTrigger className="w-72" aria-label="Session" data-testid="session-select">
+          <SelectValue placeholder="Pick a session" />
+        </SelectTrigger>
+        <SelectContent>
+          {sessions.map((s) => (
+            <SelectItem key={s.id} value={String(s.id)}>
+              {s.name} <span className="text-muted-foreground">{s.recorded_at}</span>
+            </SelectItem>
           ))}
-        </select>
+        </SelectContent>
+      </Select>
+      {session && (
+        <Select value={runId ? String(runId) : undefined} onValueChange={(v) => onRun(Number(v))}>
+          <SelectTrigger className="w-56" aria-label="Run" data-testid="run-select">
+            <SelectValue placeholder="No runs yet" />
+          </SelectTrigger>
+          <SelectContent>
+            {session.runs.map((r) => (
+              <SelectItem key={r.id} value={String(r.id)}>
+                Run {r.id} · {r.kind} · {r.status}
+                {r.accepted ? " · accepted" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
+      {run?.accepted ? (
+        <Badge variant="secondary" className="gap-1">
+          <Check className="size-3" /> accepted
+        </Badge>
+      ) : null}
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
 
       {session && !runActive && (
         <>
-          <button disabled={busy} onClick={() => start("mic")}>
-            Start live
-          </button>
+          <Button size="sm" disabled={busy} onClick={() => start("mic")}>
+            <Mic /> Start live
+          </Button>
           {session.audio_uri && (
             <>
-              <button disabled={busy} onClick={() => start("file", 1)}>
-                Replay 1×
-              </button>
-              <button disabled={busy} onClick={() => start("file", null)}>
-                Replay fast
-              </button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => start("file", 1)}>
+                <Play /> Replay 1×
+              </Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => start("file", null)}>
+                <FastForward /> Replay fast
+              </Button>
             </>
           )}
-          <button className="secondary" disabled={busy} onClick={() => start("text")}>
-            Typed run
-          </button>
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => start("text")}>
+            <Keyboard /> Typed run
+          </Button>
           {run && run.kind !== "merge" && !run.accepted && run.status !== "running" && (
-            <button className="secondary" disabled={busy} onClick={() => act(() => api.accept(run.id))}>
-              Accept run
-            </button>
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => api.accept(run.id))}>
+              <Check /> Accept run
+            </Button>
           )}
         </>
       )}
       {runActive && runId !== null && (
         <>
           {phase === "intro" && (
-            <button disabled={busy} onClick={() => act(() => api.introDone(runId))}>
-              Done with introductions
-            </button>
+            <Button size="sm" disabled={busy} onClick={() => act(() => api.introDone(runId))}>
+              <UserCheck /> Done with introductions
+            </Button>
           )}
-          <button className="danger" disabled={busy} onClick={() => act(() => api.stop(runId))}>
-            Stop
-          </button>
+          <Button size="sm" variant="destructive" disabled={busy} onClick={() => act(() => api.stop(runId))}>
+            <Square /> Stop
+          </Button>
         </>
       )}
 
-      <details className="new-session">
-        <summary>New session</summary>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!name.trim()) return;
-            void act(async () => {
-              const created = await api.newSession({ name: name.trim() });
-              setName("");
-              onSession(created.id);
-            });
-          }}
-        >
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Session name" />
-          <button disabled={busy}>Create</button>
-        </form>
-        <label className="upload">
-          Upload a recording
-          <input
-            type="file"
-            accept="audio/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void act(async () => onSession((await api.upload(file)).id));
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button size="sm" variant="ghost" className="ml-auto">
+            <Plus /> New session
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-96 space-y-4">
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!name.trim()) return;
+              void act(async () => {
+                const created = await api.newSession({ name: name.trim() });
+                setName("");
+                onSession(created.id);
+              });
             }}
-          />
-        </label>
-        {files.length > 0 && (
-          <div className="samples">
-            From a file:
-            {files.map((file) => (
-              <button
-                key={file}
-                className="link"
-                onClick={() =>
-                  act(async () => onSession((await api.newSession({ name: file.split("/").pop()!, audio_uri: file })).id))
-                }
-              >
-                {file.split("/").pop()}
-              </button>
-            ))}
-          </div>
-        )}
-      </details>
+          >
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name a live session" />
+            <Button size="sm" disabled={busy}>
+              Create
+            </Button>
+          </form>
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border px-3 py-3 text-sm text-muted-foreground hover:bg-accent/40">
+            <Upload className="size-4" /> Upload a recording
+            <input
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void act(async () => onSession((await api.upload(file)).id));
+              }}
+            />
+          </label>
+          {files.length > 0 && (
+            <div>
+              <div className="mb-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Recordings</div>
+              <div className="max-h-56 space-y-0.5 overflow-auto">
+                {files.map((file) => (
+                  <button
+                    key={file}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+                    onClick={() =>
+                      act(async () => onSession((await api.newSession({ name: file.split("/").pop()!, audio_uri: file })).id))
+                    }
+                  >
+                    <FileAudio className="size-4 text-muted-foreground" />
+                    {file.split("/").pop()}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
