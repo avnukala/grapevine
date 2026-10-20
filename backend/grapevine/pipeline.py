@@ -102,6 +102,7 @@ class Pipeline:
         self.jobs: asyncio.Queue[SegmentJob | PromptJob | None] = asyncio.Queue()
         self.prompter_tasks: set[asyncio.Task] = set()
         self.voice_sums: dict[str, np.ndarray] = {}
+        self.voice_ms: dict[str, int] = {}
         self.paused = True
         self.active_label: str | None = None
         self.intro_over = False
@@ -208,7 +209,7 @@ class Pipeline:
                 if not text:
                     continue
                 intro = self.intro_end_ms is None or start_ms < self.intro_end_ms
-                label, confidence = self._identify(f"spk{turn.speaker}", voice, intro=intro)
+                label, confidence = self._identify(f"spk{turn.speaker}", voice, ms=end_ms - start_ms, intro=intro)
                 self.store.audio_ms = end_ms
                 segment = self.store.add_segment(
                     start_ms=start_ms,
@@ -242,29 +243,32 @@ class Pipeline:
             pieces.append((start_ms, end_ms, voice))
         return pieces
 
-    def _identify(self, label: str, voice: np.ndarray, *, intro: bool) -> tuple[str, float | None]:
+    def _identify(self, label: str, voice: np.ndarray, *, ms: int, intro: bool) -> tuple[str, float | None]:
         """Picks the voice label of a turn. The voice decides, and the detected speaker only breaks near ties,
         because the speaker detector can merge two similar voices into one speaker.
 
         During introductions it saves voices and returns no score. A detected speaker whose new turn sounds
-        unlike its saved voice is two people, so the turn gets its own label. Later, a score under the
-        threshold marks an unknown speaker."""
+        unlike its saved voice is two people, so the turn gets its own label. Only turns and saved voices of
+        at least MIN_VOICE_MS count for that, because short audio gives noisy voices. Later, a score under
+        the threshold marks an unknown speaker."""
         voices = self.store.voices()
         scores = {lbl: float(voice @ saved) for lbl, (_, saved) in voices.items()}
         if intro:
-            if label in scores and scores[label] < self.config.new_voice_threshold:
+            reliable = ms >= MIN_VOICE_MS and self.voice_ms.get(label, 0) >= MIN_VOICE_MS
+            if reliable and scores[label] < self.config.new_voice_threshold:
                 best = max(scores, key=scores.__getitem__)
                 label = best if scores[best] >= self.config.new_voice_threshold else self._new_label(label, voices)
-            self._save_voice(label, voice)
+            if ms >= MIN_VOICE_MS or label not in voices:
+                self._save_voice(label, voice, ms)
             return label, None
 
         best = max(scores, key=scores.__getitem__, default=None)
         if best is None:
-            self._save_voice(label, voice)
+            self._save_voice(label, voice, ms)
             return label, 0.0
         chosen = label if label in scores and scores[label] >= scores[best] - VOICE_TIE else best
         if scores[chosen] < self.config.voice_threshold and label not in voices:
-            self._save_voice(label, voice)
+            self._save_voice(label, voice, ms)
             return label, scores[chosen]
         return chosen, scores[chosen]
 
@@ -285,9 +289,11 @@ class Pipeline:
             if score >= self.config.voice_threshold and score - runner_up >= SETTLE_MARGIN:
                 link_speaker(self.store, label, voices[best][0], threshold=self.config.voice_threshold)
 
-    def _save_voice(self, label: str, voice: np.ndarray) -> None:
-        total = self.voice_sums.get(label, np.zeros_like(voice)) + voice
+    def _save_voice(self, label: str, voice: np.ndarray, ms: int) -> None:
+        """Keeps the mean voice of a label, weighted by the length of each turn."""
+        total = self.voice_sums.get(label, np.zeros_like(voice)) + voice * ms
         self.voice_sums[label] = total
+        self.voice_ms[label] = self.voice_ms.get(label, 0) + ms
         self.store.set_speaker(label, self.store.graph.speakers.get(label), total / np.linalg.norm(total))
 
     def _person(self, label: str, confidence: float | None) -> int | None:
