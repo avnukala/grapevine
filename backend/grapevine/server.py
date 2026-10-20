@@ -205,6 +205,7 @@ async def new_run(body: NewRun) -> Record:
         case "text":
             run.pipeline.intro_end_ms = 0
             chunks = idle(run.stop)
+    run.pipeline.partials = body.source == "mic" or body.speed is not None
     active[run_id] = run
 
     async def go() -> None:

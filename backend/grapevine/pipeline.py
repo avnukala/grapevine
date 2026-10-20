@@ -30,6 +30,7 @@ from grapevine.turns import Turn, TurnBuilder
 log = logging.getLogger(__name__)
 
 ACTIVITY_SILENCE_MS = 300
+PARTIAL_MS = 1000
 VOICE_TIE = 0.02
 MIN_VOICE_MS = 2000
 SETTLE_MARGIN = 0.05
@@ -128,6 +129,8 @@ class Pipeline:
         self.paused = True
         self.active_label: str | None = None
         self.intro_over = False
+        self.partials = False
+        self.whisper = asyncio.Lock()
 
     async def run(self, chunks: AsyncIterator[np.ndarray]) -> None:
         self.models.detector.start()
@@ -135,6 +138,7 @@ class Pipeline:
         self.store.set_phase("conversation" if self.intro_over else "intro")
         self._seat_roster()
         workers = [asyncio.create_task(self._transcribe_turns()), asyncio.create_task(self._extract_jobs())]
+        partials = asyncio.create_task(self._partials()) if self.partials else None
         try:
             async for chunk in chunks:
                 for worker in workers:
@@ -149,8 +153,9 @@ class Pipeline:
             await asyncio.gather(*workers)
             await asyncio.gather(*self.prompter_tasks)
         finally:
-            for worker in workers:
-                worker.cancel()
+            for task in [*workers, partials]:
+                if task is not None:
+                    task.cancel()
         self.store.audio_ms = self.builder.now_ms
         await summarize(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed)
         self.store.set_phase("ended")
@@ -245,7 +250,8 @@ class Pipeline:
             for start_ms, end_ms, voice in pieces:
                 started = time.monotonic()
                 audio = self.audio.slice(start_ms, end_ms)
-                text = await asyncio.to_thread(self.models.transcriber.transcribe, audio, self.roster)
+                async with self.whisper:
+                    text = await asyncio.to_thread(self.models.transcriber.transcribe, audio, self.roster)
                 text = spell_names(text, self.roster)
                 transcribe_ms = int((time.monotonic() - started) * 1000)
                 if not text:
@@ -264,7 +270,34 @@ class Pipeline:
                 )
                 self.segment_voices[segment["id"]] = (voice, end_ms - start_ms)
                 await self.jobs.put(SegmentJob(segment["id"], heard_at))
+            self.store.notify({"type": "partial", "start_ms": turn.start_ms, "text": None})
         await self.jobs.put(None)
+
+    async def _partials(self) -> None:
+        """Shows the words of the open turn while it is still going, for a run that keeps pace with real
+        time. The text is only a preview: it is not saved, and the final transcription of a turn never waits
+        for it."""
+        while True:
+            await asyncio.sleep(PARTIAL_MS / 1000)
+            speaker, start_ms = self.builder.speaker, self.builder.start_ms
+            end_ms = self.audio.size * 1000 // SAMPLE_RATE
+            if speaker is None or self.whisper.locked() or end_ms - start_ms < PARTIAL_MS:
+                continue
+            async with self.whisper:
+                audio = self.audio.slice(start_ms, end_ms)
+                text = await asyncio.to_thread(self.models.transcriber.transcribe, audio, self.roster)
+            if (self.builder.speaker, self.builder.start_ms) != (speaker, start_ms) or not text:
+                continue
+            label = f"spk{speaker}"
+            self.store.notify(
+                {
+                    "type": "partial",
+                    "start_ms": start_ms,
+                    "speaker_label": label,
+                    "person_id": self.store.graph.speakers.get(label),
+                    "text": spell_names(text, self.roster),
+                }
+            )
 
     def _pieces(self, turn: Turn) -> list[tuple[int, int, np.ndarray]]:
         """Splits a turn at its pauses where the voice changes, since the speaker detector can give two

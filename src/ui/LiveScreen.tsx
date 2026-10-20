@@ -207,7 +207,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
                   Object.keys(state.segments).length === 0 && !runActive && "hidden",
                 )}
               >
-                <Transcript state={state} voiceThreshold={threshold} limit={3} onAssign={onAssign} />
+                <Transcript state={state} voiceThreshold={threshold} limit={3} partial={live.partial} onAssign={onAssign} />
                 {runActive && <TypedTurn runId={runId!} />}
               </div>
               <div className="pointer-events-auto ml-auto flex flex-col items-end gap-2">

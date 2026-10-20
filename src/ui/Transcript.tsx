@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { GENDER_COLORS, initials } from "../state/categories";
 import { personName, roomIds } from "../state/derive";
 import type { RunState, Segment } from "../state/types";
+import type { Partial } from "../state/useRun";
 
 interface TranscriptProps {
   state: RunState;
@@ -13,6 +14,7 @@ interface TranscriptProps {
   limit?: number;
   currentMs?: number | null;
   showTimings?: boolean;
+  partial?: Partial | null;
   onAssign?: (segment: Segment, answer: { person_id: number } | { new_name: string }) => void;
   onSeek?: (ms: number) => void;
 }
@@ -26,15 +28,21 @@ function clock(ms: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-export function Transcript({ state, voiceThreshold, limit, currentMs, showTimings, onAssign, onSeek }: TranscriptProps) {
+export function Transcript(props: TranscriptProps) {
+  const { state, voiceThreshold, limit, currentMs, showTimings, partial, onAssign, onSeek } = props;
   const segments = Object.values(state.segments).sort((x, y) => x.start_ms - y.start_ms);
-  const shown = limit ? segments.slice(-limit) : segments;
+  const shown = limit ? segments.slice(-(partial ? limit - 1 : limit)) : segments;
   return (
     <ol className="space-y-1.5" data-testid="transcript">
       {shown.map((segment) => {
-        const unknown = isUnknown(segment, voiceThreshold);
+        const naming = state.phase === "intro" && segment.person_id === null && segment.speaker_confidence === null;
+        const unknown = !naming && isUnknown(segment, voiceThreshold);
         const current = currentMs != null && segment.start_ms <= currentMs && currentMs < segment.end_ms;
-        const name = unknown ? `Unknown (${segment.speaker_label})` : personName(state, segment.person_id);
+        const name = naming
+          ? `Introducing (${segment.speaker_label})`
+          : unknown
+            ? `Unknown (${segment.speaker_label})`
+            : personName(state, segment.person_id);
         const gender = (segment.person_id !== null && state.people[segment.person_id]?.gender) || "unknown";
         return (
           <li
@@ -59,7 +67,7 @@ export function Transcript({ state, voiceThreshold, limit, currentMs, showTiming
               )}
               style={{ background: unknown ? "#9a3412" : GENDER_COLORS[gender][1] }}
             >
-              {unknown ? "?" : initials(name)}
+              {unknown ? "?" : naming ? "…" : initials(name)}
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-xs">
@@ -83,7 +91,39 @@ export function Transcript({ state, voiceThreshold, limit, currentMs, showTiming
           </li>
         );
       })}
+      {partial && <PartialLine state={state} partial={partial} />}
     </ol>
+  );
+}
+
+interface PartialLineProps {
+  state: RunState;
+  partial: Partial;
+}
+
+function PartialLine({ state, partial }: PartialLineProps) {
+  const name = partial.personId === null ? `Someone (${partial.label})` : personName(state, partial.personId);
+  return (
+    <li className="flex items-start gap-3 rounded-lg px-2 py-1.5" data-testid="partial">
+      <span className="mt-0.5 w-9 shrink-0 text-right font-mono text-[11px] text-muted-foreground tabular-nums">
+        {clock(partial.startMs)}
+      </span>
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">
+        {partial.personId === null ? "…" : initials(name)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 text-xs">
+          <span className="font-semibold">{name}</span>
+          <span className="flex items-center gap-1 text-emerald-300">
+            <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" /> speaking
+          </span>
+        </div>
+        <p className="text-sm leading-snug text-muted-foreground">
+          {partial.text}
+          <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-muted-foreground align-middle" />
+        </p>
+      </div>
+    </li>
   );
 }
 

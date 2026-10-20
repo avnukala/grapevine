@@ -1,6 +1,8 @@
 import asyncio
 from dataclasses import replace
 
+from grapevine import pipeline as pipeline_module
+from grapevine.audio import SAMPLE_RATE
 from grapevine.config import RunConfig
 from grapevine.llm import LLM
 from grapevine.pipeline import Pipeline, said_name
@@ -209,6 +211,40 @@ def test_the_roster_seats_people_and_fixes_how_their_names_are_spelled(conn):
         ("Hi, I'm Sophie Moreau.", "Sophie Moreau"),
     ]
     assert sorted(names.values()) == ["Jasper Lin", "Ray Patel", "Sophie Moreau"]
+
+
+class SecondsTranscriber:
+    def transcribe(self, audio, names):
+        return f"{len(audio) // SAMPLE_RATE} seconds"
+
+
+async def paced(audio):
+    async for chunk in chunks(audio):
+        await asyncio.sleep(0.02)
+        yield chunk
+
+
+def test_a_run_at_real_time_previews_the_open_turn(conn, monkeypatch):
+    monkeypatch.setattr(pipeline_module, "PARTIAL_MS", 200)
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    lines = [Line(0, 500, 4500, "")]
+    messages = []
+    run_id = conn.execute(
+        "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'live', '{}', 'test')"
+    ).lastrowid
+    chat = FakeChat({})
+    models = replace(fake_models(lines, chat), transcriber=SecondsTranscriber())
+    llm = LLM(conn, chat, model_file_hash="t", reuse=True)
+    pipeline = Pipeline(
+        Store(conn, run_id, messages.append), models, llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[]
+    )
+    pipeline.partials = True
+    asyncio.run(pipeline.run(paced(render(lines, 6000))))
+
+    previews = [m for m in messages if m["type"] == "partial"]
+    assert {m["speaker_label"] for m in previews if m["text"]} == {"spk0"}
+    assert len({m["text"] for m in previews if m["text"]}) > 1
+    assert previews[-1] == {"type": "partial", "start_ms": 500, "text": None, "run_id": run_id}
 
 
 def test_a_leading_full_name_names_a_voice_only_when_it_is_on_the_roster():
