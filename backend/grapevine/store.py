@@ -5,6 +5,7 @@ import json
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from difflib import SequenceMatcher
 from typing import Any
 
 import numpy as np
@@ -28,6 +29,8 @@ FACT_FIELDS = (
     "revised_by_fact_id",
 )
 EVENT_FIELDS = ("name", "when_text", "start_date", "end_date", "date_precision", "place")
+GROUP_WORDS = {"crew", "team", "group", "club", "league", "gang", "squad", "band"}
+SAME_GROUP = 0.85
 RELATIONSHIP_FIELDS = ("label", "summary", "status", "met_on", "met_event_id", "closeness", "recency", "sentiment")
 
 
@@ -39,6 +42,21 @@ def person_record(row: sqlite3.Row) -> Record:
         "gender": row["gender"],
         "merged_into_id": row["merged_into_id"],
     }
+
+
+def group_key(name: str) -> str:
+    """A group name without case, a leading "the", or a trailing word that only says it is a group."""
+    words = name.lower().split()
+    if words[:1] == ["the"]:
+        words = words[1:]
+    while len(words) > 1 and words[-1] in GROUP_WORDS:
+        words = words[:-1]
+    return " ".join(words)
+
+
+def proper_group_name(name: str) -> bool:
+    """Whether a group name is a proper name, such as "Sunday Sends", and not a plain phrase like "the crew"."""
+    return any(word[:1].isupper() for word in name.split() if word.lower() != "the")
 
 
 def name_matches(conn: sqlite3.Connection, name: str) -> list[Record]:
@@ -67,7 +85,7 @@ class Store:
         """Groups writes in one transaction. Nested batches join the outer one."""
         self._depth += 1
         if self._depth == 1:
-            self.conn.execute("BEGIN")
+            self.conn.execute("BEGIN IMMEDIATE")
         try:
             yield
         except BaseException:
@@ -204,15 +222,18 @@ class Store:
         *,
         person_id: int | None = None,
         speaker_label: str | None = None,
+        speaker_confidence: float | None = None,
         timings: dict[str, int] | None = None,
     ) -> None:
         segment = self.segment(segment_id)
         with self.batch():
             self.conn.execute(
-                "UPDATE segments SET person_id = ?, speaker_label = ?, timings_json = ? WHERE id = ?",
+                "UPDATE segments SET person_id = ?, speaker_label = ?, speaker_confidence = ?, timings_json = ? "
+                "WHERE id = ?",
                 (
                     person_id if person_id is not None else segment["person_id"],
                     speaker_label or segment["speaker_label"],
+                    speaker_confidence if speaker_confidence is not None else segment["speaker_confidence"],
                     json.dumps({**segment["timings"], **(timings or {})}),
                     segment_id,
                 ),
@@ -304,10 +325,12 @@ class Store:
         return event
 
     def group_for(self, name: str) -> Record:
-        """Finds a global group by name or alias, or creates it."""
-        wanted = name.strip().lower()
+        """Finds a global group by name or alias, or creates it. Names match loosely, so "Sunday Sends crew"
+        and "Sunday Sands" find Sunday Sends."""
+        wanted = group_key(name)
         for row in self.conn.execute("SELECT * FROM groups"):
-            if wanted in {row["name"].lower(), *(a.lower() for a in json.loads(row["aliases"]))}:
+            keys = {group_key(n) for n in [row["name"], *json.loads(row["aliases"])]}
+            if any(SequenceMatcher(None, wanted, key).ratio() >= SAME_GROUP for key in keys):
                 group = {
                     "id": row["id"],
                     "name": row["name"],

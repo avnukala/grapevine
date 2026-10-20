@@ -283,3 +283,44 @@ def test_a_leading_full_name_names_a_voice_only_when_it_is_on_the_roster():
     assert heard("Most Sundays.", []) == "Most Sundays"
     assert heard("Most Sundays.", ["Chris Porter"]) is None
     assert heard("Chris Porter, I'm an accountant.", ["Chris Porter"]) == "Chris Porter"
+
+
+def test_the_review_completes_relationships_groups_and_events(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+
+    def rel(a, b, category, met_on=None):
+        return {
+            "a": a,
+            "b": b,
+            "category": category,
+            "label": category,
+            "status": "current",
+            "met_on": met_on,
+            "in_touch": True,
+            "summary": "",
+        }
+
+    reviewed = {
+        "room": {},
+        "other": [
+            rel("Jasper Lin", "Ray Patel", "professional", "2016"),
+            rel("Ray Patel", "Sophie Moreau", "friend"),
+        ],
+        "known": {},
+        "new": [{"name": "Tuesday crew", "also_called": [], "members": ["Ray Patel", "Jasper Lin"]}],
+        "events": [{"name": "Electric Zoo 2018", "start_date": "2018", "place": None, "people": ["Ray Patel"]}],
+    }
+    store = replay(conn, FakeChat(RULES, reviewed=reviewed))
+    graph = store.graph
+    names = {pid: p["name"] for pid, p in graph.people.items()}
+
+    assert sorted((names[r["a"]], names[r["b"]], r["category"], r["met_on"]) for r in graph.relationships.values()) == [
+        ("Ray Patel", "Jasper Lin", "professional", "2016"),
+        ("Ray Patel", "Sophie Moreau", "friend", None),
+    ]
+    [group] = graph.groups.values()
+    assert {names[m["person_id"]] for m in graph.members.values() if m["group_id"] == group["id"]} == {
+        "Ray Patel",
+        "Jasper Lin",
+    }
+    assert [e["name"] for e in graph.events.values()] == ["Electric Zoo 2018"]

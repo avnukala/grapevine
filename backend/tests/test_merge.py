@@ -119,14 +119,12 @@ def test_merge_asks_about_people_it_is_not_sure_about(conn):
 
 
 def test_misspelled_names_are_candidates_for_the_same_person(conn):
-    run = accepted_run(conn, "one")
-    ray = run.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
-    tell(
-        run,
-        ray,
-        "Sam Torres and Sam Taurus.",
-        facts=[fact("Sam Torres climbs.", ["Sam Torres"]), fact("Sam Taurus drives.", ["Sam Taurus"])],
-    )
+    one, two = accepted_run(conn, "one"), accepted_run(conn, "two")
+    ray = one.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    tell(one, ray, "Sam Torres climbs.", facts=[fact("Sam Torres climbs.", ["Sam Torres"])])
+    two.show_person(ray)
+    two.create_person(name="Sam Taurus", aliases=["Sam"], gender="male")
+    tell(two, ray, "Sam Taurus drives.", facts=[fact("Sam Taurus drives.", ["Sam Taurus"])])
     store = merge_run(conn, same_person(0.9))
     [prompt] = store.graph.active_prompts()
     assert prompt["reason"] == "merge_people"

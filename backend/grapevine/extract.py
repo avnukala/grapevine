@@ -6,10 +6,11 @@ from dataclasses import dataclass, field
 from grapevine.config import Context
 from grapevine.graph import Record
 from grapevine.llm import Call
+from grapevine.names import misspelled
 from grapevine.prompter import show_prompt
-from grapevine.store import Store, name_matches
+from grapevine.store import Store, name_matches, proper_group_name
 
-PROMPT_VERSION = "extract-v5"
+PROMPT_VERSION = "extract-v7"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
 
@@ -29,21 +30,21 @@ SPEAKER NAME
 FACTS
 - Write one fact for each new piece of information in the NEW TURN only. Do not repeat known facts. Skip questions and filler.
 - kind: personal (one person: job, home, school, pet, hobby), relationship (how two people know each other), story (something that happened), membership, correction.
-- If the turn names a group of people, such as a crew, a team, a band, a club, or a friend group, write a membership fact with "group" set to the group name and "people" set to its members. A group is not an event.
+- If the turn names a group of people, such as a crew, a team, a band, a club, or a friend group, write a membership fact with "group" set to the group name and "people" set to its members. When people in the room say "we" or "our team", they are members. If the turn calls a known group something else, such as "the crew", use the known group name. A group is not an event, and a house is not a group.
 - text: one short sentence with full names and no pronouns, for example "Ray Patel and Jasper Lin met freshman year at Cornell." State the fact itself, not that someone said or corrected it.
 - people: every person the fact is about, by name.
 - when_text: the time as said, for example "freshman year". start_date and end_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD" when the turn, the known facts, or today's date resolve it. Else null.
-- event: for a named or dated happening (a festival, a trip, a wedding, a proposal, an accident), the event id ("e2") or the new event name, also listed in "events". Reuse a known event when the turn talks about it again. Name an event by what and when, for example "Electric Zoo 2018". All facts of one story share one event. A school, a place, or a group is not an event.
+- event: for a named or dated happening (a festival, a trip, a wedding, a proposal, an accident, a move to a new city or house), the event id ("e2") or the new event name, also listed in "events". Reuse a known event when the turn talks about it again. Name an event by what and when, for example "Electric Zoo 2018". All facts of one story share one event. A school, a place, or a group is not an event.
 - If the speaker corrects a fact that they told, or agrees with a correction, use kind correction and set "revises" to the old fact id.
 - If the speaker contradicts a fact that ANOTHER person told, write the speaker's version and set "disputes" to the other fact id.
 
 RELATIONSHIPS
 - Add one entry for each pair whose relationship the turn tells about, for example coworkers, cousins, roommates, exes, or old friends. A pair has at most one entry per category, for example a past romantic one and a current friend one.
 - Every fact of kind relationship needs a matching entry here.
-- category: romantic (dating, partners, married, engaged, exes), family (parents, siblings, cousins, in-laws), friend, professional (coworkers, bosses, clients, classmates), or other (bandmates, roommates, teammates when not friends).
+- category: romantic (dating, partners, married, engaged, exes), family (parents, siblings, cousins, in-laws), friend (friends, including roommates, bandmates, teammates, climbing partners, and league mates, unless the turn says they are not friends), professional (coworkers, bosses, managers, employees, clients, business partners), or other (only acquaintances with no other tie).
 - Exes are romantic with status past. If they stayed friends, add a second entry: friend, current.
 - label: a 1 to 3 word term, for example "college roommate", "ex-girlfriend", "cousin", "coworker".
-- status: current or past. met_on: when they met as a date, or null. met_event: an event id or name, or null.
+- status: current or past. met_on: when they met, as a date, when the turn or the known facts tell or imply it (a couple who met at Bonnaroo 2015 met in 2015), or null. met_event: an event id or name, or null.
 - closeness 1 to 5, recency 1 to 5 (5 means in touch now), sentiment -2 to 2. Null when the turn gives no signal.
 - summary: one sentence on how they relate.
 - facts: the 0-based indexes of the facts in your output that support it.
@@ -321,6 +322,10 @@ def apply_output(store: Store, held: Held) -> None:
                 model_call_id=teller.model_call_id,
             )
 
+        for ambiguity in bare_first_names(store, text):
+            if ambiguity.mention not in held.answers:
+                waiting.setdefault(ambiguity.mention, ambiguity)
+
         for ambiguity in waiting.values():
             names = [store.person(c)["name"] for c in ambiguity.candidates]
             show_prompt(
@@ -363,6 +368,9 @@ def resolve(
         aliases = entry["aliases"] if entry else []
         gender = entry["gender"] if entry else "unknown"
         if " " in name:
+            near = [p for p in store.graph.people.values() if misspelled(p["name"], name)]
+            if len(near) == 1:
+                return near[0]["id"]
             first = name.split()[0]
             if (known := first_name_person(store, first)) is not None:
                 store.update_person(known, add_aliases=[first, *aliases], gender=gender, name=name)
@@ -391,6 +399,25 @@ def first_name_person(store: Store, first: str) -> int | None:
         "SELECT id FROM people WHERE merged_into_id IS NULL AND lower(name) = lower(?)", (first,)
     ).fetchall()
     return rows[0][0] if len(rows) == 1 and len(name_matches(store.conn, first)) == 1 else None
+
+
+def bare_first_names(store: Store, text: str) -> list[Ambiguity]:
+    """First names in a turn that fit two or more people of this run, with no full name or other alias that
+    says which one. The model skips questions such as "Does Megan know Kate is coming?", yet the room still
+    has to say which Kate."""
+    said = set(re.findall(r"[a-z']+", text.lower()))
+    by_first: dict[str, list[Record]] = {}
+    for person in store.graph.people.values():
+        if person["merged_into_id"] is None:
+            by_first.setdefault(person["name"].split()[0].lower(), []).append(person)
+    found = []
+    for first, people in by_first.items():
+        if len(people) < 2 or first not in said:
+            continue
+        names = [n for p in people for n in [p["name"], *p["aliases"]] if n.lower() != first]
+        if not any(set(n.lower().split()) <= said for n in names):
+            found.append(Ambiguity(people[0]["name"].split()[0], [p["id"] for p in people]))
+    return found
 
 
 def first_name_only(store: Store, person: Record, text: str) -> Ambiguity | None:
@@ -468,7 +495,7 @@ def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, 
     if event_id is not None and people:
         store.upsert_event(event_id, {}, people=people, model_call_id=teller.model_call_id)
 
-    if fact["kind"] == "membership" and fact["group"]:
+    if fact["kind"] == "membership" and fact["group"] and proper_group_name(fact["group"]):
         group = store.group_for(fact["group"])
         for person_id in people:
             store.add_member(

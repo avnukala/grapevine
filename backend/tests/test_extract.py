@@ -360,3 +360,21 @@ def test_a_relationship_takes_the_date_of_a_fact_about_how_the_pair_met(store):
     )
     [rel] = store.graph.relationships.values()
     assert rel["met_on"] == "2016"
+
+
+def test_a_bare_first_name_that_fits_two_people_asks_the_room(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    store.create_person(name="Kate Russo", aliases=["Kate"], gender="female")
+    store.create_person(name="Kate Miller", aliases=["Kate"], gender="female")
+    apply(store, turn(store, ray, "Does Megan know Kate is coming?"))
+    [prompt] = store.graph.active_prompts()
+    assert prompt["reason"] == "which_person"
+    assert prompt["payload"]["mention"] == "Kate"
+
+
+def test_a_misspelled_full_name_is_the_person_already_known(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    ravi = store.create_person(name="Ravi Kapoor", aliases=["Ravi"], gender="male")["id"]
+    apply(store, turn(store, ray, "Rav Kapoor cooks."), facts=[fact("Rav Kapoor cooks.", ["Rav Kapoor"])])
+    [cooks] = store.graph.facts.values()
+    assert ravi in {p["person_id"] for p in cooks["people"]}

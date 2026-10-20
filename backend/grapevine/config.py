@@ -30,8 +30,8 @@ class RunConfig:
     transcriber: str = "mlx-community/whisper-large-v3-turbo"
     language: str = "en"
     turn_rules: TurnRules = field(default_factory=TurnRules)
-    extract_model: str = os.environ.get("LLM_MODEL", "gemma-4-e4b")
-    summary_model: str = os.environ.get("SUMMARY_MODEL", os.environ.get("LLM_MODEL", "gemma-4-e4b"))
+    extract_model: str = os.environ.get("LLM_MODEL", "gemma-4-26b-a4b")
+    summary_model: str = os.environ.get("SUMMARY_MODEL", os.environ.get("LLM_MODEL", "gemma-4-26b-a4b"))
     seed: int = 7
     context: Context = "full"
     prompt_pause_ms: int = 7000

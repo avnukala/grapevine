@@ -23,6 +23,7 @@ from grapevine.llm import LLM, watch_on
 from grapevine.models import Models
 from grapevine.names import misspelled, spell_names
 from grapevine.prompter import prompter_call, show_prompt, suggest
+from grapevine.review import review
 from grapevine.store import Store, name_matches
 from grapevine.summarize import summarize
 from grapevine.turns import Turn, TurnBuilder
@@ -39,6 +40,8 @@ MIN_VOICE_MS = 2000
 # A turn under MIN_VOICE_MS by the same speaker still scores 0.8 or more against their voice.
 SHORT_UNLIKE = 0.65
 SETTLE_MARGIN = 0.05
+# A turn this far from every person's voice keeps the speaker it has.
+SETTLE_FLOOR = 0.7
 MAX_VOICES = 100
 LEADING_NAME = re.compile(r"(?:(?:Hi|Hey|Hello|So),?\s+)?([A-Z][a-z]+ [A-Z][a-z]+)(?:[,.]|$)")
 SELF_INTRO = re.compile(r"\b(?:I'm|I am|my name is|name's|call me)\s+([A-Z][a-z]+)\b(?!['’]s)")
@@ -131,6 +134,7 @@ class Pipeline:
         self.voice_sums: dict[str, np.ndarray] = {}
         self.voice_ms: dict[str, int] = {}
         self.segment_voices: dict[int, tuple[np.ndarray, int]] = {}
+        self.extracted_as: dict[int, int | None] = {}
         self.paused = True
         self.active_label: str | None = None
         self.intro_over = False
@@ -163,6 +167,9 @@ class Pipeline:
                 if task is not None:
                     task.cancel()
         self.store.audio_ms = self.builder.now_ms
+        self._settle_speakers()
+        await self._reextract()
+        await review(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed, today=self.today)
         await summarize(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed)
         self.store.set_phase("ended")
 
@@ -395,9 +402,11 @@ class Pipeline:
                 case SegmentJob():
                     await self._extract(job)
                 case PromptJob():
+                    self.store.audio_ms = job.at_ms
                     if job.trigger == "opener":
-                        self.store.audio_ms = job.at_ms
                         self._settle_intro_voices()
+                    else:
+                        self._settle_speakers()
                     call = prompter_call(
                         self.store,
                         job.trigger,
@@ -421,6 +430,7 @@ class Pipeline:
             seed=self.config.seed,
             context=self.config.context,
         )
+        self.extracted_as[segment["id"]] = speaker_id
         started = time.monotonic()
         watch = watch_on(self.store, worker="extractor", segment_id=segment["id"])
         result = await self.llm.call(call, run_id=self.store.run_id, audio_ms=segment["end_ms"], watch=watch)
@@ -438,7 +448,8 @@ class Pipeline:
                 )
             if name and speaker_id is not None and goes_by(self.store.person(speaker_id), name):
                 name = None
-            if name and (speaker_id is not None or self._sounds_unlike_label(segment)):
+            voiced = segment["id"] in self.segment_voices
+            if name and voiced and (speaker_id is not None or self._sounds_unlike_label(segment)):
                 segment = self._own_voice(segment)
             if name:
                 speaker_id = self._name_speaker(segment, name, Held(output, teller))
@@ -448,6 +459,57 @@ class Pipeline:
                 apply_output(self.store, Held(output, replace(teller, person_id=speaker_id)))
         total_ms = int((time.monotonic() - job.heard_at) * 1000)
         self.store.update_segment(segment["id"], timings={"extract_ms": extract_ms, "total_ms": total_ms})
+
+    def _settle_speakers(self) -> None:
+        """Gives each turn to the person whose voice is closest. A person's voice here is the mean of all their
+        long turns so far, which is steadier than the voice of one introduction. Turns the voice detector got
+        wrong, or left unknown, move to the right person."""
+        sums: dict[int, np.ndarray] = {}
+        for segment_id, (voice, ms) in self.segment_voices.items():
+            person_id = self.store.graph.segments[segment_id]["person_id"]
+            if person_id is not None and ms >= MIN_VOICE_MS:
+                sums[person_id] = sums.get(person_id, 0) + voice * ms
+        if len(sums) < 2:
+            return
+        people = {pid: total / np.linalg.norm(total) for pid, total in sums.items()}
+        with self.store.batch():
+            for segment_id, (voice, _) in self.segment_voices.items():
+                score, person_id = max((float(voice @ v), pid) for pid, v in people.items())
+                segment = self.store.graph.segments[segment_id]
+                if score >= SETTLE_FLOOR and person_id != segment["person_id"]:
+                    self.store.update_segment(segment_id, person_id=person_id, speaker_confidence=score)
+
+    async def _reextract(self) -> None:
+        """Extracts again each turn whose speaker changed after its extraction, because its facts name the
+        wrong teller. The new facts revise the old ones."""
+        for segment_id, speaker_id in list(self.extracted_as.items()):
+            segment = self.store.graph.segments[segment_id]
+            if segment["person_id"] in (None, speaker_id):
+                continue
+            old = [f["id"] for f in self.store.graph.live_facts() if segment_id in f["segment_ids"]]
+            call = extraction_call(
+                self.store,
+                segment=segment,
+                speaker_id=segment["person_id"],
+                today=self.today,
+                model=self.config.extract_model,
+                seed=self.config.seed,
+                context=self.config.context,
+            )
+            watch = watch_on(self.store, worker="extractor", segment_id=segment_id)
+            result = await self.llm.call(call, run_id=self.store.run_id, audio_ms=segment["end_ms"], watch=watch)
+            if result.output is None:
+                continue
+            teller = Teller(
+                segment_id, segment["person_id"], segment["speaker_confidence"] or 1.0, result.model_call_id
+            )
+            held = Held(result.output, teller)
+            apply_output(self.store, held)
+            self.extracted_as[segment_id] = segment["person_id"]
+            new = list(held.fact_ids.values())
+            # With no new fact, an old fact revises itself, which hides it like any revised fact.
+            for fact_id in old:
+                self.store.update_fact(fact_id, revised_by_fact_id=new[0] if new else fact_id)
 
     def _sounds_unlike_label(self, segment: dict) -> bool:
         """Whether a turn sounds unlike the voice its label saved from other turns. The voice of a short turn
