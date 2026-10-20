@@ -11,8 +11,21 @@ from pathlib import Path
 from grapevine import db
 from grapevine.audio import file_chunks
 from grapevine.config import DB_PATH, ROOT, run_config
-from grapevine.runs import create_run, load_models, open_store, run_pipeline, session_for_audio, start_pipeline
+from grapevine.llm import LLM
+from grapevine.merge import merge
+from grapevine.runs import (
+    chat,
+    create_run,
+    llm_file_hash,
+    load_models,
+    open_store,
+    run_pipeline,
+    session_for_audio,
+    set_status,
+    start_pipeline,
+)
 from grapevine.score import score
+from grapevine.store import Store
 
 
 def parse_overrides(pairs: list[str]) -> dict:
@@ -38,6 +51,33 @@ async def replay(audio: Path, *, speed: float | None, overrides: dict) -> int:
     )
     await run_pipeline(conn, active, file_chunks(audio, speed=speed, stop=active.stop))
     return run_id
+
+
+def accept(run_id: int) -> None:
+    """Marks a run as the accepted run of its session, so the next merge reads it."""
+    conn = db.connect(DB_PATH)
+    session_id = conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()[0]
+    conn.execute("BEGIN")
+    conn.execute("UPDATE runs SET accepted = 0 WHERE session_id = ?", (session_id,))
+    conn.execute("UPDATE runs SET accepted = 1 WHERE id = ?", (run_id,))
+    conn.execute("COMMIT")
+    print(f"accepted run {run_id} for session {session_id}")
+
+
+async def merge_accepted() -> None:
+    conn = db.connect(DB_PATH)
+    config = run_config({})
+    store = Store(conn, create_run(conn, session_id=None, kind="merge", config=config))
+    llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
+    await merge(store, llm, model=config.summary_model, seed=config.seed)
+    set_status(conn, store.run_id, "done")
+    graph = store.graph
+    print(
+        f"merge run {store.run_id}: {len(graph.people)} people, {len(graph.relationships)} relationships, "
+        f"{len(graph.facts)} facts, {len(graph.active_prompts())} to review"
+    )
+    for prompt in graph.active_prompts():
+        print(f"  [{prompt['reason']}] {prompt['text']}")
 
 
 def report(run_id: int) -> None:
@@ -100,6 +140,9 @@ def main() -> None:
     replay_parser.add_argument("--set", action="append", default=[], help="override a run setting, key=value")
     report_parser = commands.add_parser("report", help="print and score a run")
     report_parser.add_argument("run_id", type=int)
+    accept_parser = commands.add_parser("accept", help="accept a run for its session")
+    accept_parser.add_argument("run_id", type=int)
+    commands.add_parser("merge", help="merge the accepted runs into the global graph")
     serve_parser = commands.add_parser("serve", help="serve the API and WebSocket")
     serve_parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8790")))
     args = parser.parse_args()
@@ -110,6 +153,10 @@ def main() -> None:
             report(run_id)
         case "report":
             report(args.run_id)
+        case "accept":
+            accept(args.run_id)
+        case "merge":
+            asyncio.run(merge_accepted())
         case "serve":
             import uvicorn
 
