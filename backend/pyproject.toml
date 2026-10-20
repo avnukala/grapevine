@@ -15,6 +15,7 @@ dependencies = [
     "mlx-whisper>=0.4.3",
     "soxr>=1.1.0",
     "librosa>=1.0.0",
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]

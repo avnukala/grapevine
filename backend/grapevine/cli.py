@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import statistics
 from pathlib import Path
 
@@ -57,8 +58,8 @@ def report(run_id: int) -> None:
         print(
             f"  {segment['start_ms'] / 1000:6.1f}s {who:15} {segment['speaker_confidence'] or 0:.2f}  {segment['text']}"
         )
-    totals = [s["timings"].get("total_ms") for s in graph.segments.values() if s["timings"].get("total_ms")]
-    extracts = [s["timings"].get("extract_ms") for s in graph.segments.values() if s["timings"].get("extract_ms")]
+    totals = [s["timings"]["total_ms"] for s in graph.segments.values() if "total_ms" in s["timings"]]
+    extracts = [s["timings"]["extract_ms"] for s in graph.segments.values() if "extract_ms" in s["timings"]]
     if totals:
         print(
             f"  speech end to facts: median {statistics.median(totals)} ms, max {max(totals)} ms; "
@@ -100,7 +101,7 @@ def main() -> None:
     report_parser = commands.add_parser("report", help="print and score a run")
     report_parser.add_argument("run_id", type=int)
     serve_parser = commands.add_parser("serve", help="serve the API and WebSocket")
-    serve_parser.add_argument("--port", type=int, default=8787)
+    serve_parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8790")))
     args = parser.parse_args()
 
     match args.command:

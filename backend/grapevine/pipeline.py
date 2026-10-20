@@ -100,7 +100,8 @@ class Pipeline:
 
     async def run(self, chunks: AsyncIterator[np.ndarray]) -> None:
         self.models.detector.start()
-        self.store.set_phase("intro")
+        self.intro_over = self.intro_end_ms == 0
+        self.store.set_phase("conversation" if self.intro_over else "intro")
         workers = [asyncio.create_task(self._transcribe_turns()), asyncio.create_task(self._extract_jobs())]
         try:
             async for chunk in chunks:
@@ -121,6 +122,31 @@ class Pipeline:
         self.store.audio_ms = self.builder.now_ms
         await summarize(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed)
         self.store.set_phase("ended")
+
+    async def add_text(self, speaker: str, text: str) -> dict:
+        """Adds a typed turn, for a run without audio. The speaker is a name, and a new name adds a person."""
+        matches = name_matches(self.store.conn, speaker)
+        person_id = matches[0]["id"] if matches else None
+        if person_id is None:
+            first = speaker.split()[0]
+            person_id = self.store.create_person(
+                name=speaker, aliases=[first] if first != speaker else [], gender="unknown"
+            )["id"]
+        label = f"text{person_id}"
+        start_ms = max((s["end_ms"] for s in self.store.graph.segments.values()), default=0) + 500
+        self.store.audio_ms = start_ms + 2000
+        self.store.set_speaker(label, person_id, None)
+        segment = self.store.add_segment(
+            start_ms=start_ms,
+            end_ms=start_ms + 2000,
+            speaker_label=label,
+            person_id=person_id,
+            confidence=None,
+            text=text,
+            timings={},
+        )
+        await self.jobs.put(SegmentJob(segment["id"], time.monotonic()))
+        return segment
 
     def end_intro(self) -> None:
         """Ends introductions at the current audio time, for a live session."""
