@@ -11,7 +11,16 @@ from collections import defaultdict
 from difflib import SequenceMatcher
 from itertools import combinations
 
-from grapevine.extract import Ambiguity, Teller, clean_date, couple_of, date_precision, resolve, year_in
+from grapevine.extract import (
+    Ambiguity,
+    Teller,
+    category_of,
+    clean_date,
+    couple_of,
+    date_precision,
+    resolve,
+    year_in,
+)
 from grapevine.graph import Record
 from grapevine.llm import LLM, Call, watch_on
 from grapevine.names import misspelled
@@ -308,6 +317,7 @@ def ties(entries: list[Record]) -> list[Record]:
     exes still in touch are also friends."""
     result = []
     for entry in entries:
+        entry = {**entry, "category": category_of(entry["category"], entry["label"])}
         if entry["in_touch"] and entry["category"] == "romantic" and entry["status"] == "past":
             result += [entry, {**entry, "category": "friend", "label": "friend", "status": "current", "met_on": None}]
         elif entry["in_touch"]:

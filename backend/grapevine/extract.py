@@ -142,6 +142,7 @@ PERSON_NAME = re.compile(r"[A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*){0,3}")
 SPEAKER_REFS = {"speaker", "the speaker", "unknown speaker", "i", "me", "myself"}
 RECENT_TURNS = 4
 COUPLE_EVENTS = {"wedding": "married", "engagement": "engaged"}
+FRIEND_LABELS = ("bandmate", "roommate", "housemate", "teammate", "climbing partner", "league mate")
 
 
 @dataclass(frozen=True)
@@ -313,7 +314,7 @@ def apply_output(store: Store, held: Held) -> None:
             store.upsert_relationship(
                 a=ids[0],
                 b=ids[1],
-                category=rel["category"],
+                category=category_of(rel["category"], rel["label"]),
                 fields={
                     "label": rel["label"],
                     "summary": store.graph.facts[evidence[0]]["text"] if evidence else None,
@@ -342,6 +343,14 @@ def apply_output(store: Store, held: Held) -> None:
                 payload={"mention": ambiguity.mention, "held": held_payload(held)},
                 model_call_id=teller.model_call_id,
             )
+
+
+def category_of(category: str, label: str) -> str:
+    """The prompts call bandmates, roommates, and teammates friends, yet the model files a band that plays
+    paid gigs as professional."""
+    if category == "professional" and any(word in label.lower() for word in FRIEND_LABELS):
+        return "friend"
+    return category
 
 
 def met_on(store: Store, pair: list[int], evidence: list[int]) -> str | None:

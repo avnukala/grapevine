@@ -1,4 +1,4 @@
-from grapevine.review import agreed, apply_happenings, group_lines
+from grapevine.review import agreed, apply_happenings, group_lines, ties
 
 IDS = {"Ray Patel": 1, "Jasper Lin": 2, "Sophie Moreau": 3}
 
@@ -62,4 +62,13 @@ def test_a_record_event_takes_the_date_of_the_first_happening_linked_to_it(store
         ("Nina's birthday", "2020-03"),
         ("Nina's move to Boston", "2012"),
         ("Nina's move to Denver", "2019"),
+    ]
+
+
+def test_bandmates_are_friends_even_when_the_band_is_paid():
+    entry = {"a": "A", "b": "B", "category": "professional", "label": "bandmates", "status": "current"}
+    coworker = {**entry, "label": "coworkers"}
+    assert [e["category"] for e in ties([{**entry, "in_touch": True}, {**coworker, "in_touch": True}])] == [
+        "friend",
+        "professional",
     ]
