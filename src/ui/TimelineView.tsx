@@ -4,10 +4,12 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "rea
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CATEGORIES, GENDER_COLORS, KIND_COLORS, initials } from "../state/categories";
 import { canonicalId, dateRange, liveFacts, personName, roomIds } from "../state/derive";
 import type { DateRange } from "../state/derive";
-import type { Fact, GraphEvent, Relationship, RunState } from "../state/types";
+import type { Fact, GraphEvent, PersonRole, Relationship, RunState } from "../state/types";
 
 interface TimelineViewProps {
   state: RunState;
@@ -104,6 +106,7 @@ function layout(state: RunState): { lanes: Lane[]; items: Item[] } {
 function TimelineView({ state, recentFactIds, recentEventIds }: TimelineViewProps) {
   const { lanes, items } = useMemo(() => layout(state), [state]);
   const [focusKey, setFocusKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const recent = new Set([...recentFactIds.map((id) => `f${id}`), ...recentEventIds.map((id) => `e${id}`)]);
   const newest = [...items].reverse().find((item) => recent.has(item.key))?.key ?? null;
 
@@ -119,9 +122,11 @@ function TimelineView({ state, recentFactIds, recentEventIds }: TimelineViewProp
         items={items}
         recent={recent}
         focusKey={focusKey}
-        onFocus={setFocusKey}
+        selectedKey={selectedKey}
+        onSelect={setSelectedKey}
       />
       <StoryFeed state={state} items={items} recent={recent} focusKey={focusKey} onFocus={setFocusKey} />
+      <ItemDetails state={state} item={items.find((i) => i.key === selectedKey) ?? null} onClose={() => setSelectedKey(null)} />
     </div>
   );
 }
@@ -132,7 +137,8 @@ interface SwimlaneChartProps {
   items: Item[];
   recent: Set<string>;
   focusKey: string | null;
-  onFocus: (key: string) => void;
+  selectedKey: string | null;
+  onSelect: (key: string) => void;
 }
 
 // The pointer and the visible part of the chart above the overview, both in the coordinates of the scrolled content.
@@ -143,7 +149,7 @@ interface Hover {
   item: Item;
 }
 
-function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: SwimlaneChartProps) {
+function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onSelect }: SwimlaneChartProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<SVGSVGElement>(null);
   const brushRef = useRef<SVGGElement>(null);
@@ -236,6 +242,21 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
       item,
     });
   };
+  const lit = (key: string) => recent.has(key) || focusKey === key || selectedKey === key || hover?.item.key === key;
+  const press = (item: Item, label: string) => ({
+    tabIndex: 0,
+    role: "button",
+    "aria-label": label,
+    "aria-pressed": selectedKey === item.key,
+    onMouseMove: (e: React.MouseEvent) => show(e, item),
+    onMouseLeave: () => setHover(null),
+    onClick: () => onSelect(item.key),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      onSelect(item.key);
+    },
+  });
 
   return (
     <div ref={wrapRef} className="relative min-w-0 flex-1 overflow-auto">
@@ -271,7 +292,8 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
               </g>
             ))}
             {items.map((item) => {
-              const lit = recent.has(item.key) || focusKey === item.key;
+              const on = lit(item.key);
+              const selected = selectedKey === item.key;
               const cx = x(mid(item.range));
               switch (item.kind) {
                 case "event": {
@@ -279,14 +301,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
                   const w = Math.max(x(item.range.end) - x0, 8);
                   const y = AXIS_HEIGHT + 8 + (rows.get(item.key) ?? 0) * EVENT_ROW;
                   return (
-                    <g
-                      key={item.key}
-                      className="cursor-pointer"
-                      onMouseMove={(e) => show(e, item)}
-                      onMouseLeave={() => setHover(null)}
-                      onClick={() => onFocus(item.key)}
-                      data-testid="timeline-event"
-                    >
+                    <g key={item.key} className="cursor-pointer" {...press(item, item.event.name)} data-testid="timeline-event">
                       <rect
                         x={x0}
                         y={y}
@@ -294,7 +309,8 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
                         height={EVENT_ROW - 6}
                         rx={6}
                         fill="url(#event-fill)"
-                        className={lit ? "stroke-warn" : "stroke-primary/50"}
+                        strokeWidth={selected ? 2.5 : 1}
+                        className={on ? "stroke-warn" : "stroke-primary/50"}
                       />
                       <text
                         x={w > item.event.name.length * 6.5 + 16 ? x0 + 8 : x0 + w + 6}
@@ -308,14 +324,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
                 }
                 case "fact":
                   return (
-                    <g
-                      key={item.key}
-                      className="cursor-pointer"
-                      onMouseMove={(e) => show(e, item)}
-                      onMouseLeave={() => setHover(null)}
-                      onClick={() => onFocus(item.key)}
-                      data-testid="timeline-fact"
-                    >
+                    <g key={item.key} className="cursor-pointer" {...press(item, item.fact.text)} data-testid="timeline-fact">
                       {item.lanes.length > 1 && (
                         <line
                           x1={cx}
@@ -332,11 +341,11 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
                           key={lane}
                           cx={cx}
                           cy={laneY(lane)}
-                          r={lit ? 8 : 6}
+                          r={on ? 8 : 6}
                           fill={KIND_COLORS[item.fact.kind]}
-                          stroke={item.fact.disputed ? "var(--alert)" : "var(--background)"}
-                          strokeWidth={item.fact.disputed ? 3 : 2}
-                          className={lit ? "" : ""}
+                          stroke={item.fact.disputed ? "var(--alert)" : selected ? "var(--foreground)" : "var(--background)"}
+                          strokeWidth={item.fact.disputed || selected ? 3 : 2}
+                          className={on ? "" : ""}
                         />
                       ))}
                     </g>
@@ -346,8 +355,8 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
                     <g
                       key={item.key}
                       className="cursor-pointer"
-                      onMouseMove={(e) => show(e, item)}
-                      onMouseLeave={() => setHover(null)}
+                      {...press(item, `${personName(state, item.rel.a)} and ${personName(state, item.rel.b)} met`)}
+                      data-testid="timeline-met"
                     >
                       <line
                         x1={cx}
@@ -361,12 +370,14 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
                       {item.lanes.map((lane) => (
                         <rect
                           key={lane}
-                          x={cx - 5}
-                          y={laneY(lane) - 5}
-                          width={10}
-                          height={10}
+                          x={cx - (on ? 7 : 5)}
+                          y={laneY(lane) - (on ? 7 : 5)}
+                          width={on ? 14 : 10}
+                          height={on ? 14 : 10}
                           transform={`rotate(45 ${cx} ${laneY(lane)})`}
                           fill={CATEGORIES[item.rel.category].color}
+                          stroke={selected ? "var(--foreground)" : "none"}
+                          strokeWidth={2}
                         />
                       ))}
                     </g>
@@ -519,6 +530,211 @@ function HoverCardBox({ hover, state }: HoverCardBoxProps) {
         </>
       )}
     </div>
+  );
+}
+
+function datesText(when: string | null, start: string | null, end: string | null): string {
+  const dates = start && end && end !== start ? `${start} to ${end}` : start;
+  if (!when) return dates ?? "No date";
+  return dates && !when.includes(dates) ? `${when} · ${dates}` : when;
+}
+
+interface PeopleListProps {
+  state: RunState;
+  people: PersonRole[];
+}
+
+// Tellers are left out, as the timeline lanes leave them out.
+function PeopleList({ state, people }: PeopleListProps) {
+  const ids = [...new Set(people.filter((p) => p.role !== "teller").map((p) => canonicalId(state, p.person_id)))];
+  return (
+    <ul className="space-y-1.5">
+      {ids.map((id) => (
+        <li key={id} className="flex items-center gap-2">
+          <span
+            className="flex size-6 items-center justify-center rounded-full text-[9px] font-bold text-ink"
+            style={{ background: GENDER_COLORS[state.people[id]?.gender ?? "unknown"] }}
+          >
+            {initials(personName(state, id))}
+          </span>
+          {personName(state, id)}
+        </li>
+      ))}
+      {ids.length === 0 && <li className="text-muted-foreground">Nobody named</li>}
+    </ul>
+  );
+}
+
+interface HeadingProps {
+  children: React.ReactNode;
+}
+
+function Heading({ children }: HeadingProps) {
+  return <h3 className="mt-4 mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase first:mt-0">{children}</h3>;
+}
+
+interface ItemDetailsProps {
+  state: RunState;
+  item: Item | null;
+  onClose: () => void;
+}
+
+// Not modal, so a click on another dot swaps the content while the sheet stays open.
+function ItemDetails({ state, item, onClose }: ItemDetailsProps) {
+  return (
+    <Sheet open={item !== null} onOpenChange={(open) => !open && onClose()} modal={false}>
+      <SheetContent
+        className="w-[420px] sm:max-w-[420px]"
+        data-testid="timeline-details"
+        onInteractOutside={(e) => (e.target as Element).closest("[data-testid=timeline-chart]") && e.preventDefault()}
+      >
+        {item?.kind === "fact" && <FactDetails state={state} fact={item.fact} />}
+        {item?.kind === "event" && <EventDetails state={state} event={item.event} />}
+        {item?.kind === "met" && <MetDetails state={state} rel={item.rel} />}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+interface FactDetailsProps {
+  state: RunState;
+  fact: Fact;
+}
+
+function FactDetails({ state, fact }: FactDetailsProps) {
+  const event = fact.event_id ? state.events[fact.event_id] : undefined;
+  const earlier = Object.values(state.facts).filter((f) => f.revised_by_fact_id === fact.id);
+  const segments = fact.segment_ids.map((id) => state.segments[id]).filter(Boolean);
+  const dated = fact.start_date || fact.when_text || !event ? fact : event;
+  return (
+    <>
+      <SheetHeader>
+        <div className="flex items-center gap-2 pr-8">
+          <Badge variant="outline" style={{ color: KIND_COLORS[fact.kind], borderColor: KIND_COLORS[fact.kind] }}>
+            {fact.kind}
+          </Badge>
+          {fact.disputed && (
+            <Badge variant="destructive">
+              <TriangleAlert /> disputed
+            </Badge>
+          )}
+          {earlier.length > 0 && <Badge variant="secondary">revised</Badge>}
+        </div>
+        <SheetTitle className="text-lg leading-snug">{fact.text}</SheetTitle>
+        <SheetDescription>
+          {datesText(dated.when_text, dated.start_date, dated.end_date)} · told by {personName(state, fact.told_by_person_id)}
+        </SheetDescription>
+      </SheetHeader>
+      <ScrollArea className="min-h-0 flex-1 px-4 pb-6">
+        {fact.detail && <p className="mb-4 text-sm">{fact.detail}</p>}
+        <Heading>People</Heading>
+        <PeopleList state={state} people={fact.people} />
+        {event && (
+          <>
+            <Heading>Event</Heading>
+            <div className="font-medium">{event.name}</div>
+            <div className="text-xs text-muted-foreground">{datesText(event.when_text, event.start_date, event.end_date)}</div>
+          </>
+        )}
+        {earlier.length > 0 && (
+          <>
+            <Heading>Earlier versions</Heading>
+            <ul className="space-y-1.5">
+              {earlier.map((f) => (
+                <li key={f.id} className="text-muted-foreground line-through">
+                  {f.text}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {segments.length > 0 && (
+          <>
+            <Separator className="my-4" />
+            <Heading>In their words</Heading>
+            <ul className="space-y-2">
+              {segments.map((s) => (
+                <li key={s.id} className="rounded-lg border border-border bg-card p-3">
+                  <div className="text-xs font-medium text-muted-foreground">{personName(state, s.person_id)}</div>
+                  <p className="mt-1">{s.text}</p>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </ScrollArea>
+    </>
+  );
+}
+
+interface EventDetailsProps {
+  state: RunState;
+  event: GraphEvent;
+}
+
+function EventDetails({ state, event }: EventDetailsProps) {
+  const facts = liveFacts(state).filter((f) => f.event_id === event.id);
+  return (
+    <>
+      <SheetHeader>
+        <Badge variant="outline" className="text-primary">
+          event
+        </Badge>
+        <SheetTitle className="pr-8 text-lg leading-snug">{event.name}</SheetTitle>
+        <SheetDescription>
+          {datesText(event.when_text, event.start_date, event.end_date)}
+          {event.place ? ` · ${event.place}` : ""}
+        </SheetDescription>
+      </SheetHeader>
+      <ScrollArea className="min-h-0 flex-1 px-4 pb-6">
+        <Heading>People</Heading>
+        <PeopleList state={state} people={event.people} />
+        <Heading>Facts</Heading>
+        <ul className="space-y-2">
+          {facts.map((f) => (
+            <li key={f.id} className="flex gap-2">
+              <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ background: KIND_COLORS[f.kind] }} />
+              <div>
+                <span className={f.disputed ? "text-alert" : ""}>{f.text}</span>
+                {f.disputed && <TriangleAlert className="ml-1 inline size-3.5 text-alert" />}
+                {f.detail && <p className="mt-1 text-xs text-muted-foreground">{f.detail}</p>}
+                <div className="text-xs text-muted-foreground">told by {personName(state, f.told_by_person_id)}</div>
+              </div>
+            </li>
+          ))}
+          {facts.length === 0 && <li className="text-muted-foreground">None yet</li>}
+        </ul>
+      </ScrollArea>
+    </>
+  );
+}
+
+interface MetDetailsProps {
+  state: RunState;
+  rel: Relationship;
+}
+
+function MetDetails({ state, rel }: MetDetailsProps) {
+  return (
+    <>
+      <SheetHeader>
+        <div className="flex items-center gap-2 pr-8">
+          <Badge variant="outline" style={{ color: CATEGORIES[rel.category].color, borderColor: CATEGORIES[rel.category].color }}>
+            {rel.label}
+          </Badge>
+          {rel.status === "past" && <Badge variant="secondary">past</Badge>}
+        </div>
+        <SheetTitle className="text-lg leading-snug">
+          {personName(state, rel.a)} and {personName(state, rel.b)} met
+        </SheetTitle>
+        <SheetDescription>{rel.met_on}</SheetDescription>
+      </SheetHeader>
+      <ScrollArea className="min-h-0 flex-1 px-4 pb-6">
+        {rel.summary && <p className="mb-4 text-sm">{rel.summary}</p>}
+        <Heading>People</Heading>
+        <PeopleList state={state} people={[rel.a, rel.b].map((person_id) => ({ person_id, role: "met" }))} />
+      </ScrollArea>
+    </>
   );
 }
 
