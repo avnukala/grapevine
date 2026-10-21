@@ -15,6 +15,8 @@ import soundfile as sf
 from grapevine.audio import SAMPLE_RATE, decode
 
 GAP_MS = 500
+SILENCE = 0.003
+WINDOW_MS = 10
 
 
 def synthesize(text: str, voice: str | dict, workdir: Path, index: int) -> np.ndarray:
@@ -28,6 +30,13 @@ def synthesize(text: str, voice: str | dict, workdir: Path, index: int) -> np.nd
     import librosa
 
     return librosa.effects.pitch_shift(audio, sr=SAMPLE_RATE, n_steps=spec["pitch"]).astype(np.float32)
+
+
+def voiced_ms(speech: np.ndarray) -> int:
+    """The length of a line up to its last sound. `say` ends each line with silence, which is not speech."""
+    window = SAMPLE_RATE * WINDOW_MS // 1000
+    loud = [i for i in range(0, len(speech), window) if np.sqrt(np.mean(speech[i : i + window] ** 2)) > SILENCE]
+    return (loud[-1] + window) * 1000 // SAMPLE_RATE if loud else 0
 
 
 def build(script_path: Path) -> None:
@@ -46,7 +55,7 @@ def build(script_path: Path) -> None:
                 {
                     "speaker": line["speaker"],
                     "start_ms": cursor_ms,
-                    "end_ms": cursor_ms + duration_ms,
+                    "end_ms": cursor_ms + voiced_ms(speech),
                     "text": line["text"],
                 }
             )

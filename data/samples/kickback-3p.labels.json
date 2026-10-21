@@ -6,109 +6,109 @@
     {
       "speaker": "Ray Patel",
       "start_ms": 500,
-      "end_ms": 8081,
+      "end_ms": 8060,
       "text": "Hey everyone, I'm Ray. Ray Patel. I'm a software engineer at Stripe, and I live in Brooklyn with my dog Biscuit."
     },
     {
       "speaker": "Jasper Lin",
       "start_ms": 8581,
-      "end_ms": 14998,
+      "end_ms": 14981,
       "text": "I'm Jasper Lin. I work as a nurse at Mount Sinai, and I play bass in a band called the Night Owls."
     },
     {
       "speaker": "Sophie Moreau",
       "start_ms": 15498,
-      "end_ms": 22678,
+      "end_ms": 22648,
       "text": "Hi, I'm Sophie Moreau. I'm a grad student at Columbia studying architecture, and I just moved here from Montreal."
     },
     {
       "speaker": "Sophie Moreau",
       "start_ms": 23178,
-      "end_ms": 25572,
+      "end_ms": 25538,
       "text": "So Ray and Jasper, how did you two meet?"
     },
     {
       "speaker": "Ray Patel",
       "start_ms": 26072,
-      "end_ms": 33620,
+      "end_ms": 33602,
       "text": "We met freshman year at Cornell. We were roommates in the fall of 2016, and Jasper kept stealing my cereal."
     },
     {
       "speaker": "Jasper Lin",
       "start_ms": 34120,
-      "end_ms": 40242,
+      "end_ms": 40210,
       "text": "That is true, but I made up for it. I drove Ray to the hospital when he broke his arm skiing in 2017."
     },
     {
       "speaker": "Ray Patel",
       "start_ms": 40742,
-      "end_ms": 44808,
+      "end_ms": 44792,
       "text": "Actually, I think that was 2018, junior year."
     },
     {
       "speaker": "Jasper Lin",
       "start_ms": 45308,
-      "end_ms": 49596,
+      "end_ms": 49568,
       "text": "No way. It was definitely 2017, right before spring break."
     },
     {
       "speaker": "Ray Patel",
       "start_ms": 50096,
-      "end_ms": 62023,
+      "end_ms": 62006,
       "text": "Anyway, we both moved to New York after graduation in 2020, and we still climb together every Tuesday at Brooklyn Boulders with Maya and Theo. We call ourselves the Tuesday climbing crew."
     },
     {
       "speaker": "Sophie Moreau",
       "start_ms": 62523,
-      "end_ms": 67938,
+      "end_ms": 67913,
       "text": "Jasper and I actually dated for about a year. We met at Electric Zoo in 2019."
     },
     {
       "speaker": "Jasper Lin",
       "start_ms": 68438,
-      "end_ms": 74864,
+      "end_ms": 74848,
       "text": "No, it was 2018. Electric Zoo 2018, on Randall's Island. You lost your phone in the mud."
     },
     {
       "speaker": "Sophie Moreau",
       "start_ms": 75364,
-      "end_ms": 82241,
+      "end_ms": 82214,
       "text": "Okay, fine, it was 2018. We broke up in 2019, but we are still good friends."
     },
     {
       "speaker": "Jasper Lin",
       "start_ms": 82741,
-      "end_ms": 87530,
+      "end_ms": 87521,
       "text": "Andrew Gao is my coworker at Mount Sinai. He is a doctor in the emergency room."
     },
     {
       "speaker": "Sophie Moreau",
       "start_ms": 88030,
-      "end_ms": 92415,
+      "end_ms": 92400,
       "text": "And Andrew Moy is my cousin. He is the one who introduced me to Ray last year."
     },
     {
       "speaker": "Ray Patel",
       "start_ms": 100415,
-      "end_ms": 107522,
+      "end_ms": 107495,
       "text": "We all went to Electric Zoo again in 2022, and Andrew came with us. He got us backstage passes."
     },
     {
       "speaker": "Sophie Moreau",
       "start_ms": 108022,
-      "end_ms": 110443,
+      "end_ms": 110422,
       "text": "Ray, didn't you get engaged recently?"
     },
     {
       "speaker": "Ray Patel",
       "start_ms": 110943,
-      "end_ms": 118515,
+      "end_ms": 118513,
       "text": "Yes! I proposed to my girlfriend Priya in Lisbon in September 2025. She said yes on the first try."
     },
     {
       "speaker": "Jasper Lin",
       "start_ms": 119015,
-      "end_ms": 125120,
+      "end_ms": 125095,
       "text": "Priya is great. She and I went to the same high school in New Jersey, so I have known her since 2012."
     }
   ]
