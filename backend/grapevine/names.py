@@ -9,6 +9,8 @@ SPELLING_MATCH = 0.6
 CAPITALIZED = re.compile(r"\b[A-Z][a-z]+(?: [A-Z][a-z]+)+\b")
 WORD = re.compile(r"\b[A-Z][a-z]{2,}\b")
 WORDS = Path("/usr/share/dict/words")
+PROPER_NAMES = Path("/usr/share/dict/propernames")
+LY_NAME = re.compile(r"\b([A-Z][a-z]{2,})ly(?= [A-Z][a-z])")
 EX = re.compile(r"\b(the|an|my|your|his|her|their|our) X\b")
 
 
@@ -37,7 +39,7 @@ def spell_names(text: str, roster: list[str]) -> str:
     """Respells each full name in `text` that is a near miss of exactly one roster name, such as "San
     Torres" for Sam Torres. A capitalized word one letter away from exactly one roster first name, such as
     "Nima" for Nina, takes that name too, unless it is an English word. Whisper writes "the ex" as "the X",
-    which is respelled too."""
+    and adds "ly" to a first name before a last name, as in "Kevinly Doyle", which are respelled too."""
 
     def respell(match: re.Match[str]) -> str:
         words = match[0].split()
@@ -57,6 +59,11 @@ def spell_names(text: str, roster: list[str]) -> str:
         close = [first for first in firsts if one_letter_apart(heard, first)]
         return close[0] if len(close) == 1 else heard
 
+    def drop_ly(match: re.Match[str]) -> str:
+        word = match[0]
+        return word if word in proper_names() or word.lower() in english() else match[1]
+
+    text = LY_NAME.sub(drop_ly, text)
     return EX.sub(r"\1 ex", WORD.sub(respell_first, CAPITALIZED.sub(respell, text)))
 
 
@@ -86,6 +93,12 @@ def one_letter_apart(a: str, b: str) -> bool:
         return sum(x != y for x, y in zip(a, b)) == 1
     short, long = sorted((a, b), key=len)
     return any(long[:i] + long[i + 1 :] == short for i in range(len(long)))
+
+
+@cache
+def proper_names() -> frozenset[str]:
+    """Common first names, such as Emily and Kelly."""
+    return frozenset(PROPER_NAMES.read_text().split()) if PROPER_NAMES.exists() else frozenset()
 
 
 @cache

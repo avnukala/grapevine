@@ -39,3 +39,8 @@ def test_the_better_spelling_is_a_name_said_alone_else_the_longer_one():
     assert better_spelling("Kay Russo", "Kate Russo", said) == "Kate Russo"
     said = "The Sam Reyes story. So Sam Rae and I dated. Sam Rae was great."
     assert better_spelling("Sam Rae", "Sam Reyes", said) == "Sam Reyes"
+
+
+def test_a_first_name_with_an_added_ly_loses_it():
+    text = "Kevinly Doyle, Hannahly Kim, Emily Hart, and Holly Shaw came early. Hannahly was late."
+    assert spell_names(text, []) == "Kevin Doyle, Hannah Kim, Emily Hart, and Holly Shaw came early. Hannahly was late."
