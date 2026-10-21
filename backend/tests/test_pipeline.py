@@ -301,15 +301,16 @@ def test_the_review_completes_relationships_groups_and_events(conn):
         }
 
     reviewed = {
-        "room": {},
-        "other": [
-            rel("Jasper Lin", "Ray Patel", "professional", "2016"),
-            rel("Ray Patel", "Sophie Moreau", "friend"),
-        ],
+        "room": {
+            "Ray Patel and Jasper Lin": [rel("Ray Patel", "Jasper Lin", "professional", "2016")],
+            "Ray Patel and Sophie Moreau": [rel("Ray Patel", "Sophie Moreau", "friend")],
+        },
+        "other": [],
         "known": {},
         "new": [{"name": "Tuesday crew", "also_called": ["climb"], "members": ["Ray Patel", "Jasper Lin"]}],
-        "record": {},
-        "added": [{"name": "Electric Zoo 2018", "start_date": "2018", "place": None, "people": ["Ray Patel"]}],
+        "happenings": [
+            {"name": "Electric Zoo 2018", "record": None, "start_date": "2018", "place": None, "people": ["Ray Patel"]}
+        ],
         "members": ["Sophie Moreau"],
     }
     store = replay(conn, FakeChat(RULES, reviewed=reviewed))

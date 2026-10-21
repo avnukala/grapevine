@@ -126,8 +126,7 @@ class FakeChat:
             "other": [],
             "known": {},
             "new": [],
-            "record": {},
-            "added": [],
+            "happenings": [],
             "members": [],
         }
         self.requests: list[dict] = []

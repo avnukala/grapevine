@@ -6,19 +6,24 @@ Three calls run at once, one for each kind of record, because one call asked for
 Each call writes short notes before its list, which the list then follows."""
 
 import asyncio
+import re
 from collections import defaultdict
 from difflib import SequenceMatcher
 from itertools import combinations
 
-from grapevine.extract import Ambiguity, Teller, clean_date, date_precision, resolve, year_in
+from grapevine.extract import Ambiguity, Teller, clean_date, couple_of, date_precision, resolve, year_in
 from grapevine.graph import Record
 from grapevine.llm import LLM, Call, watch_on
 from grapevine.names import misspelled
-from grapevine.store import Store, proper_group_name
+from grapevine.store import GROUP_WORDS, Store, group_key, proper_group_name
 
-PROMPT_VERSION = "review-v13"
+PROMPT_VERSION = "review-v20"
 SAME_EVENT = 0.6
+# The prompt says that how two people met, or that they dated, is not a happening, and the model still lists it.
+NOT_HAPPENINGS = {"relationship", "meeting", "met", "dating", "friendship"}
+EVENT_KINDS = {"the", "and", "with", "trip", "party", "event", "wedding", "birthday", "move", "visit", "weekend"}
 VOTES = 3
+LINE_MATCH = 0.8
 VOTE_TEMPERATURE = 0.5
 
 INTRO = """You check the record of a group conversation against its full transcript, and complete it. Return JSON only.
@@ -29,30 +34,30 @@ The input lists today's date, the people (the ones in the room are marked), the 
 
 RELATIONSHIPS_SYSTEM = (
     INTRO
-    + """Write "analysis" first: one line for each other pair the conversation ties together, such as a couple whose wedding someone mentions, a sibling, a cousin, an ex, or a coworker. Then fill "room", which has one key for each pair of people in the room, and "other", for the pairs in your analysis.
+    + """Write "analysis" first: one line for each other pair the conversation ties together, such as a couple whose wedding someone mentions, a sibling, a cousin, an ex, or a coworker. Include pairs where neither person is in the room: "my cousin's wedding, Tom and Rachel" makes Tom and Rachel a married couple. Then fill "room", which has one key for each pair of people in the room, and "other", for every pair in your analysis.
 
 - For each pair in "room", list its relationships, or an empty list when the conversation does not show how these two know each other. Being at the same party or in the same room is not a tie.
 - List every relationship the conversation states or clearly implies, including the ones in the record. Fix a record entry when the transcript shows a better category, status, label, or meeting date.
-- Infer what the conversation implies. People who share a house, or hold a house meeting, are roommates and friends. A couple who is married or planning a wedding is romantic, and two people whose wedding someone went to are married. Exes who are still in each other's lives, for example one helps plan the other's wedding, are also friends.
+- Infer what the conversation implies. People who share a house, or hold a house meeting, are roommates and friends. A couple who is married or planning a wedding is romantic, and two people whose wedding someone went to are married. Exes who are still in each other's lives, for example one still helps the other move house, are also friends.
 - category:
   - romantic: dating, partners, engaged, married, exes.
   - family: parents, children, siblings, cousins, in-laws.
-  - friend: friends, including roommates, bandmates, teammates, climbing partners, and league mates, unless the conversation says they are not friends.
+  - friend: friends, including roommates, bandmates (also in a band that plays paid gigs), teammates, climbing partners, league mates, and co-founders of a league or club, unless the conversation says they are not friends.
   - professional: coworkers, bosses, managers, employees, clients, business partners.
   - other: only acquaintances with no other tie.
 - A pair can have two entries. Exes who stayed friends get romantic with status past and friend with status current.
 - status: current or past, for the tie itself. Exes are romantic and past.
-- in_touch: true when the two are still in each other's lives today, for example old roommates who still meet, or an ex who helps plan the other's wedding. False when the conversation says they lost touch or one died.
-- met_on: when the pair met, as "YYYY" or "YYYY-MM", when the conversation tells or implies it. A couple who met at Bonnaroo in June 2015 has "2015-06". If the conversation only says when the relationship began, such as "we dated from 2020 to 2022", use that. Coworkers met when the second one started the job. Else null.
+- in_touch: true when the two are still in each other's lives today, for example old roommates who still meet, a friend who gave a toast at the other's recent wedding, or an ex who still helps the other move house. False when the conversation says they lost touch or one died.
+- met_on: when the pair met, as "YYYY" or "YYYY-MM", when the conversation tells or implies it. A couple who met at Coachella in April 2016 has "2016-04". If the conversation only says when the relationship began, such as "we dated from 2020 to 2022", use that. Coworkers met when the second one started the job. Else null.
 - label: a 1 to 3 word term, for example "college roommate", "ex-girlfriend", "cousin". summary: one sentence."""
 )
 
 GROUPS_SYSTEM = (
     INTRO
-    + """Write "analysis" first: for each named group (a crew, a team, a band, a club, a league), the plain phrases people use for it, such as "the crew" or "the league", and each line of the transcript that puts someone in it under any of those names. Then fill "known", which has one key for each group in the record, and "new", for named groups the record does not have.
+    + """Write "analysis" first: for each named group (a crew, a team, a band, a club, a league) that anyone names, even once, such as a league someone runs, the plain phrases people use for it, such as "the crew" or "the league", and each line of the transcript that puts someone in it under any of those names. Then fill "known", which has one key for each group in the record, and "new", for named groups the record does not have.
 
 - For each known group, list its plain phrases in "also_called", and answer for each person whether they are in it under any of its names. People who say "we", "our team", or "our league" about the group are in it, and so are the people they list as going with "the whole crew".
-- Every named group in your analysis that is not under "known" goes in "new", with one entry under its proper name, for example "Sunday Sends", and everyone in it.
+- Every named group in your analysis that is not under "known" goes in "new", with one entry under its proper name, for example "Thursday Flyers", and everyone in it.
 - A house, a meeting, or an event is not a group."""
 )
 
@@ -60,15 +65,23 @@ MEMBERS_SYSTEM = """You read the lines of a group conversation that mention one 
 
 Write "analysis" first: for each line, who it puts in the group. Then list "members" with the full names under PEOPLE when they match.
 - The speaker of a line is in the group when they say "we", "our", or "me" about it, or call themselves a member.
-- People a line names as going with the whole group are in it, for example "the whole crew is going: me, Owen, and Kevin".
-- People a line calls members are in it."""
+- The speaker of a line is in the group when they talk about it from the inside, such as how it is run or how it did, even without naming it or saying "we". "Which she runs like a tyrant", said about the club's president, puts the speaker in the club. "The team lost again, and I am livid" puts the speaker in the team.
+- Asking whether someone goes with the group, or telling who leads it, does not by itself put the speaker in it.
+- People a line names as going with the whole group are in it, for example "the whole crew is going: me, Dev, and Lena".
+- A line can answer the line before it, for example "Are you going with the Thursday Flyers crew?" "Yes, me, Dev, and Lena."
+- People a line calls members are in it. Speech recognition misspells group names, so "Thursday Fliers" is "Thursday Flyers".
+- Speech recognition also mishears first names. A name in a line that sounds like exactly one person under PEOPLE, such as "Erin" for "Aaron Cole", is that person."""
 
 EVENTS_SYSTEM = (
     INTRO
-    + """Write "analysis" first: one line for each event in the record with the date the transcript supports, then one line for each other dated happening in the transcript, such as a trip, a wedding, a party, an accident, a show, a move to a new city, or a move into a house. Then fill "record", which has one key for each event in the record, and "added", for the other happenings.
+    + """Write "analysis" first: go through the transcript in order, and write one line for every happening that the conversation gives a time for (a year, a season, "last weekend"), whether or not the record has it. Look for trips, weddings (also one said in passing, such as "Rosa got married in 2021, so it couldn't be then"), engagements, parties, accidents, injuries, shows, moves to a new city, and moves into a house. A time can come in the next line, for example "Greta left me for Seattle." "In 2017." Keep each line under 25 words, and do not argue with yourself. Then list each one in "happenings".
 
-- start_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD", resolved with today's date when the conversation says "last weekend" or "tonight". When people disagree on a date, use the date of the person who was there, or the date that the reasons given support, for example "Paige got married in 2021, so the trip was 2022".
-- Name a new event by what and who, for example "Nina's move to Denver". people: who took part."""
+- List every happening of your analysis, including one whose date people dispute.
+- Not happenings: how or when two people met, a relationship, a job, school years, a visit planned for the coming days, or a game result.
+- A show, a party, or a game that people go to today or tonight is a happening, dated today.
+- record: the record event that is the same happening, or null. A move is never a birthday or a visit.
+- start_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD", resolved with today's date when the conversation says "last weekend" or "tonight". When people disagree on a date, use the date of the person who was there, or the date that the reasons given support, for example "Rosa got married in 2021, so the trip was 2022".
+- name: what and who, for example "Greta's move to Seattle" or "Rosa's wedding". people: who took part."""
 )
 
 NULLABLE = {"type": ["string", "null"]}
@@ -110,12 +123,16 @@ def groups_schema(groups: list[str], people: list[str]) -> dict:
 
 
 def events_schema(record: list[str]) -> dict:
-    """One required date for each event in the record, so the model checks each one against the transcript."""
-    return _object(
-        analysis=TEXT,
-        record=_object(**{name: _object(start_date=NULLABLE) for name in record}),
-        added={"type": "array", "items": _object(name=TEXT, start_date=NULLABLE, place=NULLABLE, people=NAMES)},
+    """Every dated happening, each tied to the record event it is, so one list both adds events and corrects
+    record dates."""
+    happening = _object(
+        name=TEXT,
+        record={"type": ["string", "null"], "enum": [*record, None]},
+        start_date=NULLABLE,
+        place=NULLABLE,
+        people=NAMES,
     )
+    return _object(analysis=TEXT, happenings={"type": "array", "items": happening})
 
 
 MEMBERS_SCHEMA = _object(analysis=TEXT, members=NAMES)
@@ -210,35 +227,25 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
                 for output in outputs
             ]
             call_id = voted[0].model_call_id
-            entries = agreed(room, person, call_id, needed=len(room) // 2 + 1)
-            entries += agreed([o["other"] for o in outputs], person, call_id, needed=1)
-            apply_relationships(store, entries, person, call_id)
+            needed = len(room) // 2 + 1
+            apply_relationships(store, agreed(room, person, call_id, needed=needed), person, call_id, prune=True)
+            other = agreed([o["other"] for o in outputs], person, call_id, needed=needed)
+            apply_relationships(store, other, person, call_id, prune=False)
         if groups.output:
             apply_groups(store, found_groups, person, groups.model_call_id)
         if events.output:
-            for name, answer in events.output["record"].items():
-                start = clean_date(answer["start_date"])
-                event = store.graph.events[record_events[name]]
-                if start and start != event["start_date"]:
-                    fields = {"start_date": start, "date_precision": date_precision(start, None)}
-                    store.upsert_event(event["id"], fields, people=[], model_call_id=events.model_call_id)
-            apply_events(store, events.output["added"], person, events.model_call_id)
+            apply_happenings(store, events.output["happenings"], record_events, person, events.model_call_id)
 
 
 async def members_of(store: Store, llm: LLM, group: Record, *, model: str, seed: int) -> list[str]:
-    """Asks who is in one group, with only the lines that mention it under any of its names. In the whole
-    transcript, the model misses a line such as "the whole crew is going: me, Owen, and Kevin"."""
-    words = [group["name"], *group["also_called"]]
-    keys = {w.lower().removeprefix("the ").removeprefix("our ").removeprefix("my ").strip() for w in words}
+    """Asks who is in one group, with only the lines about it. In the whole transcript, the model misses a
+    line such as "the whole crew is going: me, Owen, and Kevin"."""
     names = {pid: p["name"] for pid, p in store.graph.people.items()}
     turns = sorted(store.graph.segments.values(), key=lambda s: s["start_ms"])
-    lines = [
-        f"{names.get(s['person_id'], 'Unknown speaker')}: {s['text']}"
-        for s in turns
-        if any(key and key in s["text"].lower() for key in keys)
-    ]
-    if not lines:
+    picked = group_lines([s["text"] for s in turns], [group["name"], *group["also_called"]])
+    if not picked:
         return []
+    lines = [f"{names.get(turns[i]['person_id'], 'Unknown speaker')}: {turns[i]['text']}" for i in picked]
     user = "\n".join(
         [f"GROUP: {group['name']} (also called {', '.join(group['also_called']) or 'nothing else'})", "", "PEOPLE:"]
         + [f"- {name}" for name in names.values()]
@@ -249,10 +256,36 @@ async def members_of(store: Store, llm: LLM, group: Record, *, model: str, seed:
     return result.output["members"] if result.output else []
 
 
+def group_lines(texts: list[str], group_names: list[str]) -> list[int]:
+    """The indexes of the lines about a group: lines that name it under any spelling close to one of its
+    names, the two lines after each, which often answer it, and lines that use its plain noun, such as "the
+    whole crew"."""
+
+    def words(text: str) -> list[str]:
+        return re.findall(r"[a-z]+", text.lower())
+
+    keys = [words(group_key(name)) for name in group_names if group_key(name)]
+
+    def names_it(text: str) -> bool:
+        said = words(text)
+        return any(
+            SequenceMatcher(None, " ".join(said[i : i + len(key)]), " ".join(key)).ratio() >= LINE_MATCH
+            for key in keys
+            for i in range(len(said) - len(key) + 1)
+        )
+
+    named = [i for i, text in enumerate(texts) if names_it(text)]
+    near = {j for i in named for j in range(i, min(i + 3, len(texts)))}
+    nouns = {w for i in near for w in words(texts[i]) if w in GROUP_WORDS} | {
+        w for name in group_names for w in words(name) if w in GROUP_WORDS
+    }
+    return sorted(near | {i for i, text in enumerate(texts) if nouns & set(words(text))})
+
+
 def agreed(lists: list[list[Record]], person, model_call_id: int, *, needed: int) -> list[Record]:
     """The relationships that at least `needed` votes list, by pair and category. Each vote samples the model
-    at a small temperature. Pairs in the room need most votes, because the model is quick to call any two
-    guests friends. Other pairs need one vote, because the conversation names them outright."""
+    at a small temperature, so one vote's slip, such as calling two guests friends or a coworker a friend,
+    is outvoted. An acquaintance entry is dropped when the pair has a closer tie."""
     seen: dict[tuple[frozenset, str], list[Record]] = defaultdict(list)
     for entries in lists:
         for entry in {
@@ -261,10 +294,12 @@ def agreed(lists: list[list[Record]], person, model_call_id: int, *, needed: int
             a, b = person(entry["a"], model_call_id), person(entry["b"], model_call_id)
             if a is not None and b is not None and a != b:
                 seen[(frozenset((a, b)), entry["category"])].append(entry)
+    kept = {key: entries for key, entries in seen.items() if len(entries) >= needed}
+    closer = {pair for pair, category in kept if category != "other"}
     return [
         {**entries[0], "met_on": next((e["met_on"] for e in entries if e["met_on"]), None)}
-        for entries in seen.values()
-        if len(entries) >= needed
+        for (pair, category), entries in kept.items()
+        if category != "other" or pair not in closer
     ]
 
 
@@ -282,9 +317,11 @@ def ties(entries: list[Record]) -> list[Record]:
     return result
 
 
-def apply_relationships(store: Store, entries: list[Record], person, model_call_id: int) -> None:
-    """Writes each listed relationship. For a pair the review lists, it also removes the categories the review
-    left out, because the review read the whole conversation and a single turn did not."""
+def apply_relationships(store: Store, entries: list[Record], person, model_call_id: int, *, prune: bool) -> None:
+    """Writes each listed relationship. With `prune`, for a pair the review lists, it also removes the
+    categories the review left out, because the review read the whole conversation and a single turn did not.
+    The review answers every pair in the room, so only those answers prune. A pair outside the room is one
+    the model chose to list, and it can miss a category that a turn got right."""
     kept: dict[frozenset, set[str]] = defaultdict(set)
     for entry in entries:
         a, b = person(entry["a"], model_call_id), person(entry["b"], model_call_id)
@@ -306,7 +343,7 @@ def apply_relationships(store: Store, entries: list[Record], person, model_call_
         )
     for relationship in list(store.graph.relationships.values()):
         categories = kept.get(frozenset((relationship["a"], relationship["b"])))
-        if categories and relationship["category"] not in categories:
+        if prune and categories and relationship["category"] not in categories:
             store.remove_relationship(relationship["id"])
 
 
@@ -332,6 +369,30 @@ def apply_groups(store: Store, entries: list[Record], person, model_call_id: int
             store.add_member(group_id=group["id"], person_id=pid, since=None, until=None, fact_id=fact["id"])
 
 
+def apply_happenings(
+    store: Store, happenings: list[Record], record: dict[str, int], person, model_call_id: int
+) -> None:
+    """Moves each record event to the date of the happening linked to it, and adds the other happenings.
+    The model links a happening to a wrong record event at times, so a link needs a shared word, and only the
+    first happening linked to a record event keeps the link. "Nina's move to Denver" must not move the date
+    of "Move to Denver 2016", which is Megan's."""
+    linked = set()
+    added = []
+    for happening in happenings:
+        start = clean_date(happening["start_date"])
+        event = store.graph.events.get(record.get(happening["record"] or ""))
+        if event is None or event["id"] in linked or not same_kind(store, happening["name"], event["name"]):
+            words = set(re.findall(r"[a-z]+", happening["name"].lower()))
+            if words and not words & NOT_HAPPENINGS:
+                added.append(happening)
+            continue
+        linked.add(event["id"])
+        if start and start != event["start_date"]:
+            fields = {"start_date": start, "date_precision": date_precision(start, None)}
+            store.upsert_event(event["id"], fields, people=[], model_call_id=model_call_id)
+    apply_events(store, added, person, model_call_id)
+
+
 def apply_events(store: Store, entries: list[Record], person, model_call_id: int) -> None:
     """Adds each new event, and moves a record event to the date the review gives it."""
     for entry in entries:
@@ -339,7 +400,7 @@ def apply_events(store: Store, entries: list[Record], person, model_call_id: int
         known = next((e for e in store.graph.events.values() if same_event(entry["name"], start, e)), None)
         if known and (start is None or known["start_date"] == start):
             continue
-        store.upsert_event(
+        event = store.upsert_event(
             known["id"] if known else None,
             {
                 "name": entry["name"],
@@ -350,6 +411,26 @@ def apply_events(store: Store, entries: list[Record], person, model_call_id: int
             people=[pid for name in entry["people"] if (pid := person(name, model_call_id)) is not None],
             model_call_id=model_call_id,
         )
+        couple_of(store, event, model_call_id=model_call_id)
+
+
+def same_kind(store: Store, a: str, b: str) -> bool:
+    """Whether a happening named `a` can be the record event named `b`. The model links a happening to a
+    wrong record event at times, such as a move to a birthday, and a wrong link moves a date. So the names
+    must share a word other than a person's name or a kind of event, such as "Iceland" in "Emily's Iceland
+    trip" and "Iceland Trip 2022". Names with no such words must share their kind, such as "birthday". A
+    name with no words at all, such as "...", leaves the link to the model."""
+    names = {w.lower() for p in store.graph.people.values() for w in p["name"].split()}
+
+    def words(text: str) -> set[str]:
+        return {w for w in re.findall(r"[a-z]+", text.lower().replace("'s", "")) if len(w) > 2} - names
+
+    if not words(a):
+        return True
+    specific_a, specific_b = words(a) - EVENT_KINDS, words(b) - EVENT_KINDS
+    if specific_a or specific_b:
+        return bool(specific_a & specific_b)
+    return bool(words(a) & words(b))
 
 
 def same_event(name: str, start: str | None, event: Record) -> bool:

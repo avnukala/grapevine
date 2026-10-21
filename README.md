@@ -22,10 +22,11 @@ You need an Apple silicon Mac, Node 22, [uv](https://docs.astral.sh/uv/), and [L
    cd backend && uv sync && cd ..
    ```
 
-2. Load the extraction model in LM Studio and start its server. The first run of the back end downloads the speech models from Hugging Face.
+2. Load the models in LM Studio and start its server. Gemma reads each turn as it is said. Qwen reviews the whole session at the end. The first run of the back end downloads the speech models from Hugging Face.
 
    ```sh
-   lms load google/gemma-4-e4b --identifier gemma-4-e4b --context-length 32768
+   lms load google/gemma-4-26b-a4b --identifier gemma-4-26b-a4b --context-length 32768
+   lms load qwen/qwen3.6-35b-a3b --identifier qwen3.6-35b-a3b --context-length 32768
    lms server start
    ```
 

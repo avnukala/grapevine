@@ -32,7 +32,7 @@ class RunConfig:
     language: str = "en"
     turn_rules: TurnRules = field(default_factory=TurnRules)
     extract_model: str = os.environ.get("LLM_MODEL", "gemma-4-26b-a4b")
-    summary_model: str = os.environ.get("SUMMARY_MODEL", os.environ.get("LLM_MODEL", "gemma-4-26b-a4b"))
+    summary_model: str = os.environ.get("SUMMARY_MODEL", "qwen3.6-35b-a3b")
     seed: int = 7
     context: Context = "full"
     prompt_pause_ms: int = 7000
