@@ -1,5 +1,5 @@
 from grapevine.actions import pick_person, settle_conflict
-from grapevine.extract import Held, Teller, apply_output, respell_people, user_message
+from grapevine.extract import Held, Teller, apply_output, couple_of, respell_people, user_message
 from grapevine.store import proper_group_name
 from tests.fakes import empty_output, fact
 
@@ -318,6 +318,21 @@ def test_an_event_named_after_a_group_is_skipped(store):
     assert len(store.graph.groups) == 1
 
 
+def test_a_fact_makes_the_event_it_names_when_the_output_does_not_list_it(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    apply(
+        store,
+        turn(store, ray, "We saw the Lumineers in 2019."),
+        facts=[
+            fact("Ray Patel saw the Lumineers.", ["speaker"], kind="story", event="Lumineers show", start_date="2019"),
+            fact("Ray Patel danced.", ["speaker"], kind="story", event="lumineers show"),
+        ],
+    )
+    [event] = store.graph.events.values()
+    assert (event["name"], event["start_date"]) == ("Lumineers show", "2019")
+    assert {f["event_id"] for f in store.graph.facts.values()} == {event["id"]}
+
+
 def test_a_first_name_means_the_person_this_run_talked_about(store):
     ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
     store.conn.execute("INSERT INTO people (name, aliases) VALUES ('Andrew Walsh', '[\"Andrew\"]')")
@@ -388,6 +403,16 @@ def test_only_a_name_of_one_group_makes_a_group():
     assert not proper_group_name("house on Pearl Street")
 
 
+def test_a_pair_keeps_the_earliest_date_they_met(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    jasper = store.create_person(name="Jasper Lin", aliases=["Jasper"], gender="male")["id"]
+    for met_on in ["2016", "2020", "2015"]:
+        store.upsert_relationship(
+            a=ray, b=jasper, category="friend", fields={"met_on": met_on}, evidence=[], model_call_id=None
+        )
+    assert [r["met_on"] for r in store.graph.relationships.values()] == ["2015"]
+
+
 def test_a_turn_respells_a_known_person_whom_whisper_misheard(store):
     kay = store.create_person(name="Kay Russo", aliases=["Kay"], gender="female")["id"]
     store.create_person(name="Kate Miller", aliases=["Kate"], gender="female")
@@ -400,11 +425,11 @@ def test_a_turn_respells_a_known_person_whom_whisper_misheard(store):
     assert "Kay Russo" in store.person(kay)["aliases"]
 
 
-def test_a_pair_keeps_the_earliest_date_they_met(store):
-    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
-    jasper = store.create_person(name="Jasper Lin", aliases=["Jasper"], gender="male")["id"]
-    for met_on in ["2016", "2020", "2015"]:
-        store.upsert_relationship(
-            a=ray, b=jasper, category="friend", fields={"met_on": met_on}, evidence=[], model_call_id=None
-        )
-    assert [r["met_on"] for r in store.graph.relationships.values()] == ["2015"]
+def test_a_wedding_named_after_two_people_makes_them_a_couple(store):
+    arjun = store.create_person(name="Arjun Mehta", aliases=["Arjun"], gender="male")["id"]
+    claire = store.create_person(name="Claire Dunn", aliases=["Claire"], gender="female")["id"]
+    store.create_person(name="Kevin Doyle", aliases=["Kevin"], gender="male")
+    for name in ["Kevin's cousin's wedding", "Arjun Mehta and Claire Dunn's wedding"]:
+        couple_of(store, store.upsert_event(None, {"name": name}, people=[], model_call_id=None), model_call_id=None)
+    ties = [(r["a"], r["b"], r["category"], r["label"]) for r in store.graph.relationships.values()]
+    assert ties == [(arjun, claire, "romantic", "married")]

@@ -10,7 +10,7 @@ from grapevine.names import better_spelling, misspelled, pairs_of
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
-PROMPT_VERSION = "extract-v9"
+PROMPT_VERSION = "extract-v11"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
 
@@ -19,10 +19,10 @@ Every word you write delays the live view, so leave out any optional field that 
 The input lists today's date, the known people, events (ids like e2), groups, relationships, recent facts (ids like f7), the recent turns, and the NEW TURN with its speaker.
 
 PEOPLE
-- Refer to a person by the full name in KNOWN PEOPLE, for example "Ray Patel".
+- Refer to a person by the full name in KNOWN PEOPLE, for example "Marcus Hale".
 - "speaker" is the person who said the new turn. Map "I", "me", and "my" to "speaker". Map "we" to "speaker" plus the people the speaker means.
-- For a new person, write the name as said, for example "Priya", and add them to "people".
-- If a first name fits more than one known person and the turn does not say which one, write only that first name, for example "Andrew".
+- For a new person, write the name as said, for example "Imani", and add them to "people".
+- If a first name fits more than one known person and the turn does not say which one, write only that first name, for example "Felix".
 - List in "people" only new people, or known people with a new alias or gender.
 - gender: male or female only with a clear signal (a pronoun, a gendered word, a clearly gendered name). Else unknown.
 
@@ -31,23 +31,23 @@ SPEAKER NAME
 
 FACTS
 - Write one fact for each new piece of information in the NEW TURN only. Do not repeat known facts. Skip questions and filler.
-- kind: personal (one person: job, home, school, pet, hobby), relationship (how two people know each other), story (something that happened), membership, correction.
-- If the turn names a group of people, such as a crew, a team, a band, a club, or a friend group, write a membership fact with "group" set to the group name and "people" set to its members. When people in the room say "we" or "our team", they are members. If the turn calls a known group something else, such as "the crew", use the known group name. A group is not an event, and a house is not a group.
-- text: one short sentence with full names and no pronouns, for example "Ray Patel and Jasper Lin met freshman year at Cornell." State the fact itself, not that someone said or corrected it.
+- kind: personal (one person: job, home, school, pet, hobby), relationship (how two people know each other, such as "Dana Cole is Mia Rao's manager" or "Leo Hale is Tess's ex"), story (something that happened), membership, correction.
+- If the turn names a group of people, such as a crew, a team, a band, a club, or a friend group, write a membership fact with "group" set to the group name and "people" set to its members. When people in the room say "we" or "our team", they are members. A person who leads or runs the group, such as its commissioner, captain, or president, is a member. If the turn calls a known group something else, such as "the crew", use the known group name. A group is not an event, and a house is not a group.
+- text: one short sentence with full names and no pronouns, for example "Marcus Hale and Tina Alvarez met freshman year at Rutgers." State the fact itself, not that someone said or corrected it.
 - people: every person the fact is about, by name.
-- when_text: the time as said, for example "freshman year". start_date and end_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD" when the turn, the known facts, or today's date resolve it.
-- event: for a named or dated happening (a festival, a trip, a wedding, a proposal, an accident, a move to a new city or house), the event name, also listed in "events". To talk about a known event again, list it in "events" with its "id" ("e2") and use its known name. Name a new event by what and when, for example "Electric Zoo 2018". All facts of one story share one event. A school, a place, or a group is not an event.
+- when_text: the time as said, for example "freshman year". start_date and end_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD" when the turn, the known facts, or today's date resolve it. "Tonight" and "today" are today's date.
+- event: for a named or dated happening (a festival, a show or concert, including one tonight, a trip, a wedding, a proposal, an accident, a move to a new city or house), the event name, also listed in "events". To talk about a known event again, list it in "events" with its "id" ("e2") and use its known name. Name a new event by what and when, for example "Coachella 2018". All facts of one story share one event. A school, a place, or a group is not an event.
 - If the speaker corrects a fact that they told, or agrees with a correction, use kind correction and set "revises" to the old fact id.
 - If the speaker contradicts a fact that ANOTHER person told, write the speaker's version and set "disputes" to the other fact id.
 
 RELATIONSHIPS
 - Add one entry for each pair whose relationship the turn tells about, for example coworkers, cousins, roommates, exes, or old friends. A pair has at most one entry per category, for example a past romantic one and a current friend one.
-- Every fact of kind relationship needs a matching entry here.
+- Every fact of kind relationship needs a matching entry here. "My coworker Wren", "my manager Dana", and "I'm the ex" each need one.
 - category: romantic (dating, partners, married, engaged, exes), family (parents, siblings, cousins, in-laws), friend (friends, including roommates, bandmates, teammates, climbing partners, and league mates, unless the turn says they are not friends), professional (coworkers, bosses, managers, employees, clients, business partners), or other (only acquaintances with no other tie).
 - Exes are romantic with status past. If they stayed friends, add a second entry: friend, current.
 - Two people whose wedding the turn mentions are married: romantic, current.
 - label: a 1 to 3 word term, for example "college roommate", "ex-girlfriend", "cousin", "coworker".
-- status: current or past. met_on: when they met, as a date, when the turn or the known facts tell or imply it (a couple who met at Bonnaroo 2015 met in 2015). met_event: an event name.
+- status: current or past. met_on: when they met, as a date, when the turn or the known facts tell or imply it (a couple who met at Coachella 2015 met in 2015). met_event: an event name.
 - closeness 1 to 5, recency 1 to 5 (5 means in touch now), sentiment -2 to 2, only when the turn gives a signal.
 - facts: the 0-based indexes of the facts in your output that support it.
 
@@ -57,15 +57,15 @@ EXAMPLE INPUT
 KNOWN PEOPLE:
 - Maria Lopez (aliases: Maria) [in the room]
 - Tom Becker (aliases: Tom) [in the room]
-- Andrew Kim (aliases: Andrew)
-- Andrew Shaw (aliases: Andrew)
+- Felix Ward (aliases: Felix)
+- Felix Shaw (aliases: Felix)
 FACTS:
 f4 told by Tom Becker: Tom Becker and Maria Lopez met in 2015.
 NEW TURN (speaker: Maria Lopez):
-No, we met in 2014 at Lollapalooza. Andrew drove us. My sister Ana was there too, she runs the Saturday book club with me.
+No, we met in 2014 at Lollapalooza. Felix drove us. My sister Ana was there too, she runs the Saturday book club with me.
 
 EXAMPLE OUTPUT
-{"speaker_name": null, "people": [{"name": "Ana", "gender": "female"}], "events": [{"name": "Lollapalooza 2014", "start_date": "2014", "people": ["speaker", "Tom Becker", "Ana"]}], "facts": [{"kind": "relationship", "text": "Maria Lopez and Tom Becker met at Lollapalooza in 2014.", "people": ["speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014", "disputes": "f4"}, {"kind": "story", "text": "Andrew drove Maria Lopez and Tom Becker to Lollapalooza.", "people": ["Andrew", "speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014"}, {"kind": "membership", "text": "Ana and Maria Lopez run the Saturday book club.", "people": ["Ana", "speaker"], "group": "Saturday book club"}], "relationships": [{"a": "speaker", "b": "Tom Becker", "category": "friend", "label": "friend", "status": "current", "met_on": "2014", "met_event": "Lollapalooza 2014", "facts": [0]}, {"a": "speaker", "b": "Ana", "category": "family", "label": "sister", "status": "current", "closeness": 4, "recency": 5, "sentiment": 1, "facts": [2]}]}"""
+{"speaker_name": null, "people": [{"name": "Ana", "gender": "female"}], "events": [{"name": "Lollapalooza 2014", "start_date": "2014", "people": ["speaker", "Tom Becker", "Ana"]}], "facts": [{"kind": "relationship", "text": "Maria Lopez and Tom Becker met at Lollapalooza in 2014.", "people": ["speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014", "disputes": "f4"}, {"kind": "story", "text": "Felix drove Maria Lopez and Tom Becker to Lollapalooza.", "people": ["Felix", "speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014"}, {"kind": "membership", "text": "Ana and Maria Lopez run the Saturday book club.", "people": ["Ana", "speaker"], "group": "Saturday book club"}], "relationships": [{"a": "speaker", "b": "Tom Becker", "category": "friend", "label": "friend", "status": "current", "met_on": "2014", "met_event": "Lollapalooza 2014", "facts": [0]}, {"a": "speaker", "b": "Ana", "category": "family", "label": "sister", "status": "current", "closeness": 4, "recency": 5, "sentiment": 1, "facts": [2]}]}"""
 
 NULLABLE = {"type": ["string", "null"]}
 DATE = {"type": ["string", "null"], "description": "YYYY, YYYY-MM, or YYYY-MM-DD"}
@@ -141,6 +141,7 @@ SEASONS = ("spring", "summer", "fall", "autumn", "winter")
 PERSON_NAME = re.compile(r"[A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*){0,3}")
 SPEAKER_REFS = {"speaker", "the speaker", "unknown speaker", "i", "me", "myself"}
 RECENT_TURNS = 4
+COUPLE_EVENTS = {"wedding": "married", "engagement": "engaged"}
 
 
 @dataclass(frozen=True)
@@ -461,7 +462,8 @@ def first_name_only(store: Store, person: Record, text: str) -> Ambiguity | None
 
 def apply_events(store: Store, events: list[Record], facts: list[Record], people, teller: Teller) -> dict[str, int]:
     """Writes the events of an output and maps each event ref to its id. The model sometimes lists a named
-    group as an event, so an event named after a group is skipped."""
+    group as an event, so an event named after a group is skipped. A fact can name an event that the output
+    does not list, which then takes the fact's date."""
     ids: dict[str, int] = {}
     groups = [g["name"].lower() for g in store.graph.groups.values()] + [
         f["group"].lower() for f in facts if f.get("group")
@@ -490,11 +492,50 @@ def apply_events(store: Store, events: list[Record], facts: list[Record], people
             model_call_id=teller.model_call_id,
         )
         ids[event["name"]] = record["id"]
+        couple_of(store, record, model_call_id=teller.model_call_id)
         if event.get("id"):
             ids[event["id"]] = record["id"]
     for event_id in store.graph.events:
         ids.setdefault(store.graph.ref("e", event_id), event_id)
+    for fact in facts:
+        name = fact.get("event")
+        if not name or name in ids or any(group in name.lower() for group in groups):
+            continue
+        known = store.graph.lookup("e", name) or next(
+            (e["id"] for e in store.graph.events.values() if e["name"].lower() == name.lower()), None
+        )
+        start = clean_date(fact.get("start_date")) or year_in(name)
+        fields = {
+            "name": name,
+            "when_text": fact.get("when_text"),
+            "start_date": start,
+            "date_precision": date_precision(start, fact.get("when_text")),
+        }
+        ids[name] = known or store.upsert_event(None, fields, people=[], model_call_id=teller.model_call_id)["id"]
     return ids
+
+
+def couple_of(store: Store, event: Record, *, model_call_id: int | None) -> None:
+    """Makes the two people a wedding or an engagement is named after a couple, such as "Arjun Mehta and
+    Claire Dunn's wedding". The model names the event after the couple, yet often leaves out the tie when
+    the speaker is a guest."""
+    label = next((label for word, label in COUPLE_EVENTS.items() if word in event["name"].lower()), None)
+    if label is None:
+        return
+    words = set(re.findall(r"[a-z]+", event["name"].lower().replace("'s", " ")))
+    couple = [
+        p["id"]
+        for p in store.graph.people.values()
+        if p["merged_into_id"] is None and p["name"].lower().split()[0] in words
+    ]
+    if len(couple) != 2 or any(
+        {r["a"], r["b"]} == set(couple) and r["category"] == "romantic" for r in store.graph.relationships.values()
+    ):
+        return
+    fields = {"label": label, "status": "current"}
+    store.upsert_relationship(
+        a=couple[0], b=couple[1], category="romantic", fields=fields, evidence=[], model_call_id=model_call_id
+    )
 
 
 def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, int], teller: Teller) -> int:

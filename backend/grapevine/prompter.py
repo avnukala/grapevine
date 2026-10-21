@@ -7,7 +7,7 @@ from grapevine.graph import Record
 from grapevine.llm import LLM, Call, watch_on
 from grapevine.store import Store
 
-PROMPT_VERSION = "prompter-v1"
+PROMPT_VERSION = "prompter-v2"
 QUESTIONS = ("which_person", "which_speaker", "conflict")
 MAX_SHOWN = 2
 
@@ -16,9 +16,9 @@ Trigger = Literal["opener", "pause"]
 SYSTEM = """You suggest questions for a group conversation, so the people in the room tell how they know each other and the stories they share. A question is only a suggestion. The room does not need to follow it.
 
 Rules:
-- Write at most 2 questions. Each question is one short sentence that names people by first name, for example "Ray and Jasper, how did you two meet?"
+- Write at most 2 questions. Each question is one short sentence that names people by first name, for example "Marcus and Tina, how did you two meet?"
 - Prefer people and pairs with little talk time or few facts, so a few people do not take over.
-- If a fact misses a date, you can ask for it, for example "Sophie, what year was that?"
+- If a fact misses a date, you can ask for it, for example "Imani, what year was that?"
 - Do not repeat a question that is on screen or that the facts already answer.
 - reason: opener (a first question between people in the room), pause (the room went quiet), or needs_date (asks for a missing date).
 - people: the ids of the people the question is for, for example ["p1", "p2"]."""

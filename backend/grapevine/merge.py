@@ -12,7 +12,7 @@ from grapevine.llm import LLM, Call
 from grapevine.names import misspelled
 from grapevine.store import Store
 
-PROMPT_VERSION = "merger-v1"
+PROMPT_VERSION = "merger-v2"
 SAME_PERSON_CONFIDENCE = 0.95
 
 MergeAction = Literal["keep", "keep_both", "remove_edge", "merge_people", "keep_apart"]
@@ -22,7 +22,7 @@ SYSTEM = """You merge what several conversations told about a group of friends i
 Write:
 - relationships: for each relationship ref, a "summary" of 1 or 2 sentences from all its facts, a "label" of 1 to 3 words, and a "status" (current or past).
 - conflicts: facts from different sessions that cannot both be true, for example two different years for the same event. Give the fact refs and a short "question" that asks which one is right. Do not list facts that only add detail.
-- same_person: one entry for each pair under CANDIDATE PAIRS and no other pair. "a" and "b" are the two ids, and "confidence" from 0 to 1 says how sure you are that they are the same person. Names that differ by a spelling mistake, such as "Sam Taurus" and "Sam Torres", are often the same person. Use the names, the aliases, and what the facts say about them."""
+- same_person: one entry for each pair under CANDIDATE PAIRS and no other pair. "a" and "b" are the two ids, and "confidence" from 0 to 1 says how sure you are that they are the same person. Names that differ by a spelling mistake, such as "Marcus Hale" and "Marcus Hail", are often the same person. Use the names, the aliases, and what the facts say about them."""
 
 SCHEMA = {
     "type": "object",
