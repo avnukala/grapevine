@@ -102,8 +102,8 @@ def detector(model_id: str, mode: str, device: str) -> NemotronDetector:
 
 
 @cache
-def embedder(model_id: str) -> WavLMEmbedder:
-    return WavLMEmbedder(model_id)
+def embedder(model_id: str, device: str) -> WavLMEmbedder:
+    return WavLMEmbedder(model_id, device=device)
 
 
 @cache
@@ -129,7 +129,7 @@ def llm_file_hash() -> str:
 def load_models(config: RunConfig) -> Models:
     return Models(
         detector=detector(config.diarizer, config.diarizer_mode, config.diarizer_device),
-        embedder=embedder(config.embedder),
+        embedder=embedder(config.embedder, config.embedder_device),
         transcriber=transcriber(config.transcriber, config.language),
         chat=chat(),
     )

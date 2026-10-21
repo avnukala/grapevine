@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 import { CalendarDays, MapPin, TriangleAlert } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -101,7 +101,7 @@ function layout(state: RunState): { lanes: Lane[]; items: Item[] } {
   return { lanes, items };
 }
 
-export function TimelineView({ state, recentFactIds, recentEventIds }: TimelineViewProps) {
+function TimelineView({ state, recentFactIds, recentEventIds }: TimelineViewProps) {
   const { lanes, items } = useMemo(() => layout(state), [state]);
   const [focusKey, setFocusKey] = useState<string | null>(null);
   const recent = new Set([...recentFactIds.map((id) => `f${id}`), ...recentEventIds.map((id) => `e${id}`)]);
@@ -587,3 +587,7 @@ function StoryFeed({ state, items, recent, focusKey, onFocus }: StoryFeedProps) 
     </ScrollArea>
   );
 }
+
+// Live runs stream a message every few hundred milliseconds. A view redraws only when its own props change.
+const MemoizedTimelineView = memo(TimelineView);
+export { MemoizedTimelineView as TimelineView };

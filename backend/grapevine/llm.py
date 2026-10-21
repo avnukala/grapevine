@@ -17,7 +17,7 @@ Worker = Literal["extractor", "prompter", "reviewer", "summarizer", "merger", "j
 
 log = logging.getLogger(__name__)
 
-WATCH_MS = 80
+WATCH_MS = 200
 Watch = Callable[[str | None], None]
 
 

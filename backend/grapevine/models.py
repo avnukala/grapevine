@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -50,6 +51,11 @@ class Models:
     chat: ChatModel
 
 
+# PyTorch on MPS breaks when two threads encode GPU work at once, and the detector and the embedder run in
+# separate worker threads. Every PyTorch step on the device, copies included, holds this lock.
+TORCH_GPU = threading.Lock()
+
+
 class NemotronDetector:
     """Streams audio through NVIDIA Nemotron 3 Diarization. It numbers speakers in the order they first talk."""
 
@@ -74,11 +80,11 @@ class NemotronDetector:
     def _step(self, audio: np.ndarray, *, first: bool, last: bool) -> np.ndarray:
         inputs = self.processor(
             audio, sampling_rate=SAMPLE_RATE, is_streaming=True, is_first_audio_chunk=first, is_last_audio_chunk=last
-        ).to(self.device)
-        with self.torch.inference_mode():
-            output = self.model(**inputs, speaker_cache=self.cache)
-        self.cache = output.speaker_cache
-        return output.logits.sigmoid()[0].float().cpu().numpy()
+        )
+        with TORCH_GPU, self.torch.inference_mode():
+            output = self.model(**inputs.to(self.device), speaker_cache=self.cache)
+            self.cache = output.speaker_cache
+            return output.logits.sigmoid()[0].float().cpu().numpy()
 
     def _advance(self) -> None:
         self.mel_frame += self.processor.num_mel_frames_per_step
@@ -113,21 +119,22 @@ class NemotronDetector:
 class WavLMEmbedder:
     """Voice embeddings from Microsoft WavLM x-vectors."""
 
-    def __init__(self, model_id: str) -> None:
+    def __init__(self, model_id: str, *, device: str) -> None:
         import torch
         from transformers import AutoFeatureExtractor, WavLMForXVector
 
         self.torch = torch
+        self.device = device
         self.extractor = AutoFeatureExtractor.from_pretrained(model_id)
-        self.model = WavLMForXVector.from_pretrained(model_id).eval()
+        self.model = WavLMForXVector.from_pretrained(model_id).to(device).eval()
 
     def embed(self, audio: np.ndarray) -> np.ndarray:
         audio = audio[: SAMPLE_RATE * 10]
         if len(audio) < MIN_EMBED_SAMPLES:
             audio = np.pad(audio, (0, MIN_EMBED_SAMPLES - len(audio)))
         inputs = self.extractor(audio, sampling_rate=SAMPLE_RATE, return_tensors="pt")
-        with self.torch.inference_mode():
-            vector = self.model(**inputs).embeddings[0].numpy()
+        with TORCH_GPU, self.torch.inference_mode():
+            vector = self.model(**inputs.to(self.device)).embeddings[0].float().cpu().numpy()
         return vector / np.linalg.norm(vector)
 
 

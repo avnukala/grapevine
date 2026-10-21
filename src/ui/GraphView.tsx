@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORIES, GENDER_COLORS, GROUP_COLORS, initials } from "../state/categories";
 import { canonicalId, edgeWeight, nodeLabels, roomIds, visiblePeople } from "../state/derive";
 import type { WeightFactors } from "../state/derive";
@@ -119,7 +119,7 @@ function radius(node: Node): number {
   return node.inRoom ? ROOM_RADIUS : OUTSIDE_RADIUS;
 }
 
-export function GraphView({ state, pulses, speakingId, factors, selectedId, onSelect }: GraphViewProps) {
+function GraphView({ state, pulses, speakingId, factors, selectedId, onSelect }: GraphViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const nodesRef = useRef(new Map<number, Node>());
   const simRef = useRef<d3.Simulation<Node, PairLink> | null>(null);
@@ -467,3 +467,7 @@ function fitIfOutside(
 function shorten(text: string, max = 52): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
+
+// Live runs stream a message every few hundred milliseconds. A view redraws only when its own props change.
+const MemoizedGraphView = memo(GraphView);
+export { MemoizedGraphView as GraphView };

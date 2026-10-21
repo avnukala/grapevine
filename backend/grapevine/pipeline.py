@@ -33,6 +33,8 @@ log = logging.getLogger(__name__)
 ACTIVITY_SILENCE_MS = 300
 PARTIAL_MS = 300
 MIN_PARTIAL_MS = 500
+# Each preview costs about 155 ms of GPU, which the language model also needs, so a preview waits for new words.
+NEW_AUDIO_MS = 700
 MAX_PARTIAL_MS = 15000
 SPEECH_RMS = 0.01
 VOICE_TIE = 0.02
@@ -140,6 +142,7 @@ class Pipeline:
         self.intro_over = False
         self.partials = False
         self.closed_ms = 0
+        self.previewed_ms = 0
         self.whisper = asyncio.Lock()
 
     async def run(self, chunks: AsyncIterator[np.ndarray]) -> None:
@@ -297,11 +300,12 @@ class Pipeline:
             speaker = self.builder.speaker
             end_ms = self.audio.size * 1000 // SAMPLE_RATE
             start_ms = max(self.builder.start_ms if speaker is not None else self.closed_ms, end_ms - MAX_PARTIAL_MS)
-            if self.whisper.locked() or end_ms - start_ms < MIN_PARTIAL_MS:
+            if self.whisper.locked() or end_ms - start_ms < MIN_PARTIAL_MS or end_ms - self.previewed_ms < NEW_AUDIO_MS:
                 continue
             recent = self.audio.slice(max(start_ms, end_ms - 1000), end_ms)
             if speaker is None and float(np.sqrt(np.mean(recent**2))) < SPEECH_RMS:
                 continue
+            self.previewed_ms = end_ms
             async with self.whisper:
                 audio = self.audio.slice(start_ms, end_ms)
                 text = await asyncio.to_thread(self.models.transcriber.transcribe, audio, self.roster)

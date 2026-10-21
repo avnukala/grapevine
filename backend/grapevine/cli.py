@@ -183,4 +183,4 @@ def main() -> None:
         case "serve":
             import uvicorn
 
-            uvicorn.run("grapevine.server:app", port=args.port, log_level="info")
+            uvicorn.run("grapevine.server:app", port=args.port, log_level="info", timeout_graceful_shutdown=3)
