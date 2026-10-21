@@ -398,3 +398,13 @@ def test_a_turn_respells_a_known_person_whom_whisper_misheard(store):
         respell_people(store, text)
     assert store.person(kay)["name"] == "Kate Russo"
     assert "Kay Russo" in store.person(kay)["aliases"]
+
+
+def test_a_pair_keeps_the_earliest_date_they_met(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    jasper = store.create_person(name="Jasper Lin", aliases=["Jasper"], gender="male")["id"]
+    for met_on in ["2016", "2020", "2015"]:
+        store.upsert_relationship(
+            a=ray, b=jasper, category="friend", fields={"met_on": met_on}, evidence=[], model_call_id=None
+        )
+    assert [r["met_on"] for r in store.graph.relationships.values()] == ["2015"]

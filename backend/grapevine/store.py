@@ -409,11 +409,14 @@ class Store:
     def upsert_relationship(
         self, *, a: int, b: int, category: str, fields: Record, evidence: list[int], model_call_id: int | None
     ) -> Record:
-        """Writes the one relationship of a pair in a category. Null fields keep their stored value."""
+        """Writes the one relationship of a pair in a category. Null fields keep their stored value, and met_on
+        keeps the earliest date, because a pair meets once. "Climbing partners since 2020" does not move the
+        date that two college friends met."""
         a, b = sorted((a, b))
         with self.batch():
             row = self.conn.execute(
-                "SELECT id FROM relationships WHERE run_id = ? AND person_a_id = ? AND person_b_id = ? AND category = ?",
+                "SELECT id, met_on FROM relationships "
+                "WHERE run_id = ? AND person_a_id = ? AND person_b_id = ? AND category = ?",
                 (self.run_id, a, b, category),
             ).fetchone()
             if row is None:
@@ -429,6 +432,8 @@ class Store:
             else:
                 relationship_id = row["id"]
                 updates = {f: fields[f] for f in RELATIONSHIP_FIELDS if fields.get(f) is not None}
+                if row["met_on"] and updates.get("met_on", row["met_on"]) > row["met_on"]:
+                    del updates["met_on"]
                 if updates:
                     self.conn.execute(
                         f"UPDATE relationships SET {', '.join(f'{k} = ?' for k in updates)}, updated_at = datetime('now') "
