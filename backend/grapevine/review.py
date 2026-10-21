@@ -16,8 +16,10 @@ from grapevine.llm import LLM, Call, watch_on
 from grapevine.names import misspelled
 from grapevine.store import Store, proper_group_name
 
-PROMPT_VERSION = "review-v8"
+PROMPT_VERSION = "review-v13"
 SAME_EVENT = 0.6
+VOTES = 3
+VOTE_TEMPERATURE = 0.5
 
 INTRO = """You check the record of a group conversation against its full transcript, and complete it. Return JSON only.
 
@@ -29,9 +31,9 @@ RELATIONSHIPS_SYSTEM = (
     INTRO
     + """Write "analysis" first: one line for each other pair the conversation ties together, such as a couple whose wedding someone mentions, a sibling, a cousin, an ex, or a coworker. Then fill "room", which has one key for each pair of people in the room, and "other", for the pairs in your analysis.
 
-- For each pair in "room", list its relationships, or an empty list when the two have no tie.
+- For each pair in "room", list its relationships, or an empty list when the conversation does not show how these two know each other. Being at the same party or in the same room is not a tie.
 - List every relationship the conversation states or clearly implies, including the ones in the record. Fix a record entry when the transcript shows a better category, status, label, or meeting date.
-- Infer what the conversation implies. People who share a house, or hold a house meeting, are roommates and friends. A couple who is married or planning a wedding is romantic. Exes who are still in each other's lives, for example one helps plan the other's wedding, are also friends.
+- Infer what the conversation implies. People who share a house, or hold a house meeting, are roommates and friends. A couple who is married or planning a wedding is romantic, and two people whose wedding someone went to are married. Exes who are still in each other's lives, for example one helps plan the other's wedding, are also friends.
 - category:
   - romantic: dating, partners, engaged, married, exes.
   - family: parents, children, siblings, cousins, in-laws.
@@ -50,16 +52,23 @@ GROUPS_SYSTEM = (
     + """Write "analysis" first: for each named group (a crew, a team, a band, a club, a league), the plain phrases people use for it, such as "the crew" or "the league", and each line of the transcript that puts someone in it under any of those names. Then fill "known", which has one key for each group in the record, and "new", for named groups the record does not have.
 
 - For each known group, list its plain phrases in "also_called", and answer for each person whether they are in it under any of its names. People who say "we", "our team", or "our league" about the group are in it, and so are the people they list as going with "the whole crew".
-- A new group has one entry under its proper name, for example "Sunday Sends", with everyone in it.
+- Every named group in your analysis that is not under "known" goes in "new", with one entry under its proper name, for example "Sunday Sends", and everyone in it.
 - A house, a meeting, or an event is not a group."""
 )
 
+MEMBERS_SYSTEM = """You read the lines of a group conversation that mention one group, and list who is in it. Return JSON only.
+
+Write "analysis" first: for each line, who it puts in the group. Then list "members" with the full names under PEOPLE when they match.
+- The speaker of a line is in the group when they say "we", "our", or "me" about it, or call themselves a member.
+- People a line names as going with the whole group are in it, for example "the whole crew is going: me, Owen, and Kevin".
+- People a line calls members are in it."""
+
 EVENTS_SYSTEM = (
     INTRO
-    + """Write "analysis" first: one line for each dated happening in the transcript, such as a trip, a wedding, a party, an accident, a show, a move to a new city, or a move into a house. Then write "events" from the analysis.
+    + """Write "analysis" first: one line for each event in the record with the date the transcript supports, then one line for each other dated happening in the transcript, such as a trip, a wedding, a party, an accident, a show, a move to a new city, or a move into a house. Then fill "record", which has one key for each event in the record, and "added", for the other happenings.
 
-- List events that the record does not have yet, and record events whose date the transcript corrects, under their record name. Name a new event by what and who, for example "Nina's move to Denver".
-- start_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD", resolved with today's date when the conversation says "last weekend" or "tonight". If people disagree on the date, use the date the conversation settles on. people: who took part."""
+- start_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD", resolved with today's date when the conversation says "last weekend" or "tonight". When people disagree on a date, use the date of the person who was there, or the date that the reasons given support, for example "Paige got married in 2021, so the trip was 2022".
+- Name a new event by what and who, for example "Nina's move to Denver". people: who took part."""
 )
 
 NULLABLE = {"type": ["string", "null"]}
@@ -100,10 +109,16 @@ def groups_schema(groups: list[str], people: list[str]) -> dict:
     )
 
 
-EVENTS_SCHEMA = _object(
-    analysis=TEXT,
-    events={"type": "array", "items": _object(name=TEXT, start_date=NULLABLE, place=NULLABLE, people=NAMES)},
-)
+def events_schema(record: list[str]) -> dict:
+    """One required date for each event in the record, so the model checks each one against the transcript."""
+    return _object(
+        analysis=TEXT,
+        record=_object(**{name: _object(start_date=NULLABLE) for name in record}),
+        added={"type": "array", "items": _object(name=TEXT, start_date=NULLABLE, place=NULLABLE, people=NAMES)},
+    )
+
+
+MEMBERS_SCHEMA = _object(analysis=TEXT, members=NAMES)
 
 
 def user_message(store: Store, *, today: str) -> str:
@@ -142,21 +157,38 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
     names = store.graph.people
     pairs = {f"{names[a]['name']} and {names[b]['name']}": (a, b) for a, b in combinations(store.graph.room(), 2)}
     people = list(dict.fromkeys(p["name"] for p in names.values() if p["merged_into_id"] is None))
+    record_events = {e["name"]: e["id"] for e in reversed(list(store.graph.events.values()))}
 
-    def ask(system: str, schema: dict) -> Call:
-        return Call("reviewer", model, PROMPT_VERSION, system, user, schema, seed, max_tokens=6000)
+    def ask(system: str, schema: dict, *, seed: int = seed, temperature: float = 0) -> Call:
+        return Call("reviewer", model, PROMPT_VERSION, system, user, schema, seed, 6000, temperature)
 
     watch = watch_on(store, worker="reviewer")
-    calls = [
-        ask(RELATIONSHIPS_SYSTEM, relationships_schema(list(pairs))),
-        ask(GROUPS_SYSTEM, groups_schema([g["name"] for g in store.graph.groups.values()], people)),
-        ask(EVENTS_SYSTEM, EVENTS_SCHEMA),
+    votes = [
+        ask(RELATIONSHIPS_SYSTEM, relationships_schema(list(pairs)), seed=seed + i, temperature=VOTE_TEMPERATURE)
+        for i in range(VOTES)
     ]
-    relationships, groups, events = await asyncio.gather(
-        llm.call(calls[0], run_id=store.run_id, audio_ms=store.audio_ms, watch=watch),
-        llm.call(calls[1], run_id=store.run_id, audio_ms=store.audio_ms),
-        llm.call(calls[2], run_id=store.run_id, audio_ms=store.audio_ms),
+    groups_call = ask(GROUPS_SYSTEM, groups_schema([g["name"] for g in store.graph.groups.values()], people))
+    groups, events, *voted = await asyncio.gather(
+        llm.call(groups_call, run_id=store.run_id, audio_ms=store.audio_ms),
+        llm.call(ask(EVENTS_SYSTEM, events_schema(list(record_events))), run_id=store.run_id, audio_ms=store.audio_ms),
+        *[
+            llm.call(vote, run_id=store.run_id, audio_ms=store.audio_ms, watch=watch if i == 0 else None)
+            for i, vote in enumerate(votes)
+        ],
     )
+
+    found_groups = []
+    if groups.output:
+        found_groups = [
+            {
+                "name": name,
+                "also_called": answer["also_called"],
+                "members": [p for p, y in answer["members"].items() if y],
+            }
+            for name, answer in groups.output["known"].items()
+        ] + groups.output["new"]
+        more = await asyncio.gather(*[members_of(store, llm, g, model=model, seed=seed) for g in found_groups])
+        found_groups = [{**g, "members": [*g["members"], *extra]} for g, extra in zip(found_groups, more)]
 
     def person(name: str, model_call_id: int) -> int | None:
         known = [p for p in store.graph.people.values() if misspelled(p["name"], name)]
@@ -167,22 +199,73 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
         return None if isinstance(found, Ambiguity) else found
 
     with store.batch():
-        if relationships.output:
-            output = relationships.output
-            entries = [
-                {**tie, "a": names[pairs[pair][0]]["name"], "b": names[pairs[pair][1]]["name"]}
-                for pair, ties in output["room"].items()
-                for tie in ties
+        outputs = [v.output for v in voted if v.output]
+        if outputs:
+            room = [
+                [
+                    {**tie, "a": names[pairs[pair][0]]["name"], "b": names[pairs[pair][1]]["name"]}
+                    for pair, ties in output["room"].items()
+                    for tie in ties
+                ]
+                for output in outputs
             ]
-            apply_relationships(store, entries + output["other"], person, relationships.model_call_id)
+            call_id = voted[0].model_call_id
+            entries = agreed(room, person, call_id, needed=len(room) // 2 + 1)
+            entries += agreed([o["other"] for o in outputs], person, call_id, needed=1)
+            apply_relationships(store, entries, person, call_id)
         if groups.output:
-            known = [
-                {"name": name, "members": [p for p, yes in answer["members"].items() if yes]}
-                for name, answer in groups.output["known"].items()
-            ]
-            apply_groups(store, known + groups.output["new"], person, groups.model_call_id)
+            apply_groups(store, found_groups, person, groups.model_call_id)
         if events.output:
-            apply_events(store, events.output["events"], person, events.model_call_id)
+            for name, answer in events.output["record"].items():
+                start = clean_date(answer["start_date"])
+                event = store.graph.events[record_events[name]]
+                if start and start != event["start_date"]:
+                    fields = {"start_date": start, "date_precision": date_precision(start, None)}
+                    store.upsert_event(event["id"], fields, people=[], model_call_id=events.model_call_id)
+            apply_events(store, events.output["added"], person, events.model_call_id)
+
+
+async def members_of(store: Store, llm: LLM, group: Record, *, model: str, seed: int) -> list[str]:
+    """Asks who is in one group, with only the lines that mention it under any of its names. In the whole
+    transcript, the model misses a line such as "the whole crew is going: me, Owen, and Kevin"."""
+    words = [group["name"], *group["also_called"]]
+    keys = {w.lower().removeprefix("the ").removeprefix("our ").removeprefix("my ").strip() for w in words}
+    names = {pid: p["name"] for pid, p in store.graph.people.items()}
+    turns = sorted(store.graph.segments.values(), key=lambda s: s["start_ms"])
+    lines = [
+        f"{names.get(s['person_id'], 'Unknown speaker')}: {s['text']}"
+        for s in turns
+        if any(key and key in s["text"].lower() for key in keys)
+    ]
+    if not lines:
+        return []
+    user = "\n".join(
+        [f"GROUP: {group['name']} (also called {', '.join(group['also_called']) or 'nothing else'})", "", "PEOPLE:"]
+        + [f"- {name}" for name in names.values()]
+        + ["", "LINES:", *lines]
+    )
+    call = Call("reviewer", model, PROMPT_VERSION, MEMBERS_SYSTEM, user, MEMBERS_SCHEMA, seed, max_tokens=1500)
+    result = await llm.call(call, run_id=store.run_id, audio_ms=store.audio_ms)
+    return result.output["members"] if result.output else []
+
+
+def agreed(lists: list[list[Record]], person, model_call_id: int, *, needed: int) -> list[Record]:
+    """The relationships that at least `needed` votes list, by pair and category. Each vote samples the model
+    at a small temperature. Pairs in the room need most votes, because the model is quick to call any two
+    guests friends. Other pairs need one vote, because the conversation names them outright."""
+    seen: dict[tuple[frozenset, str], list[Record]] = defaultdict(list)
+    for entries in lists:
+        for entry in {
+            (frozenset((entry["a"], entry["b"])), entry["category"]): entry for entry in ties(entries)
+        }.values():
+            a, b = person(entry["a"], model_call_id), person(entry["b"], model_call_id)
+            if a is not None and b is not None and a != b:
+                seen[(frozenset((a, b)), entry["category"])].append(entry)
+    return [
+        {**entries[0], "met_on": next((e["met_on"] for e in entries if e["met_on"]), None)}
+        for entries in seen.values()
+        if len(entries) >= needed
+    ]
 
 
 def ties(entries: list[Record]) -> list[Record]:
@@ -203,7 +286,7 @@ def apply_relationships(store: Store, entries: list[Record], person, model_call_
     """Writes each listed relationship. For a pair the review lists, it also removes the categories the review
     left out, because the review read the whole conversation and a single turn did not."""
     kept: dict[frozenset, set[str]] = defaultdict(set)
-    for entry in ties(entries):
+    for entry in entries:
         a, b = person(entry["a"], model_call_id), person(entry["b"], model_call_id)
         if a is None or b is None or a == b:
             continue

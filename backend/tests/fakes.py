@@ -121,7 +121,15 @@ class FakeChat:
         self.rules = rules
         self.prompts = prompts or []
         self.merged = merged or {"relationships": [], "conflicts": [], "same_person": []}
-        self.reviewed = reviewed or {"room": {}, "other": [], "known": {}, "new": [], "events": []}
+        self.reviewed = reviewed or {
+            "room": {},
+            "other": [],
+            "known": {},
+            "new": [],
+            "record": {},
+            "added": [],
+            "members": [],
+        }
         self.requests: list[dict] = []
 
     async def complete(self, request: dict, on_text=None) -> str:

@@ -1,5 +1,6 @@
 from grapevine.actions import pick_person, settle_conflict
 from grapevine.extract import Held, Teller, apply_output, user_message
+from grapevine.store import proper_group_name
 from tests.fakes import empty_output, fact
 
 
@@ -378,3 +379,10 @@ def test_a_misspelled_full_name_is_the_person_already_known(store):
     apply(store, turn(store, ray, "Rav Kapoor cooks."), facts=[fact("Rav Kapoor cooks.", ["Rav Kapoor"])])
     [cooks] = store.graph.facts.values()
     assert ravi in {p["person_id"] for p in cooks["people"]}
+
+
+def test_only_a_name_of_one_group_makes_a_group():
+    assert proper_group_name("second chapter")
+    assert proper_group_name("The Dynasty League")
+    assert not proper_group_name("the whole climbing crew")
+    assert not proper_group_name("house on Pearl Street")

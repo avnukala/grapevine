@@ -2,6 +2,7 @@
 broadcasts the op to connected clients after the transaction commits."""
 
 import json
+import re
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -30,6 +31,32 @@ FACT_FIELDS = (
 )
 EVENT_FIELDS = ("name", "when_text", "start_date", "end_date", "date_precision", "place")
 GROUP_WORDS = {"crew", "team", "group", "club", "league", "gang", "squad", "band"}
+PLACES = {"house", "home", "apartment", "street", "meeting"}
+PLAIN_WORDS = GROUP_WORDS | {
+    "the",
+    "our",
+    "my",
+    "your",
+    "their",
+    "a",
+    "whole",
+    "old",
+    "new",
+    "friend",
+    "friends",
+    "family",
+    "house",
+    "meeting",
+    "book",
+    "trivia",
+    "climbing",
+    "running",
+    "fantasy",
+    "football",
+    "chat",
+    "work",
+    "college",
+}
 SAME_GROUP = 0.85
 RELATIONSHIP_FIELDS = ("label", "summary", "status", "met_on", "met_event_id", "closeness", "recency", "sentiment")
 
@@ -55,8 +82,11 @@ def group_key(name: str) -> str:
 
 
 def proper_group_name(name: str) -> bool:
-    """Whether a group name is a proper name, such as "Sunday Sends", and not a plain phrase like "the crew"."""
-    return any(word[:1].isupper() for word in name.split() if word.lower() != "the")
+    """Whether a group name names one group, such as "Sunday Sends" or "second chapter", and is not a plain
+    phrase like "the crew" or "our trivia team", or a place like "the house on Pearl Street". Case does not
+    count, because transcripts lose it."""
+    words = re.findall(r"[a-z']+", name.lower())
+    return not PLACES & set(words) and any(word not in PLAIN_WORDS for word in words)
 
 
 def name_matches(conn: sqlite3.Connection, name: str) -> list[Record]:

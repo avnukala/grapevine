@@ -47,6 +47,7 @@ class Call:
     schema: dict
     seed: int
     max_tokens: int = 1500
+    temperature: float = 0
 
 
 @dataclass(frozen=True)
@@ -68,7 +69,7 @@ class LLM:
         request = {
             "model": call.model,
             "messages": [{"role": "system", "content": call.system}, {"role": "user", "content": call.user}],
-            "temperature": 0,
+            "temperature": call.temperature,
             "seed": call.seed,
             "reasoning_effort": "none",
             "max_tokens": call.max_tokens,

@@ -10,7 +10,7 @@ from grapevine.names import misspelled
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
-PROMPT_VERSION = "extract-v7"
+PROMPT_VERSION = "extract-v8"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
 
@@ -43,6 +43,7 @@ RELATIONSHIPS
 - Every fact of kind relationship needs a matching entry here.
 - category: romantic (dating, partners, married, engaged, exes), family (parents, siblings, cousins, in-laws), friend (friends, including roommates, bandmates, teammates, climbing partners, and league mates, unless the turn says they are not friends), professional (coworkers, bosses, managers, employees, clients, business partners), or other (only acquaintances with no other tie).
 - Exes are romantic with status past. If they stayed friends, add a second entry: friend, current.
+- Two people whose wedding the turn mentions are married: romantic, current.
 - label: a 1 to 3 word term, for example "college roommate", "ex-girlfriend", "cousin", "coworker".
 - status: current or past. met_on: when they met, as a date, when the turn or the known facts tell or imply it (a couple who met at Bonnaroo 2015 met in 2015), or null. met_event: an event id or name, or null.
 - closeness 1 to 5, recency 1 to 5 (5 means in touch now), sentiment -2 to 2. Null when the turn gives no signal.
@@ -370,7 +371,7 @@ def resolve(
         if " " in name:
             near = [p for p in store.graph.people.values() if misspelled(p["name"], name)]
             if len(near) == 1:
-                return near[0]["id"]
+                return respelled(store, near[0], name)
             first = name.split()[0]
             if (known := first_name_person(store, first)) is not None:
                 store.update_person(known, add_aliases=[first, *aliases], gender=gender, name=name)
@@ -383,6 +384,17 @@ def resolve(
         return answers.get(ambiguity.mention, ambiguity)
     if entry:
         store.update_person(person["id"], add_aliases=entry["aliases"], gender=entry["gender"])
+    return person["id"]
+
+
+def respelled(store: Store, person: Record, heard: str) -> int:
+    """Keeps both spellings of a person whom speech recognition spelled two ways, and names them by the one
+    the transcript uses more, such as Kate Russo over Kay Russo."""
+    said = " ".join(s["text"] for s in store.graph.segments.values())
+    if said.count(heard) > said.count(person["name"]):
+        store.update_person(person["id"], add_aliases=[person["name"], heard.split()[0]], gender=None, name=heard)
+    else:
+        store.update_person(person["id"], add_aliases=[heard], gender=None)
     return person["id"]
 
 
