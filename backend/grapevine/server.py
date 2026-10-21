@@ -44,6 +44,8 @@ log = logging.getLogger(__name__)
 AUDIO_SUFFIXES = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aiff"}
 
 app = FastAPI(title="Grapevine")
+# One connection for the whole server. Every route that uses it, or a running pipeline, is async, so it runs on
+# the event loop with the pipelines and never on a worker thread at the same time.
 conn = db.connect(DB_PATH)
 clients: set[asyncio.Queue] = set()
 active: dict[int, ActiveRun] = {}
@@ -88,7 +90,7 @@ def audio_files() -> list[str]:
 
 
 @app.get("/api/sessions")
-def sessions() -> list[Record]:
+async def sessions() -> list[Record]:
     rows = conn.execute("SELECT * FROM sessions ORDER BY id DESC").fetchall()
     runs = conn.execute("SELECT id, session_id, kind, accepted, status, created_at, code_version FROM runs").fetchall()
     return [{**session_record(s), "runs": [dict(r) for r in runs if r["session_id"] == s["id"]][::-1]} for s in rows]
@@ -103,7 +105,7 @@ class NewSession(BaseModel):
 
 
 @app.post("/api/sessions")
-def new_session(body: NewSession) -> Record:
+async def new_session(body: NewSession) -> Record:
     """A session for a recording that already has one returns that session."""
     if body.audio_uri:
         if not audio_path(body.audio_uri).is_file():
@@ -120,14 +122,18 @@ def new_session(body: NewSession) -> Record:
 
 
 @app.post("/api/sessions/upload")
-def upload_session(file: UploadFile) -> Record:
+async def upload_session(file: UploadFile) -> Record:
     name = Path(file.filename or "recording").name
     if Path(name).suffix.lower() not in AUDIO_SUFFIXES:
         raise HTTPException(400, f"unsupported audio type {Path(name).suffix}")
     target = recordings_dir() / f"{datetime.now():%Y%m%d-%H%M%S}-{name}"
     target.parent.mkdir(parents=True, exist_ok=True)
-    with target.open("wb") as out:
-        shutil.copyfileobj(file.file, out)
+
+    def copy() -> None:
+        with target.open("wb") as out:
+            shutil.copyfileobj(file.file, out)
+
+    await asyncio.to_thread(copy)
     return create_session(
         conn,
         name=Path(name).stem,
@@ -151,7 +157,7 @@ class SessionUpdate(BaseModel):
 
 
 @app.patch("/api/sessions/{session_id}")
-def update_session(session_id: int, body: SessionUpdate) -> Record:
+async def update_session(session_id: int, body: SessionUpdate) -> Record:
     for key, value in body.model_dump(exclude_none=True).items():
         if key == "roster":
             value = json.dumps(clean_roster(value))
@@ -160,7 +166,7 @@ def update_session(session_id: int, body: SessionUpdate) -> Record:
 
 
 @app.get("/api/sessions/{session_id}/audio")
-def session_audio(session_id: int) -> FileResponse:
+async def session_audio(session_id: int) -> FileResponse:
     uri = session(conn, session_id)["audio_uri"]
     if not uri or not audio_path(uri).is_file():
         raise HTTPException(404, "this session has no audio")
@@ -219,7 +225,7 @@ async def new_run(body: NewRun) -> Record:
 
 
 @app.get("/api/runs/active")
-def going_run() -> Record | None:
+async def going_run() -> Record | None:
     """The run that is still going, if any. The server runs one at a time."""
     return run_record(next(iter(active))) if active else None
 
@@ -230,7 +236,7 @@ def run_record(run_id: int) -> Record:
 
 
 @app.get("/api/runs/{run_id}")
-def get_run(run_id: int) -> Record:
+async def get_run(run_id: int) -> Record:
     store_for(run_id)
     record = run_record(run_id)
     record["session"] = session(conn, record["session_id"]) if record["session_id"] else None
@@ -238,7 +244,7 @@ def get_run(run_id: int) -> Record:
 
 
 @app.get("/api/runs/{run_id}/changes")
-def changes(run_id: int) -> list[Record]:
+async def changes(run_id: int) -> list[Record]:
     rows = conn.execute(
         "SELECT seq, audio_ms, segment_id, model_call_id, op_json FROM changes WHERE run_id = ? ORDER BY seq", (run_id,)
     )
@@ -246,7 +252,7 @@ def changes(run_id: int) -> list[Record]:
 
 
 @app.get("/api/runs/{run_id}/model_calls")
-def model_calls(run_id: int) -> list[Record]:
+async def model_calls(run_id: int) -> list[Record]:
     rows = conn.execute("SELECT * FROM model_calls WHERE run_id = ? ORDER BY id", (run_id,))
     return [
         {
@@ -279,13 +285,13 @@ def active_run(run_id: int) -> ActiveRun:
 
 
 @app.post("/api/runs/{run_id}/stop")
-def stop_run(run_id: int) -> Record:
+async def stop_run(run_id: int) -> Record:
     active_run(run_id).stop.set()
     return run_record(run_id)
 
 
 @app.post("/api/runs/{run_id}/intro-done")
-def intro_done(run_id: int) -> Record:
+async def intro_done(run_id: int) -> Record:
     run = active_run(run_id)
     run.pipeline.end_intro()
     session_id = conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()[0]
@@ -294,7 +300,7 @@ def intro_done(run_id: int) -> Record:
 
 
 @app.post("/api/runs/{run_id}/accept")
-def accept_run(run_id: int) -> Record:
+async def accept_run(run_id: int) -> Record:
     session_id = conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()[0]
     conn.execute("BEGIN")
     conn.execute("UPDATE runs SET accepted = 0 WHERE session_id = ?", (session_id,))
@@ -323,7 +329,7 @@ class Answer(BaseModel):
 
 
 @app.post("/api/runs/{run_id}/prompts/{prompt_id}/answer")
-def answer_prompt(run_id: int, prompt_id: int, body: Answer) -> Record:
+async def answer_prompt(run_id: int, prompt_id: int, body: Answer) -> Record:
     store = store_for(run_id)
     prompt = store.graph.prompts.get(prompt_id)
     if prompt is None:
@@ -346,7 +352,7 @@ def answer_prompt(run_id: int, prompt_id: int, body: Answer) -> Record:
 
 
 @app.post("/api/runs/{run_id}/prompts/{prompt_id}/dismiss")
-def dismiss_prompt(run_id: int, prompt_id: int) -> Record:
+async def dismiss_prompt(run_id: int, prompt_id: int) -> Record:
     store = store_for(run_id)
     if prompt_id not in store.graph.prompts:
         raise HTTPException(404, f"no prompt {prompt_id} in run {run_id}")
@@ -360,7 +366,7 @@ class SpeakerAnswer(BaseModel):
 
 
 @app.post("/api/runs/{run_id}/segments/{segment_id}/speaker")
-def set_segment_speaker(run_id: int, segment_id: int, body: SpeakerAnswer) -> Record:
+async def set_segment_speaker(run_id: int, segment_id: int, body: SpeakerAnswer) -> Record:
     store = store_for(run_id)
     person_id = body.person_id
     if person_id is None:
@@ -375,7 +381,7 @@ def set_segment_speaker(run_id: int, segment_id: int, body: SpeakerAnswer) -> Re
 
 
 @app.get("/api/people")
-def people() -> list[Record]:
+async def people() -> list[Record]:
     rows = conn.execute("SELECT * FROM people WHERE merged_into_id IS NULL ORDER BY name")
     return [{**dict(r), "aliases": json.loads(r["aliases"])} for r in rows]
 
@@ -391,7 +397,7 @@ async def new_merge() -> Record:
 
 
 @app.get("/api/global")
-def global_graph() -> Record:
+async def global_graph() -> Record:
     row = conn.execute(
         "SELECT id FROM runs WHERE kind = 'merge' AND status = 'done' ORDER BY id DESC LIMIT 1"
     ).fetchone()
@@ -406,7 +412,7 @@ class MergeAnswer(BaseModel):
 
 
 @app.post("/api/merge/{run_id}/prompts/{prompt_id}")
-def answer_merge(run_id: int, prompt_id: int, body: MergeAnswer) -> Record:
+async def answer_merge(run_id: int, prompt_id: int, body: MergeAnswer) -> Record:
     store = store_for(run_id)
     try:
         resolve_merge(store, prompt_id, action=body.action, fact_id=body.fact_id)
@@ -416,7 +422,7 @@ def answer_merge(run_id: int, prompt_id: int, body: MergeAnswer) -> Record:
 
 
 @app.on_event("shutdown")
-def stop_all() -> None:
+async def stop_all() -> None:
     for run in active.values():
         run.stop.set()
         set_status(conn, run.run_id, "stopped")
