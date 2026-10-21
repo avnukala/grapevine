@@ -10,9 +10,11 @@ from grapevine.names import misspelled
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
-PROMPT_VERSION = "extract-v8"
+PROMPT_VERSION = "extract-v9"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
+
+Every word you write delays the live view, so leave out any optional field that would be null, empty, or false.
 
 The input lists today's date, the known people, events (ids like e2), groups, relationships, recent facts (ids like f7), the recent turns, and the NEW TURN with its speaker.
 
@@ -33,8 +35,8 @@ FACTS
 - If the turn names a group of people, such as a crew, a team, a band, a club, or a friend group, write a membership fact with "group" set to the group name and "people" set to its members. When people in the room say "we" or "our team", they are members. If the turn calls a known group something else, such as "the crew", use the known group name. A group is not an event, and a house is not a group.
 - text: one short sentence with full names and no pronouns, for example "Ray Patel and Jasper Lin met freshman year at Cornell." State the fact itself, not that someone said or corrected it.
 - people: every person the fact is about, by name.
-- when_text: the time as said, for example "freshman year". start_date and end_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD" when the turn, the known facts, or today's date resolve it. Else null.
-- event: for a named or dated happening (a festival, a trip, a wedding, a proposal, an accident, a move to a new city or house), the event id ("e2") or the new event name, also listed in "events". Reuse a known event when the turn talks about it again. Name an event by what and when, for example "Electric Zoo 2018". All facts of one story share one event. A school, a place, or a group is not an event.
+- when_text: the time as said, for example "freshman year". start_date and end_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD" when the turn, the known facts, or today's date resolve it.
+- event: for a named or dated happening (a festival, a trip, a wedding, a proposal, an accident, a move to a new city or house), the event name, also listed in "events". To talk about a known event again, list it in "events" with its "id" ("e2") and use its known name. Name a new event by what and when, for example "Electric Zoo 2018". All facts of one story share one event. A school, a place, or a group is not an event.
 - If the speaker corrects a fact that they told, or agrees with a correction, use kind correction and set "revises" to the old fact id.
 - If the speaker contradicts a fact that ANOTHER person told, write the speaker's version and set "disputes" to the other fact id.
 
@@ -45,9 +47,8 @@ RELATIONSHIPS
 - Exes are romantic with status past. If they stayed friends, add a second entry: friend, current.
 - Two people whose wedding the turn mentions are married: romantic, current.
 - label: a 1 to 3 word term, for example "college roommate", "ex-girlfriend", "cousin", "coworker".
-- status: current or past. met_on: when they met, as a date, when the turn or the known facts tell or imply it (a couple who met at Bonnaroo 2015 met in 2015), or null. met_event: an event id or name, or null.
-- closeness 1 to 5, recency 1 to 5 (5 means in touch now), sentiment -2 to 2. Null when the turn gives no signal.
-- summary: one sentence on how they relate.
+- status: current or past. met_on: when they met, as a date, when the turn or the known facts tell or imply it (a couple who met at Bonnaroo 2015 met in 2015). met_event: an event name.
+- closeness 1 to 5, recency 1 to 5 (5 means in touch now), sentiment -2 to 2, only when the turn gives a signal.
 - facts: the 0-based indexes of the facts in your output that support it.
 
 Return empty lists when the turn has no new information.
@@ -64,7 +65,7 @@ NEW TURN (speaker: Maria Lopez):
 No, we met in 2014 at Lollapalooza. Andrew drove us. My sister Ana was there too, she runs the Saturday book club with me.
 
 EXAMPLE OUTPUT
-{"speaker_name": null, "people": [{"name": "Ana", "aliases": [], "gender": "female"}], "events": [{"ref": "Lollapalooza 2014", "name": "Lollapalooza 2014", "when_text": "2014", "start_date": "2014", "end_date": null, "place": null, "people": ["speaker", "Tom Becker", "Ana"]}], "facts": [{"kind": "relationship", "text": "Maria Lopez and Tom Becker met at Lollapalooza in 2014.", "people": ["speaker", "Tom Becker"], "when_text": "2014", "start_date": "2014", "end_date": null, "event": "Lollapalooza 2014", "group": null, "revises": null, "disputes": "f4"}, {"kind": "story", "text": "Andrew drove Maria Lopez and Tom Becker to Lollapalooza.", "people": ["Andrew", "speaker", "Tom Becker"], "when_text": "2014", "start_date": "2014", "end_date": null, "event": "Lollapalooza 2014", "group": null, "revises": null, "disputes": null}, {"kind": "membership", "text": "Ana and Maria Lopez run the Saturday book club.", "people": ["Ana", "speaker"], "when_text": null, "start_date": null, "end_date": null, "event": null, "group": "Saturday book club", "revises": null, "disputes": null}], "relationships": [{"a": "speaker", "b": "Tom Becker", "category": "friend", "label": "friend", "status": "current", "met_on": "2014", "met_event": "Lollapalooza 2014", "closeness": null, "recency": null, "sentiment": null, "summary": "Maria Lopez and Tom Becker met at Lollapalooza in 2014.", "facts": [0]}, {"a": "speaker", "b": "Ana", "category": "family", "label": "sister", "status": "current", "met_on": null, "met_event": null, "closeness": 4, "recency": 5, "sentiment": 1, "summary": "Ana is Maria Lopez's sister.", "facts": [2]}]}"""
+{"speaker_name": null, "people": [{"name": "Ana", "gender": "female"}], "events": [{"name": "Lollapalooza 2014", "start_date": "2014", "people": ["speaker", "Tom Becker", "Ana"]}], "facts": [{"kind": "relationship", "text": "Maria Lopez and Tom Becker met at Lollapalooza in 2014.", "people": ["speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014", "disputes": "f4"}, {"kind": "story", "text": "Andrew drove Maria Lopez and Tom Becker to Lollapalooza.", "people": ["Andrew", "speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014"}, {"kind": "membership", "text": "Ana and Maria Lopez run the Saturday book club.", "people": ["Ana", "speaker"], "group": "Saturday book club"}], "relationships": [{"a": "speaker", "b": "Tom Becker", "category": "friend", "label": "friend", "status": "current", "met_on": "2014", "met_event": "Lollapalooza 2014", "facts": [0]}, {"a": "speaker", "b": "Ana", "category": "family", "label": "sister", "status": "current", "closeness": 4, "recency": 5, "sentiment": 1, "facts": [2]}]}"""
 
 NULLABLE = {"type": ["string", "null"]}
 DATE = {"type": ["string", "null"], "description": "YYYY, YYYY-MM, or YYYY-MM-DD"}
@@ -72,8 +73,13 @@ REFS = {"type": "array", "items": {"type": "string"}}
 SCORE = {"type": ["integer", "null"]}
 
 
-def _object(**properties: dict) -> dict:
-    return {"type": "object", "additionalProperties": False, "required": list(properties), "properties": properties}
+def _object(optional: dict | None = None, **required: dict) -> dict:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": list(required),
+        "properties": {**required, **(optional or {})},
+    }
 
 
 SCHEMA = _object(
@@ -81,53 +87,51 @@ SCHEMA = _object(
     people={
         "type": "array",
         "items": _object(
+            {"aliases": REFS, "gender": {"type": "string", "enum": ["male", "female", "unknown"]}},
             name={"type": "string"},
-            aliases=REFS,
-            gender={"type": "string", "enum": ["male", "female", "unknown"]},
         ),
     },
     events={
         "type": "array",
         "items": _object(
-            ref={"type": "string"},
+            {"id": NULLABLE, "when_text": NULLABLE, "start_date": DATE, "end_date": DATE, "place": NULLABLE},
             name={"type": "string"},
-            when_text=NULLABLE,
-            start_date=DATE,
-            end_date=DATE,
-            place=NULLABLE,
             people=REFS,
         ),
     },
     facts={
         "type": "array",
         "items": _object(
+            {
+                "when_text": NULLABLE,
+                "start_date": DATE,
+                "end_date": DATE,
+                "event": NULLABLE,
+                "group": NULLABLE,
+                "revises": NULLABLE,
+                "disputes": NULLABLE,
+            },
             kind={"type": "string", "enum": ["personal", "relationship", "story", "membership", "correction"]},
             text={"type": "string"},
             people=REFS,
-            when_text=NULLABLE,
-            start_date=DATE,
-            end_date=DATE,
-            event=NULLABLE,
-            group=NULLABLE,
-            revises=NULLABLE,
-            disputes=NULLABLE,
         ),
     },
     relationships={
         "type": "array",
         "items": _object(
+            {
+                "met_on": DATE,
+                "met_event": NULLABLE,
+                "closeness": SCORE,
+                "recency": SCORE,
+                "sentiment": SCORE,
+                "facts": {"type": "array", "items": {"type": "integer"}},
+            },
             a={"type": "string"},
             b={"type": "string"},
             category={"type": "string", "enum": ["romantic", "family", "friend", "professional", "other"]},
             label={"type": "string"},
             status={"type": "string", "enum": ["current", "past"]},
-            met_on=DATE,
-            met_event=NULLABLE,
-            closeness=SCORE,
-            recency=SCORE,
-            sentiment=SCORE,
-            summary={"type": "string"},
-            facts={"type": "array", "items": {"type": "integer"}},
         ),
     },
 )
@@ -304,20 +308,20 @@ def apply_output(store: Store, held: Held) -> None:
             held.done_relationships.append(index)
             if len(ids) != 2:
                 continue
-            evidence = [held.fact_ids[i] for i in rel["facts"] if i in held.fact_ids]
+            evidence = [held.fact_ids[i] for i in rel.get("facts") or [] if i in held.fact_ids]
             store.upsert_relationship(
                 a=ids[0],
                 b=ids[1],
                 category=rel["category"],
                 fields={
                     "label": rel["label"],
-                    "summary": rel["summary"],
+                    "summary": store.graph.facts[evidence[0]]["text"] if evidence else None,
                     "status": rel["status"],
-                    "met_on": clean_date(rel["met_on"]) or met_on(store, ids, evidence),
-                    "met_event_id": events.get(rel["met_event"] or ""),
-                    "closeness": rel["closeness"],
-                    "recency": rel["recency"],
-                    "sentiment": rel["sentiment"],
+                    "met_on": clean_date(rel.get("met_on")) or met_on(store, ids, evidence),
+                    "met_event_id": events.get(rel.get("met_event") or ""),
+                    "closeness": rel.get("closeness"),
+                    "recency": rel.get("recency"),
+                    "sentiment": rel.get("sentiment"),
                 },
                 evidence=evidence,
                 model_call_id=teller.model_call_id,
@@ -366,8 +370,8 @@ def resolve(
         name = (entry["name"] if entry else ref).strip()
         if not PERSON_NAME.fullmatch(name):
             return None
-        aliases = entry["aliases"] if entry else []
-        gender = entry["gender"] if entry else "unknown"
+        aliases = entry.get("aliases") or [] if entry else []
+        gender = entry.get("gender") or "unknown" if entry else "unknown"
         if " " in name:
             near = [p for p in store.graph.people.values() if misspelled(p["name"], name)]
             if len(near) == 1:
@@ -383,7 +387,7 @@ def resolve(
     if ambiguity := first_name_only(store, person, text):
         return answers.get(ambiguity.mention, ambiguity)
     if entry:
-        store.update_person(person["id"], add_aliases=entry["aliases"], gender=entry["gender"])
+        store.update_person(person["id"], add_aliases=entry.get("aliases") or [], gender=entry.get("gender"))
     return person["id"]
 
 
@@ -451,40 +455,42 @@ def apply_events(store: Store, events: list[Record], facts: list[Record], people
     group as an event, so an event named after a group is skipped."""
     ids: dict[str, int] = {}
     groups = [g["name"].lower() for g in store.graph.groups.values()] + [
-        f["group"].lower() for f in facts if f["group"]
+        f["group"].lower() for f in facts if f.get("group")
     ]
     for event in events:
         if any(group in event["name"].lower() for group in groups):
             continue
-        event_id = store.graph.lookup("e", event["ref"])
+        event_id = store.graph.lookup("e", event.get("id") or event["name"])
         if event_id is None:
             event_id = next(
                 (e["id"] for e in store.graph.events.values() if e["name"].lower() == event["name"].lower()), None
             )
         attendees = people(event["people"])
-        start = clean_date(event["start_date"]) or year_in(event["name"])
+        start = clean_date(event.get("start_date")) or year_in(event["name"])
         record = store.upsert_event(
             event_id,
             {
-                "name": event["name"],
-                "when_text": event["when_text"],
+                "name": event["name"] if store.graph.lookup("e", event["name"]) is None else None,
+                "when_text": event.get("when_text"),
                 "start_date": start,
-                "end_date": clean_date(event["end_date"]),
-                "date_precision": date_precision(start, event["when_text"]),
-                "place": event["place"],
+                "end_date": clean_date(event.get("end_date")),
+                "date_precision": date_precision(start, event.get("when_text")),
+                "place": event.get("place"),
             },
             people=attendees if isinstance(attendees, list) else [],
             model_call_id=teller.model_call_id,
         )
-        ids[event["ref"]] = ids[event["name"]] = record["id"]
+        ids[event["name"]] = record["id"]
+        if event.get("id"):
+            ids[event["id"]] = record["id"]
     for event_id in store.graph.events:
         ids.setdefault(store.graph.ref("e", event_id), event_id)
     return ids
 
 
 def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, int], teller: Teller) -> int:
-    start = clean_date(fact["start_date"])
-    event_id = events.get(fact["event"] or "")
+    start = clean_date(fact.get("start_date"))
+    event_id = events.get(fact.get("event") or "")
     roles = [(pid, "subject") for pid in people]
     if teller.person_id is not None and teller.person_id not in people:
         roles.append((teller.person_id, "teller"))
@@ -493,10 +499,10 @@ def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, 
             "kind": fact["kind"],
             "text": fact["text"],
             "told_by_person_id": teller.person_id,
-            "when_text": fact["when_text"],
+            "when_text": fact.get("when_text"),
             "start_date": start,
-            "end_date": clean_date(fact["end_date"]),
-            "date_precision": date_precision(start, fact["when_text"]),
+            "end_date": clean_date(fact.get("end_date")),
+            "date_precision": date_precision(start, fact.get("when_text")),
             "event_id": event_id,
             "confidence": teller.confidence,
         },
@@ -507,18 +513,18 @@ def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, 
     if event_id is not None and people:
         store.upsert_event(event_id, {}, people=people, model_call_id=teller.model_call_id)
 
-    if fact["kind"] == "membership" and fact["group"] and proper_group_name(fact["group"]):
+    if fact["kind"] == "membership" and fact.get("group") and proper_group_name(fact["group"]):
         group = store.group_for(fact["group"])
         for person_id in people:
             store.add_member(
                 group_id=group["id"],
                 person_id=person_id,
                 since=start,
-                until=clean_date(fact["end_date"]),
+                until=clean_date(fact.get("end_date")),
                 fact_id=record["id"],
             )
 
-    old = store.graph.lookup("f", fact["revises"]) or store.graph.lookup("f", fact["disputes"])
+    old = store.graph.lookup("f", fact.get("revises")) or store.graph.lookup("f", fact.get("disputes"))
     if old is None:
         return record["id"]
     told_by = store.graph.facts[old]["told_by_person_id"]

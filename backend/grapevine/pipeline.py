@@ -555,7 +555,7 @@ class Pipeline:
         else:
             first = name.split()[0]
             person_id = self.store.create_person(
-                name=name, aliases=[first] if first != name else [], gender=entry["gender"] if entry else "unknown"
+                name=name, aliases=[first] if first != name else [], gender=(entry or {}).get("gender") or "unknown"
             )["id"]
         link_speaker(self.store, segment["speaker_label"], person_id, threshold=self.config.voice_threshold)
         return person_id
