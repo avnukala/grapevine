@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from grapevine.config import Context
 from grapevine.graph import Record
 from grapevine.llm import Call
-from grapevine.names import misspelled
+from grapevine.names import better_spelling, misspelled, pairs_of
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
@@ -368,7 +368,7 @@ def resolve(
         return Ambiguity(ref, [p["id"] for p in matches])
     if not matches:
         name = (entry["name"] if entry else ref).strip()
-        if not PERSON_NAME.fullmatch(name):
+        if not PERSON_NAME.fullmatch(name) or name.split()[0] == "The":
             return None
         aliases = entry.get("aliases") or [] if entry else []
         gender = entry.get("gender") or "unknown" if entry else "unknown"
@@ -391,11 +391,20 @@ def resolve(
     return person["id"]
 
 
+def respell_people(store: Store, text: str) -> None:
+    """Checks the full names in a new turn against the people of the run. The model writes a known person by
+    the known spelling, so "Kate Russo, not Kate Miller" would never correct an earlier "Kay Russo"."""
+    for heard in pairs_of(text):
+        near = [p for p in store.graph.people.values() if p["merged_into_id"] is None and misspelled(p["name"], heard)]
+        if len(near) == 1 and near[0]["name"] != heard:
+            respelled(store, near[0], heard)
+
+
 def respelled(store: Store, person: Record, heard: str) -> int:
-    """Keeps both spellings of a person whom speech recognition spelled two ways, and names them by the one
-    the transcript uses more, such as Kate Russo over Kay Russo."""
+    """Keeps both spellings of a person whom speech recognition spelled two ways, and names them by the better
+    one. A name typed into the roster stays."""
     said = " ".join(s["text"] for s in store.graph.segments.values())
-    if said.count(heard) > said.count(person["name"]):
+    if better_spelling(heard, person["name"], said) == heard and person["id"] not in store.graph.roster:
         store.update_person(person["id"], add_aliases=[person["name"], heard.split()[0]], gender=None, name=heard)
     else:
         store.update_person(person["id"], add_aliases=[heard], gender=None)

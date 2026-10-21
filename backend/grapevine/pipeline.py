@@ -18,7 +18,7 @@ import numpy as np
 
 from grapevine.audio import SAMPLE_RATE
 from grapevine.config import RunConfig
-from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload
+from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload, respell_people
 from grapevine.llm import LLM, watch_on
 from grapevine.models import Models
 from grapevine.names import misspelled, spell_names
@@ -424,6 +424,7 @@ class Pipeline:
 
     async def _extract(self, job: SegmentJob) -> None:
         segment = self.store.graph.segments[job.segment_id]
+        respell_people(self.store, segment["text"])
         speaker_id = self._person(segment["speaker_label"], segment["speaker_confidence"])
         call = extraction_call(
             self.store,

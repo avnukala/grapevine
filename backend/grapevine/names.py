@@ -6,15 +6,17 @@ from functools import cache
 from pathlib import Path
 
 SPELLING_MATCH = 0.6
-FULL_NAME = re.compile(r"\b[A-Z][a-z]+ [A-Z][a-z]+\b")
+CAPITALIZED = re.compile(r"\b[A-Z][a-z]+(?: [A-Z][a-z]+)+\b")
 WORD = re.compile(r"\b[A-Z][a-z]{2,}\b")
 WORDS = Path("/usr/share/dict/words")
+EX = re.compile(r"\b(the|an|my|your|his|her|their|our) X\b")
 
 
 def misspelled(x: str, y: str) -> bool:
     """Whether two full names could be one name that Whisper spelled two ways, such as Sam Torres and Sam
     Taurus. First names must be close, and last names must be close once their vowels are dropped. With the
-    same last name, first names that start alike are enough, such as Kay Russo and Kate Russo."""
+    same last name, first names that start alike are enough, such as Kay Russo and Kate Russo. With the same
+    first name, last names that start alike can be a little further apart, such as Sam Rae and Sam Reyes."""
     a, b = x.lower().split(), y.lower().split()
     if len(a) < 2 or len(b) < 2:
         return False
@@ -26,18 +28,25 @@ def misspelled(x: str, y: str) -> bool:
         return True
     first = SequenceMatcher(None, a[0], b[0]).ratio()
     last = SequenceMatcher(None, consonants(a[-1]), consonants(b[-1])).ratio()
+    if a[0] == b[0] and a[-1][0] == b[-1][0]:
+        return last >= SPELLING_MATCH
     return first >= SPELLING_MATCH and last >= 0.75
 
 
 def spell_names(text: str, roster: list[str]) -> str:
     """Respells each full name in `text` that is a near miss of exactly one roster name, such as "San
     Torres" for Sam Torres. A capitalized word one letter away from exactly one roster first name, such as
-    "Nima" for Nina, takes that name too, unless it is an English word."""
+    "Nima" for Nina, takes that name too, unless it is an English word. Whisper writes "the ex" as "the X",
+    which is respelled too."""
 
     def respell(match: re.Match[str]) -> str:
-        heard = match[0]
-        close = [name for name in roster if name != heard and misspelled(heard, name)]
-        return close[0] if len(close) == 1 and heard not in roster else heard
+        words = match[0].split()
+        for i in range(len(words) - 1):
+            heard = f"{words[i]} {words[i + 1]}"
+            close = [name for name in roster if name != heard and misspelled(heard, name)]
+            if len(close) == 1 and heard not in roster:
+                return " ".join([*words[:i], close[0], *words[i + 2 :]])
+        return match[0]
 
     firsts = {name.split()[0] for name in roster}
 
@@ -48,7 +57,25 @@ def spell_names(text: str, roster: list[str]) -> str:
         close = [first for first in firsts if one_letter_apart(heard, first)]
         return close[0] if len(close) == 1 else heard
 
-    return WORD.sub(respell_first, FULL_NAME.sub(respell, text))
+    return EX.sub(r"\1 ex", WORD.sub(respell_first, CAPITALIZED.sub(respell, text)))
+
+
+def better_spelling(a: str, b: str, said: str) -> str:
+    """The likelier of two spellings of one name in a transcript. The room says a real first name on its own,
+    such as "Hannah" but not "Hannahness", or "Kate" but not "Kay". When it says neither word on its own, the
+    longer spelling wins, because Whisper drops sounds from names it does not know, such as Rae for Reyes."""
+    rest = said.replace(a, " ").replace(b, " ")
+
+    def alone(name: str, other: str) -> int:
+        return sum(len(re.findall(rf"\b{re.escape(w)}\b", rest)) for w in name.split() if w not in other.split())
+
+    return max([a, b], key=lambda name: (alone(name, b if name == a else a), len(name), said.count(name)))
+
+
+def pairs_of(text: str) -> list[str]:
+    """Each two capitalized words in a row, which could be a full name."""
+    runs = [match.split() for match in CAPITALIZED.findall(text)]
+    return [f"{run[i]} {run[i + 1]}" for run in runs for i in range(len(run) - 1)]
 
 
 def one_letter_apart(a: str, b: str) -> bool:

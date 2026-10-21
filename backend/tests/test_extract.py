@@ -1,5 +1,5 @@
 from grapevine.actions import pick_person, settle_conflict
-from grapevine.extract import Held, Teller, apply_output, user_message
+from grapevine.extract import Held, Teller, apply_output, respell_people, user_message
 from grapevine.store import proper_group_name
 from tests.fakes import empty_output, fact
 
@@ -386,3 +386,15 @@ def test_only_a_name_of_one_group_makes_a_group():
     assert proper_group_name("The Dynasty League")
     assert not proper_group_name("the whole climbing crew")
     assert not proper_group_name("house on Pearl Street")
+
+
+def test_a_turn_respells_a_known_person_whom_whisper_misheard(store):
+    kay = store.create_person(name="Kay Russo", aliases=["Kay"], gender="female")["id"]
+    store.create_person(name="Kate Miller", aliases=["Kate"], gender="female")
+    for text in ["My coworker Kay Russo is coming.", "Kate Russo, not Kate Miller.", "Does Megan know Kate is coming?"]:
+        store.add_segment(
+            start_ms=0, end_ms=1000, speaker_label="spk0", person_id=None, confidence=0.9, text=text, timings={}
+        )
+        respell_people(store, text)
+    assert store.person(kay)["name"] == "Kate Russo"
+    assert "Kay Russo" in store.person(kay)["aliases"]
