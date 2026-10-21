@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from grapevine.config import Context
 from grapevine.graph import Record
 from grapevine.llm import Call
-from grapevine.names import better_spelling, misspelled, pairs_of
+from grapevine.names import better_spelling, drop_ly, misspelled, pairs_of
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
@@ -360,6 +360,8 @@ def resolve(
     """Finds the person a model ref names, creates a new person, or reports that the name fits several people."""
     if ref.strip().lower() in SPEAKER_REFS:
         return teller.person_id
+    ref = drop_ly(ref)
+    entry = {**entry, "name": drop_ly(entry["name"])} if entry else None
     if ref in answers:
         return answers[ref]
     matches = in_run_first(store, name_matches(store.conn, ref))

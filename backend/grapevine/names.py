@@ -39,7 +39,7 @@ def spell_names(text: str, roster: list[str]) -> str:
     """Respells each full name in `text` that is a near miss of exactly one roster name, such as "San
     Torres" for Sam Torres. A capitalized word one letter away from exactly one roster first name, such as
     "Nima" for Nina, takes that name too, unless it is an English word. Whisper writes "the ex" as "the X",
-    and adds "ly" to a first name before a last name, as in "Kevinly Doyle", which are respelled too."""
+    which is respelled too."""
 
     def respell(match: re.Match[str]) -> str:
         words = match[0].split()
@@ -59,12 +59,19 @@ def spell_names(text: str, roster: list[str]) -> str:
         close = [first for first in firsts if one_letter_apart(heard, first)]
         return close[0] if len(close) == 1 else heard
 
-    def drop_ly(match: re.Match[str]) -> str:
+    text = drop_ly(text)
+    return EX.sub(r"\1 ex", WORD.sub(respell_first, CAPITALIZED.sub(respell, text)))
+
+
+def drop_ly(text: str) -> str:
+    """Drops the "ly" that Whisper and Gemma add to a first name before a last name, as in "Kevinly Doyle",
+    unless the word is an English word or a common first name, such as Emily."""
+
+    def drop(match: re.Match[str]) -> str:
         word = match[0]
         return word if word in proper_names() or word.lower() in english() else match[1]
 
-    text = LY_NAME.sub(drop_ly, text)
-    return EX.sub(r"\1 ex", WORD.sub(respell_first, CAPITALIZED.sub(respell, text)))
+    return LY_NAME.sub(drop, text)
 
 
 def better_spelling(a: str, b: str, said: str) -> str:

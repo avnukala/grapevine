@@ -433,3 +433,13 @@ def test_a_wedding_named_after_two_people_makes_them_a_couple(store):
         couple_of(store, store.upsert_event(None, {"name": name}, people=[], model_call_id=None), model_call_id=None)
     ties = [(r["a"], r["b"], r["category"], r["label"]) for r in store.graph.relationships.values()]
     assert ties == [(arjun, claire, "romantic", "married")]
+
+
+def test_a_name_that_the_model_writes_with_an_added_ly_loses_it(store):
+    ben = store.create_person(name="Ben Carter", aliases=["Ben"], gender="male")["id"]
+    apply(
+        store,
+        turn(store, ben, "Danny Cruz plays drums."),
+        facts=[fact("Dannyly Cruz plays drums.", ["Dannyly Cruz"])],
+    )
+    assert sorted(p["name"] for p in store.graph.people.values()) == ["Ben Carter", "Danny Cruz"]
