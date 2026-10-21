@@ -69,14 +69,18 @@ def spell_names(text: str, roster: list[str]) -> str:
 
 def better_spelling(a: str, b: str, said: str) -> str:
     """The likelier of two spellings of one name in a transcript. The room says a real first name on its own,
-    such as "Hannah" but not "Hannahness", or "Kate" but not "Kay". When it says neither word on its own, the
-    longer spelling wins, because Whisper drops sounds from names it does not know, such as Rae for Reyes."""
+    such as "Hannah" but not "Hannahness", or "Kate" but not "Kay". Else a spelling the transcript has beats
+    one that only the model wrote, such as "Sophiely". Else the longer spelling wins, because Whisper drops
+    sounds from names it does not know, such as Rae for Reyes."""
     rest = said.replace(a, " ").replace(b, " ")
 
     def alone(name: str, other: str) -> int:
         return sum(len(re.findall(rf"\b{re.escape(w)}\b", rest)) for w in name.split() if w not in other.split())
 
-    return max([a, b], key=lambda name: (alone(name, b if name == a else a), len(name), said.count(name)))
+    def rank(name: str) -> tuple[int, bool, int, int]:
+        return alone(name, b if name == a else a), name in said, len(name), said.count(name)
+
+    return max([a, b], key=rank)
 
 
 def pairs_of(text: str) -> list[str]:
