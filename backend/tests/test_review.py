@@ -1,4 +1,4 @@
-from grapevine.review import agreed, apply_happenings, group_lines, ties
+from grapevine.review import agreed, apply_happenings, candidate_groups, group_lines, ties
 
 IDS = {"Ray Patel": 1, "Jasper Lin": 2, "Sophie Moreau": 3}
 
@@ -63,6 +63,15 @@ def test_a_record_event_takes_the_date_of_the_first_happening_linked_to_it(store
         ("Nina's move to Boston", "2012"),
         ("Nina's move to Denver", "2019"),
     ]
+
+
+def test_candidate_groups_are_named_groups_that_the_record_does_not_have():
+    texts = [
+        "The No-It-Alls came in fourth on Tuesday.",
+        "Are you going with the Sunday Sense crew?",
+        "Matt runs the Dynasty League now. The landlord knows.",
+    ]
+    assert candidate_groups(texts, ["Sunday Sends"]) == ["The No-It-Alls", "Dynasty League"]
 
 
 def test_bandmates_are_friends_even_when_the_band_is_paid():

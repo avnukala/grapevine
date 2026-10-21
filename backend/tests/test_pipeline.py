@@ -307,6 +307,7 @@ def test_the_review_completes_relationships_groups_and_events(conn):
         },
         "other": [],
         "known": {},
+        "candidates": {},
         "new": [{"name": "Tuesday crew", "also_called": ["climb"], "members": ["Ray Patel", "Jasper Lin"]}],
         "happenings": [
             {"name": "Electric Zoo 2018", "record": None, "start_date": "2018", "place": None, "people": ["Ray Patel"]}

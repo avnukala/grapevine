@@ -26,13 +26,16 @@ from grapevine.llm import LLM, Call, watch_on
 from grapevine.names import misspelled
 from grapevine.store import GROUP_WORDS, Store, group_key, proper_group_name
 
-PROMPT_VERSION = "review-v20"
+PROMPT_VERSION = "review-v21"
 SAME_EVENT = 0.6
 # The prompt says that how two people met, or that they dated, is not a happening, and the model still lists it.
 NOT_HAPPENINGS = {"relationship", "meeting", "met", "dating", "friendship"}
 EVENT_KINDS = {"the", "and", "with", "trip", "party", "event", "wedding", "birthday", "move", "visit", "weekend"}
 VOTES = 3
 LINE_MATCH = 0.8
+MAX_CANDIDATES = 8
+THE_NAME = re.compile(r"\b(The [A-Z][\w'-]*(?: [A-Z][\w'-]*)*)")
+NOUN_NAME = re.compile(r"\b((?:[A-Z][\w'-]* )+(?:crew|team|league|club|band|Crew|Team|League|Club|Band))\b")
 VOTE_TEMPERATURE = 0.5
 
 INTRO = """You check the record of a group conversation against its full transcript, and complete it. Return JSON only.
@@ -63,10 +66,11 @@ RELATIONSHIPS_SYSTEM = (
 
 GROUPS_SYSTEM = (
     INTRO
-    + """Write "analysis" first: for each named group (a crew, a team, a band, a club, a league) that anyone names, even once, such as a league someone runs, the plain phrases people use for it, such as "the crew" or "the league", and each line of the transcript that puts someone in it under any of those names. Then fill "known", which has one key for each group in the record, and "new", for named groups the record does not have.
+    + """Write "analysis" first: for each named group (a crew, a team, a band, a club, a league) that anyone names, even once, such as a league someone runs, the plain phrases people use for it, such as "the crew" or "the league", and each line of the transcript that puts someone in it under any of those names. Then fill "known", which has one key for each group in the record, "candidates", which has one key for each name in the transcript that could be a group, and "new", for other named groups the record does not have.
 
 - For each known group, list its plain phrases in "also_called", and answer for each person whether they are in it under any of its names. People who say "we", "our team", or "our league" about the group are in it, and so are the people they list as going with "the whole crew".
-- Every named group in your analysis that is not under "known" goes in "new", with one entry under its proper name, for example "Thursday Flyers", and everyone in it.
+- For each candidate, is_group is true only when the name is a group of people, such as a crew, a team, a band, a club, a league, or a friend group, that someone in the transcript belongs to. A trivia team someone reports a result for is a group. A band people only went to see, an event, a place, or a misheard phrase is not.
+- Every other named group in your analysis that is not under "known" or "candidates" goes in "new", with one entry under its proper name, for example "Thursday Flyers", and everyone in it.
 - A house, a meeting, or an event is not a group."""
 )
 
@@ -121,14 +125,31 @@ def relationships_schema(pairs: list[str]) -> dict:
     )
 
 
-def groups_schema(groups: list[str], people: list[str]) -> dict:
-    """One required answer for each person in each known group, so the model decides about everyone."""
-    member = _object(also_called=NAMES, members=_object(**{name: {"type": "boolean"} for name in people}))
+def groups_schema(groups: list[str], candidates: list[str], people: list[str]) -> dict:
+    """One required answer for each person in each known group, so the model decides about everyone, and one
+    for each candidate name, so the model does not skip a group that no turn recorded."""
+    members = _object(**{name: {"type": "boolean"} for name in people})
+    candidate = _object(is_group={"type": "boolean"}, also_called=NAMES, members=members)
     return _object(
         analysis=TEXT,
-        known=_object(**{group: member for group in groups}),
+        known=_object(**{group: _object(also_called=NAMES, members=members) for group in groups}),
+        candidates=_object(**{name: candidate for name in candidates}),
         new={"type": "array", "items": _object(name=TEXT, also_called=NAMES, members=NAMES)},
     )
+
+
+def candidate_groups(texts: list[str], known: list[str]) -> list[str]:
+    """Names in a transcript that could be a group, such as "The No-It-Alls" or "Sunday Sense crew", other
+    than the known groups. A turn can report a group's result without the model recording the group."""
+    found = [m[1] for text in texts for pattern in (THE_NAME, NOUN_NAME) for m in pattern.finditer(text)]
+    keys = [group_key(name) for name in known]
+    candidates: list[str] = []
+    for name in dict.fromkeys(found):
+        key = group_key(name)
+        if proper_group_name(name) and not any(SequenceMatcher(None, key, k).ratio() >= LINE_MATCH for k in keys):
+            candidates.append(name)
+            keys.append(key)
+    return candidates[:MAX_CANDIDATES]
 
 
 def events_schema(record: list[str]) -> dict:
@@ -193,7 +214,9 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
         ask(RELATIONSHIPS_SYSTEM, relationships_schema(list(pairs)), seed=seed + i, temperature=VOTE_TEMPERATURE)
         for i in range(VOTES)
     ]
-    groups_call = ask(GROUPS_SYSTEM, groups_schema([g["name"] for g in store.graph.groups.values()], people))
+    known_groups = [g["name"] for g in store.graph.groups.values()]
+    texts = [s["text"] for s in sorted(store.graph.segments.values(), key=lambda s: s["start_ms"])]
+    groups_call = ask(GROUPS_SYSTEM, groups_schema(known_groups, candidate_groups(texts, known_groups), people))
     groups, events, *voted = await asyncio.gather(
         llm.call(groups_call, run_id=store.run_id, audio_ms=store.audio_ms),
         llm.call(ask(EVENTS_SYSTEM, events_schema(list(record_events))), run_id=store.run_id, audio_ms=store.audio_ms),
@@ -211,7 +234,10 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
                 "also_called": answer["also_called"],
                 "members": [p for p, y in answer["members"].items() if y],
             }
-            for name, answer in groups.output["known"].items()
+            for name, answer in [
+                *groups.output["known"].items(),
+                *((n, a) for n, a in groups.output["candidates"].items() if a["is_group"]),
+            ]
         ] + groups.output["new"]
         more = await asyncio.gather(*[members_of(store, llm, g, model=model, seed=seed) for g in found_groups])
         found_groups = [{**g, "members": [*g["members"], *extra]} for g, extra in zip(found_groups, more)]
@@ -359,10 +385,12 @@ def apply_relationships(store: Store, entries: list[Record], person, model_call_
 
 def apply_groups(store: Store, entries: list[Record], person, model_call_id: int) -> None:
     for entry in [e for e in entries if proper_group_name(e["name"])]:
+        found = [pid for name in entry["members"] if (pid := person(name, model_call_id)) is not None]
+        if not found:
+            continue
         group = store.group_for(entry["name"])
         known = {m["person_id"] for m in store.graph.members.values() if m["group_id"] == group["id"]}
-        found = [person(name, model_call_id) for name in entry["members"]]
-        new = list(dict.fromkeys(pid for pid in found if pid is not None and pid not in known))
+        new = list(dict.fromkeys(pid for pid in found if pid not in known))
         if not new:
             continue
         names = [store.person(pid)["name"] for pid in new]

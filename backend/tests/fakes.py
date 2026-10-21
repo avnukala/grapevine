@@ -125,6 +125,7 @@ class FakeChat:
             "room": {},
             "other": [],
             "known": {},
+            "candidates": {},
             "new": [],
             "happenings": [],
             "members": [],
