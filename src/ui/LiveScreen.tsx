@@ -76,7 +76,12 @@ export function Stats({ state }: StatsProps) {
   );
 }
 
-const PHASE_LABELS: Record<Phase, string> = { intro: "Introductions", conversation: "Conversation", ended: "Ended" };
+const PHASE_LABELS: Record<Phase, string> = {
+  intro: "Introductions",
+  conversation: "Conversation",
+  review: "Writing the review",
+  ended: "Ended",
+};
 
 interface LiveScreenProps {
   factors: WeightFactors;

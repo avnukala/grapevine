@@ -4,7 +4,7 @@ export type Gender = "male" | "female" | "unknown";
 export type Category = "romantic" | "family" | "friend" | "professional" | "other";
 export type FactKind = "personal" | "relationship" | "story" | "membership" | "correction";
 export type DatePrecision = "year" | "season" | "month" | "day";
-export type Phase = "intro" | "conversation" | "ended";
+export type Phase = "intro" | "conversation" | "review" | "ended";
 
 export interface Person {
   id: number;

@@ -170,6 +170,7 @@ class Pipeline:
                 if task is not None:
                     task.cancel()
         self.store.audio_ms = self.builder.now_ms
+        self.store.set_phase("review")
         self._settle_speakers()
         await self._reextract()
         await review(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed, today=self.today)

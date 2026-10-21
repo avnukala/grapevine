@@ -8,7 +8,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Literal, assert_never
 
-Phase = Literal["intro", "conversation", "ended"]
+Phase = Literal["intro", "conversation", "review", "ended"]
 RefKind = Literal["p", "e", "f", "r"]
 Record = dict[str, Any]
 

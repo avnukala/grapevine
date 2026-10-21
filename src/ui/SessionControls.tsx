@@ -1,4 +1,4 @@
-import { Check, FastForward, FileAudio, Keyboard, Mic, Play, Plus, Square, Upload, UserCheck } from "lucide-react";
+import { Check, FastForward, FileAudio, Keyboard, LoaderCircle, Mic, Play, Plus, Square, Upload, UserCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,9 @@ export function SessionControls(props: SessionControlsProps) {
   const { sessions, sessionId, runId, runActive, phase, onSession, onRun, onRefresh, onOnboard } = props;
   const [files, setFiles] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  // A stopped run still reads its last turns and writes the review, which takes about a minute.
+  const [stoppedId, setStoppedId] = useState<number | null>(null);
+  const finishing = phase === "review" || (runId !== null && stoppedId === runId);
   const session = sessions.find((s) => s.id === sessionId) ?? null;
   const run = session?.runs.find((r) => r.id === runId) ?? null;
 
@@ -112,14 +115,28 @@ export function SessionControls(props: SessionControlsProps) {
       )}
       {runActive && runId !== null && (
         <>
-          {phase === "intro" && (
+          {phase === "intro" && !finishing && (
             <Button size="sm" disabled={busy} onClick={() => act(() => api.introDone(runId))}>
               <UserCheck /> Done with introductions
             </Button>
           )}
-          <Button size="sm" variant="destructive" disabled={busy} onClick={() => act(() => api.stop(runId))}>
-            <Square /> Stop
-          </Button>
+          {finishing ? (
+            <Button size="sm" variant="outline" disabled data-testid="finishing">
+              <LoaderCircle className="animate-spin" /> Finishing: writing the review
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={busy}
+              onClick={() => {
+                setStoppedId(runId);
+                act(() => api.stop(runId));
+              }}
+            >
+              <Square /> Stop
+            </Button>
+          )}
         </>
       )}
 
