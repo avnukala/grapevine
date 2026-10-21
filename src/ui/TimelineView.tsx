@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 import { CalendarDays, MapPin, TriangleAlert } from "lucide-react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -135,9 +135,11 @@ interface SwimlaneChartProps {
   onFocus: (key: string) => void;
 }
 
+// The pointer and the visible part of the chart above the overview, both in the coordinates of the scrolled content.
 interface Hover {
   x: number;
   y: number;
+  view: { left: number; top: number; right: number; bottom: number };
   item: Item;
 }
 
@@ -221,14 +223,23 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, onFocus }: Swiml
   const laneY = (lane: number) => lanesTop + lane * LANE_HEIGHT + LANE_HEIGHT / 2;
   const ticks = x.ticks(Math.max(2, Math.floor(plotWidth / 90)));
   const format = x.tickFormat();
+  // The card is absolute inside the scrolled box, so the scroll offset turns viewport offsets into content offsets.
   const show = (event: React.MouseEvent, item: Item) => {
-    const box = wrapRef.current!.getBoundingClientRect();
-    setHover({ x: event.clientX - box.left, y: event.clientY - box.top, item });
+    const wrap = wrapRef.current!;
+    const box = wrap.getBoundingClientRect();
+    const left = wrap.scrollLeft;
+    const top = wrap.scrollTop;
+    setHover({
+      x: event.clientX - box.left + left,
+      y: event.clientY - box.top + top,
+      view: { left, top, right: left + wrap.clientWidth, bottom: top + wrap.clientHeight - BRUSH_HEIGHT },
+      item,
+    });
   };
 
   return (
-    <div ref={wrapRef} className="relative min-w-0 flex-1 overflow-auto pt-14">
-      <div className="absolute top-3 right-4 z-10 flex items-center gap-2">
+    <div ref={wrapRef} className="relative min-w-0 flex-1 overflow-auto">
+      <div className="sticky top-0 z-10 flex h-14 items-center justify-end gap-2 bg-background px-4">
         <Legend />
         <Button size="sm" variant="outline" onClick={fit}>
           Fit all
@@ -449,12 +460,29 @@ interface HoverCardBoxProps {
   state: RunState;
 }
 
+const HOVER_GAP = 14;
+const HOVER_MARGIN = 8;
+
+// Puts the card below and right of the pointer, and flips it to the other side when it would leave the visible chart.
 function HoverCardBox({ hover, state }: HoverCardBoxProps) {
-  const { item } = hover;
+  const { item, view } = hover;
+  const ref = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const card = ref.current!;
+    const fitsRight = hover.x + HOVER_GAP + card.offsetWidth <= view.right - HOVER_MARGIN;
+    const fitsBelow = hover.y + HOVER_GAP + card.offsetHeight <= view.bottom - HOVER_MARGIN;
+    const left = fitsRight ? hover.x + HOVER_GAP : hover.x - HOVER_GAP - card.offsetWidth;
+    const top = fitsBelow ? hover.y + HOVER_GAP : hover.y - HOVER_GAP - card.offsetHeight;
+    card.style.left = `${Math.max(view.left + HOVER_MARGIN, left)}px`;
+    card.style.top = `${Math.max(view.top + HOVER_MARGIN, top)}px`;
+  });
+
   return (
     <div
+      ref={ref}
       className="pointer-events-none absolute z-20 w-72 rounded-lg border border-border bg-popover p-3 text-sm"
-      style={{ left: Math.min(hover.x + 14, window.innerWidth - 300), top: hover.y + 14 }}
+      data-testid="timeline-hover"
     >
       {item.kind === "event" && (
         <>
