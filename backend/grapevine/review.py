@@ -13,6 +13,7 @@ from itertools import combinations
 
 from grapevine.extract import (
     Ambiguity,
+    Removed,
     Teller,
     category_of,
     clean_date,
@@ -248,7 +249,7 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
             return known[0]["id"]
         teller = Teller(segment_id=-1, person_id=None, confidence=1.0, model_call_id=model_call_id)
         found = resolve(store, name, None, teller=teller, answers={}, text="")
-        return None if isinstance(found, Ambiguity) else found
+        return None if isinstance(found, Ambiguity | Removed) else found
 
     with store.batch():
         outputs = [v.output for v in voted if v.output]

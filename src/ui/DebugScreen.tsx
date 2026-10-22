@@ -285,6 +285,8 @@ function describe(change: Change, state: RunState): string {
       return `${personName(state, op.relationship.a)} - ${personName(state, op.relationship.b)}: ${op.relationship.category} "${op.relationship.label}" ${op.relationship.status}`;
     case "relationship_removed":
       return `relationship ${op.id} removed`;
+    case "person_removed":
+      return `person ${op.id} removed`;
     case "prompt":
       return `[${op.prompt.reason}] ${op.prompt.text}${op.prompt.dismissed_at_ms !== null ? " (dismissed)" : ""}`;
     case "phase":

@@ -161,6 +161,11 @@ class Ambiguity:
     candidates: list[int]
 
 
+@dataclass(frozen=True)
+class Removed:
+    """A name of a person whom the room deleted from the run. Facts and ties that name them are skipped."""
+
+
 @dataclass
 class Held:
     """Items of one model output that wait for an answer, with what is already resolved."""
@@ -268,7 +273,7 @@ def apply_output(store: Store, held: Held) -> None:
     text = store.graph.segments[teller.segment_id]["text"] if teller.segment_id in store.graph.segments else ""
     resolved: dict[str, int | None | Ambiguity] = {}
 
-    def person(ref: str) -> int | None | Ambiguity:
+    def person(ref: str) -> int | None | Ambiguity | Removed:
         if ref not in resolved:
             resolved[ref] = resolve(
                 store, ref, new_people.get(ref.lower()), teller=teller, answers=held.answers, text=text
@@ -281,7 +286,7 @@ def apply_output(store: Store, held: Held) -> None:
             match person(ref):
                 case Ambiguity() as ambiguity:
                     return ambiguity
-                case None:
+                case None | Removed():
                     continue
                 case person_id:
                     ids.append(person_id)
@@ -294,6 +299,8 @@ def apply_output(store: Store, held: Held) -> None:
         for index, fact in enumerate(output["facts"]):
             if index in held.fact_ids:
                 continue
+            if any(isinstance(person(ref), Removed) for ref in fact["people"]):
+                continue
             ids = people(fact["people"])
             if isinstance(ids, Ambiguity):
                 waiting[ids.mention] = ids
@@ -302,6 +309,8 @@ def apply_output(store: Store, held: Held) -> None:
 
         for index, rel in enumerate(output["relationships"]):
             if index in held.done_relationships:
+                continue
+            if any(isinstance(person(ref), Removed) for ref in (rel["a"], rel["b"])):
                 continue
             ids = people([rel["a"], rel["b"]])
             if isinstance(ids, Ambiguity):
@@ -365,7 +374,7 @@ def met_on(store: Store, pair: list[int], evidence: list[int]) -> str | None:
 
 def resolve(
     store: Store, ref: str, entry: Record | None, *, teller: Teller, answers: dict[str, int], text: str
-) -> int | None | Ambiguity:
+) -> int | None | Ambiguity | Removed:
     """Finds the person a model ref names, creates a new person, or reports that the name fits several people."""
     if ref.strip().lower() in SPEAKER_REFS:
         return teller.person_id
@@ -376,6 +385,8 @@ def resolve(
     matches = in_run_first(store, name_matches(store.conn, ref))
     if not matches and entry:
         matches = in_run_first(store, name_matches(store.conn, entry["name"]))
+    if any(p["id"] in store.graph.removed for p in matches):
+        return Removed()
     if len(matches) > 1:
         return Ambiguity(ref, [p["id"] for p in matches])
     if not matches:
@@ -389,7 +400,10 @@ def resolve(
             if len(near) == 1:
                 return respelled(store, near[0], name)
             first = name.split()[0]
-            if (known := first_name_person(store, first)) is not None:
+            known = first_name_person(store, first)
+            if known in store.graph.removed:
+                return Removed()
+            if known is not None:
                 store.update_person(known, add_aliases=[first, *aliases], gender=gender, name=name)
                 return known
             aliases = [first, *aliases] if first not in aliases else aliases

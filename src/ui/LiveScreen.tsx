@@ -139,6 +139,8 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const onDismiss = (prompt: Prompt) => guard(() => api.dismiss(runId!, prompt.id));
   const onAssign = (segment: Segment, answer: { person_id: number } | { new_name: string }) =>
     guard(() => api.assignSpeaker(runId!, segment.id, answer));
+  const onRemove = (personId: number) =>
+    guard(() => api.removePerson(runId!, personId).then(() => setSelectedId(null)));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -275,7 +277,12 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
         </div>
       )}
 
-      <PersonDetails state={state} personId={selectedId} onClose={() => setSelectedId(null)} />
+      <PersonDetails
+        state={state}
+        personId={selectedId}
+        onClose={() => setSelectedId(null)}
+        onRemove={runId !== null ? onRemove : undefined}
+      />
     </div>
   );
 }

@@ -380,6 +380,14 @@ async def set_segment_speaker(run_id: int, segment_id: int, body: SpeakerAnswer)
     return store.graph.segments[segment_id]
 
 
+@app.delete("/api/runs/{run_id}/people/{person_id}")
+async def remove_person(run_id: int, person_id: int) -> None:
+    store = store_for(run_id)
+    if person_id not in store.graph.people:
+        raise HTTPException(404, f"person {person_id} is not in run {run_id}")
+    store.remove_person(person_id)
+
+
 @app.get("/api/people")
 async def people() -> list[Record]:
     rows = conn.execute("SELECT * FROM people WHERE merged_into_id IS NULL ORDER BY name")

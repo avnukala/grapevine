@@ -25,6 +25,7 @@ class Graph:
     relationships: dict[int, Record] = field(default_factory=dict)
     prompts: dict[int, Record] = field(default_factory=dict)
     roster: list[int] = field(default_factory=list)
+    removed: set[int] = field(default_factory=set)
     phase: Phase = "intro"
 
     def apply(self, op: Record) -> None:
@@ -32,6 +33,9 @@ class Graph:
         match kind:
             case "person":
                 self.people[op["person"]["id"]] = op["person"]
+                self.removed.discard(op["person"]["id"])
+            case "person_removed":
+                self._remove_person(op["id"])
             case "speaker":
                 self.speakers[op["speaker"]["label"]] = op["speaker"]["person_id"]
             case "segment":
@@ -57,6 +61,18 @@ class Graph:
                 self.roster = op["person_ids"]
             case _:
                 assert_never(kind)
+
+    def _remove_person(self, person_id: int) -> None:
+        """Drops a person the room deleted, with every fact, membership, and event part that names them."""
+        self.people.pop(person_id, None)
+        self.removed.add(person_id)
+        self.roster = [p for p in self.roster if p != person_id]
+        self.members = {key: m for key, m in self.members.items() if m["person_id"] != person_id}
+        self.facts = {fid: f for fid, f in self.facts.items() if all(p["person_id"] != person_id for p in f["people"])}
+        for event_id, event in self.events.items():
+            if any(p["person_id"] == person_id for p in event["people"]):
+                people = [p for p in event["people"] if p["person_id"] != person_id]
+                self.events[event_id] = {**event, "people": people}
 
     def room(self) -> list[int]:
         """The people in the room: everyone on the roster, and anyone a voice belongs to."""

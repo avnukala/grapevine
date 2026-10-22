@@ -1,5 +1,6 @@
-import { TriangleAlert } from "lucide-react";
+import { Trash2, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -11,9 +12,10 @@ interface PersonDetailsProps {
   state: RunState;
   personId: number | null;
   onClose: () => void;
+  onRemove?: (personId: number) => void;
 }
 
-export function PersonDetails({ state, personId, onClose }: PersonDetailsProps) {
+export function PersonDetails({ state, personId, onClose, onRemove }: PersonDetailsProps) {
   const person = personId !== null ? state.people[personId] : undefined;
   const same = (id: number) => canonicalId(state, id) === personId;
   const relationships = person ? Object.values(state.relationships).filter((r) => same(r.a) || same(r.b)) : [];
@@ -42,6 +44,16 @@ export function PersonDetails({ state, personId, onClose }: PersonDetailsProps) 
                   </SheetDescription>
                 </div>
               </div>
+              {onRemove && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="w-fit"
+                  onClick={() => window.confirm(`Remove ${person.name} from this run?`) && onRemove(person.id)}
+                >
+                  <Trash2 /> Remove from this run
+                </Button>
+              )}
               {groups.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-2">
                   {groups.map((g) => (

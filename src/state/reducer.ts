@@ -43,6 +43,8 @@ export function applyOp(state: RunState, op: Op): RunState {
       delete relationships[op.id];
       return { ...state, relationships };
     }
+    case "person_removed":
+      return removePerson(state, op.id);
     case "prompt":
       return { ...state, prompts: { ...state.prompts, [op.prompt.id]: op.prompt } };
     case "phase":
@@ -50,6 +52,23 @@ export function applyOp(state: RunState, op: Op): RunState {
     case "roster":
       return { ...state, roster: op.person_ids };
   }
+}
+
+function removePerson(state: RunState, id: number): RunState {
+  const people = { ...state.people };
+  delete people[id];
+  const names = (roles: { person_id: number }[]) => roles.some((p) => p.person_id === id);
+  const events = Object.fromEntries(
+    Object.entries(state.events).map(([key, e]) => [key, { ...e, people: e.people.filter((p) => p.person_id !== id) }]),
+  );
+  return {
+    ...state,
+    people,
+    roster: state.roster.filter((p) => p !== id),
+    members: Object.fromEntries(Object.entries(state.members).filter(([, m]) => m.person_id !== id)),
+    facts: Object.fromEntries(Object.entries(state.facts).filter(([, f]) => !names(f.people))),
+    events,
+  };
 }
 
 // Changes arrive in write order, which is not audio order: extraction lags transcription.

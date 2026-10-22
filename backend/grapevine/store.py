@@ -190,6 +190,18 @@ class Store:
             )
             self.emit({"type": "person", "person": self.person(person_id)})
 
+    def remove_person(self, person_id: int) -> None:
+        """Deletes a person from this run. The person stays in the global people table for other runs."""
+        with self.batch():
+            for rel in [r for r in self.graph.relationships.values() if person_id in (r["a"], r["b"])]:
+                self.remove_relationship(rel["id"])
+            for label in [lbl for lbl, pid in self.graph.speakers.items() if pid == person_id]:
+                self.set_speaker(label, None, None)
+            for segment in [s for s in self.graph.segments.values() if s["person_id"] == person_id]:
+                self.conn.execute("UPDATE segments SET person_id = NULL WHERE id = ?", (segment["id"],))
+                self.emit({"type": "segment", "segment": self.segment(segment["id"])}, segment_id=segment["id"])
+            self.emit({"type": "person_removed", "id": person_id})
+
     def set_speaker(self, label: str, person_id: int | None, embedding: np.ndarray | None) -> None:
         blob = None if embedding is None else embedding.astype(np.float32).tobytes()
         with self.batch():

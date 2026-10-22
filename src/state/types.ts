@@ -110,6 +110,7 @@ export type Op =
   | { type: "member"; member: Member }
   | { type: "relationship"; relationship: Relationship }
   | { type: "relationship_removed"; id: number }
+  | { type: "person_removed"; id: number }
   | { type: "prompt"; prompt: Prompt }
   | { type: "phase"; phase: Phase }
   | { type: "roster"; person_ids: number[] };

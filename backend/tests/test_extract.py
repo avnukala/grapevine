@@ -1,5 +1,6 @@
 from grapevine.actions import pick_person, settle_conflict
 from grapevine.extract import Held, Teller, apply_output, couple_of, respell_people, user_message
+from grapevine.runs import open_store
 from grapevine.store import proper_group_name
 from tests.fakes import empty_output, fact
 
@@ -443,3 +444,36 @@ def test_a_name_that_the_model_writes_with_an_added_ly_loses_it(store):
         facts=[fact("Dannyly Cruz plays drums.", ["Dannyly Cruz"])],
     )
     assert sorted(p["name"] for p in store.graph.people.values()) == ["Ben Carter", "Danny Cruz"]
+
+
+def test_a_removed_person_loses_their_ties_and_facts_and_stays_removed(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    apply(
+        store,
+        turn(store, ray, "Ray and Argit climb on Tuesdays."),
+        people=[{"name": "Argit", "aliases": [], "gender": "male"}],
+        facts=[fact("Ray and Argit climb on Tuesdays.", ["speaker", "Argit"])],
+        relationships=[
+            {
+                "a": "speaker",
+                "b": "Argit",
+                "category": "friend",
+                "label": "climbing partner",
+                "status": "current",
+                "facts": [0],
+            }
+        ],
+    )
+    argit = person_named(store, "Argit")
+    store.remove_person(argit)
+    apply(
+        store,
+        turn(store, ray, "Argit is in Denver."),
+        people=[{"name": "Argit", "aliases": [], "gender": "male"}],
+        facts=[fact("Argit is in Denver.", ["Argit"])],
+    )
+
+    for graph in (store.graph, open_store(store.conn, store.run_id).graph):
+        assert list(graph.people) == [ray]
+        assert graph.relationships == {}
+        assert graph.live_facts() == []
