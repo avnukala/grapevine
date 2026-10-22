@@ -21,6 +21,7 @@ export interface Segment {
   speaker_label: string;
   person_id: number | null;
   speaker_confidence: number | null;
+  speaker_manual: boolean;
   text: string;
   timings: Partial<Record<"detect_ms" | "transcribe_ms" | "embed_ms" | "extract_ms" | "total_ms", number>>;
 }

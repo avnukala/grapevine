@@ -363,6 +363,7 @@ async def dismiss_prompt(run_id: int, prompt_id: int) -> Record:
 class SpeakerAnswer(BaseModel):
     person_id: int | None = None
     new_name: str | None = None
+    every_line: bool = False
 
 
 @app.post("/api/runs/{run_id}/segments/{segment_id}/speaker")
@@ -374,9 +375,13 @@ async def set_segment_speaker(run_id: int, segment_id: int, body: SpeakerAnswer)
             raise HTTPException(400, "pick a person or give a new name")
         person_id = store.create_person(name=body.new_name, aliases=[], gender="unknown")["id"]
     try:
-        assign_speaker(store, segment_id, person_id=person_id, threshold=threshold(run_id))
+        changed = assign_speaker(
+            store, segment_id, person_id=person_id, every_line=body.every_line, threshold=threshold(run_id)
+        )
     except ActionError as error:
         raise HTTPException(400, str(error)) from error
+    if run_id in active:
+        active[run_id].pipeline.reread(changed)
     return store.graph.segments[segment_id]
 
 

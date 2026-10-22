@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS segments (
     speaker_label TEXT NOT NULL,
     person_id INTEGER REFERENCES people(id),
     speaker_confidence REAL,
+    speaker_manual INTEGER NOT NULL DEFAULT 0,
     text TEXT NOT NULL,
     timings_json TEXT NOT NULL DEFAULT '{}'
 );
@@ -178,4 +179,6 @@ def connect(path: Path) -> sqlite3.Connection:
     conn.executescript(SCHEMA)
     if "roster" not in {row["name"] for row in conn.execute("PRAGMA table_info(sessions)")}:
         conn.execute("ALTER TABLE sessions ADD COLUMN roster TEXT NOT NULL DEFAULT '[]'")
+    if "speaker_manual" not in {row["name"] for row in conn.execute("PRAGMA table_info(segments)")}:
+        conn.execute("ALTER TABLE segments ADD COLUMN speaker_manual INTEGER NOT NULL DEFAULT 0")
     return conn

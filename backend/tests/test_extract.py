@@ -1,4 +1,4 @@
-from grapevine.actions import pick_person, settle_conflict
+from grapevine.actions import assign_speaker, pick_person, settle_conflict
 from grapevine.extract import Held, Teller, apply_output, couple_of, respell_people, user_message
 from grapevine.runs import open_store
 from grapevine.store import proper_group_name
@@ -477,3 +477,31 @@ def test_a_removed_person_loses_their_ties_and_facts_and_stays_removed(store):
         assert list(graph.people) == [ray]
         assert graph.relationships == {}
         assert graph.live_facts() == []
+
+
+def test_a_voice_set_by_hand_moves_every_line_of_that_voice(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    jasper = store.create_person(name="Jasper", aliases=[], gender="male")["id"]
+    store.set_speaker("spk0", ray, None)
+    first, second = turn(store, ray, "I'm Jasper."), turn(store, ray, "I climb.")
+
+    changed = assign_speaker(store, first.segment_id, person_id=jasper, every_line=True, threshold=0.5)
+
+    assert changed == [first.segment_id, second.segment_id]
+    assert store.graph.speakers["spk0"] == jasper
+    for segment_id in changed:
+        assert store.graph.segments[segment_id]["person_id"] == jasper
+        assert store.graph.segments[segment_id]["speaker_manual"]
+
+
+def test_a_line_set_by_hand_keeps_the_voice_of_its_label(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    jasper = store.create_person(name="Jasper", aliases=[], gender="male")["id"]
+    store.set_speaker("spk0", ray, None)
+    first, second = turn(store, ray, "Hi."), turn(store, ray, "I climb.")
+
+    assert assign_speaker(store, second.segment_id, person_id=jasper, every_line=False, threshold=0.5) == [
+        second.segment_id
+    ]
+    assert store.graph.speakers["spk0"] == ray
+    assert store.graph.segments[first.segment_id]["person_id"] == ray

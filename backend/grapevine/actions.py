@@ -71,16 +71,32 @@ def settle_conflict(store: Store, prompt_id: int, *, keep_fact_id: int | None) -
         store.dismiss_prompt(prompt_id)
 
 
-def assign_speaker(store: Store, segment_id: int, *, person_id: int, threshold: float) -> None:
-    """Says who spoke an unknown turn. The voice keeps that name for the rest of the run."""
+def assign_speaker(store: Store, segment_id: int, *, person_id: int, every_line: bool, threshold: float) -> list[int]:
+    """Says by hand who spoke a turn, and returns the turns whose speaker changed. With `every_line`, the voice
+    of the turn is that person, which fixes an introduction that named the wrong voice. Turns set by hand keep
+    their speaker when the pipeline matches voices again."""
     segment = store.graph.segments.get(segment_id)
     if segment is None:
         raise ActionError(f"segment {segment_id} is not in this run")
+    label = segment["speaker_label"]
     with store.batch():
         store.show_person(person_id)
-        store.update_segment(segment_id, person_id=person_id)
-        if store.graph.speakers.get(segment["speaker_label"]) is None:
-            link_speaker(store, segment["speaker_label"], person_id, threshold=threshold)
+        if every_line:
+            old = store.graph.speakers.get(label)
+            store.set_speaker(label, person_id, None)
+            lines = [
+                s
+                for s in store.graph.segments.values()
+                if s["speaker_label"] == label and s["person_id"] in (old, None)
+            ]
+        else:
+            lines = [segment]
+            if store.graph.speakers.get(label) is None:
+                link_speaker(store, label, person_id, threshold=threshold)
+        changed = [s["id"] for s in lines if s["person_id"] != person_id]
+        for line in lines:
+            store.update_segment(line["id"], person_id=person_id, speaker_manual=True)
         for fact in list(store.graph.facts.values()):
-            if segment_id in fact["segment_ids"] and fact["told_by_person_id"] is None:
+            if set(changed) & set(fact["segment_ids"]) and fact["told_by_person_id"] is None:
                 store.update_fact(fact["id"], told_by_person_id=person_id)
+    return changed

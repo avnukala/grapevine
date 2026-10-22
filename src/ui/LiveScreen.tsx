@@ -23,6 +23,7 @@ import { SessionControls } from "./SessionControls";
 import { StoryWriter } from "./StoryWriter";
 import { TimelineView } from "./TimelineView";
 import { Transcript } from "./Transcript";
+import type { SpeakerPick } from "./Transcript";
 import { WeightPanel } from "./WeightPanel";
 
 export type View = "graph" | "timeline";
@@ -137,8 +138,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const guard = (task: () => Promise<unknown>) => task().catch((e) => toast.error(String(e)));
   const onAnswer = (prompt: Prompt, answer: Answer) => guard(() => api.answer(runId!, prompt.id, answer as never));
   const onDismiss = (prompt: Prompt) => guard(() => api.dismiss(runId!, prompt.id));
-  const onAssign = (segment: Segment, answer: { person_id: number } | { new_name: string }) =>
-    guard(() => api.assignSpeaker(runId!, segment.id, answer));
+  const onAssign = (segment: Segment, answer: SpeakerPick) => guard(() => api.assignSpeaker(runId!, segment.id, answer));
   const onRemove = (personId: number) =>
     guard(() => api.removePerson(runId!, personId).then(() => setSelectedId(null)));
 

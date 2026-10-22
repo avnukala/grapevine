@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { GENDER_COLORS, KIND_COLORS, initials } from "../state/categories";
 import { personName, roomIds } from "../state/derive";
@@ -17,11 +18,14 @@ interface TranscriptProps {
   showTimings?: boolean;
   partial?: Preview | null;
   extracting?: Thinking | null;
-  onAssign?: (segment: Segment, answer: { person_id: number } | { new_name: string }) => void;
+  onAssign?: (segment: Segment, answer: SpeakerPick) => void;
   onSeek?: (ms: number) => void;
 }
 
+export type SpeakerPick = ({ person_id: number } | { new_name: string }) & { every_line?: boolean };
+
 export function isUnknown(segment: Segment, threshold: number): boolean {
+  if (segment.speaker_manual) return false;
   return segment.person_id === null || (segment.speaker_confidence !== null && segment.speaker_confidence < threshold);
 }
 
@@ -73,9 +77,21 @@ export function Transcript(props: TranscriptProps) {
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-xs">
-                <span className={cn("font-semibold", unknown && "text-alert")}>{name}</span>
-                {segment.speaker_confidence !== null && (
-                  <span className="text-muted-foreground tabular-nums">voice {Math.round(segment.speaker_confidence * 100)}%</span>
+                {onAssign ? (
+                  <SpeakerPicker state={state} segment={segment} onPick={(answer) => onAssign(segment, answer)}>
+                    <span className={cn("font-semibold", unknown && "text-alert")}>{name}</span>
+                  </SpeakerPicker>
+                ) : (
+                  <span className={cn("font-semibold", unknown && "text-alert")}>{name}</span>
+                )}
+                {segment.speaker_manual ? (
+                  <span className="text-muted-foreground">set by hand</span>
+                ) : (
+                  segment.speaker_confidence !== null && (
+                    <span className="text-muted-foreground tabular-nums">
+                      voice {Math.round(segment.speaker_confidence * 100)}%
+                    </span>
+                  )
                 )}
               </div>
               <p className="text-sm leading-snug">{segment.text}</p>
@@ -192,6 +208,65 @@ function ExtractedList({ items, live }: ExtractedListProps) {
         </li>
       )}
     </ul>
+  );
+}
+
+interface SpeakerPickerProps {
+  state: RunState;
+  segment: Segment;
+  onPick: (answer: SpeakerPick) => void;
+  children: React.ReactNode;
+}
+
+// Fixing one line of an introduction usually means the whole voice was named wrong, so that is the default.
+function SpeakerPicker({ state, segment, onPick, children }: SpeakerPickerProps) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [everyLine, setEveryLine] = useState(true);
+  const room = roomIds(state);
+  const others = Object.keys(state.people)
+    .map(Number)
+    .filter((id) => !room.includes(id));
+  const pick = (answer: SpeakerPick) => {
+    onPick({ ...answer, every_line: everyLine });
+    setOpen(false);
+    setName("");
+  };
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="rounded hover:underline" aria-label="Change speaker" data-testid="speaker-picker">
+          {children}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72 space-y-3">
+        <p className="text-sm font-medium">Who said this?</p>
+        <div className="flex flex-wrap gap-1.5">
+          {[...room, ...others].map((id) => (
+            <Button
+              key={id}
+              size="xs"
+              variant={id === segment.person_id ? "default" : room.includes(id) ? "secondary" : "outline"}
+              onClick={() => pick({ person_id: id })}
+            >
+              {personName(state, id)}
+            </Button>
+          ))}
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (name.trim()) pick({ new_name: name.trim() });
+          }}
+        >
+          <Input className="h-7 text-xs" value={name} onChange={(e) => setName(e.target.value)} placeholder="New name" />
+        </form>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          <input type="checkbox" checked={everyLine} onChange={(e) => setEveryLine(e.target.checked)} />
+          Every line from this voice ({segment.speaker_label})
+        </label>
+      </PopoverContent>
+    </Popover>
   );
 }
 

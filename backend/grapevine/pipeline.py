@@ -85,6 +85,11 @@ class PromptJob:
     at_ms: int
 
 
+@dataclass(frozen=True)
+class RereadJob:
+    segment_ids: list[int]
+
+
 class AudioBuffer:
     def __init__(self) -> None:
         self.samples = np.zeros(SAMPLE_RATE * 60, dtype=np.float32)
@@ -131,7 +136,7 @@ class Pipeline:
         self.builder = TurnBuilder(config.turn_rules)
         self.audio = AudioBuffer()
         self.turns: asyncio.Queue[Turn | PromptJob | None] = asyncio.Queue()
-        self.jobs: asyncio.Queue[SegmentJob | PromptJob | None] = asyncio.Queue()
+        self.jobs: asyncio.Queue[SegmentJob | PromptJob | RereadJob | None] = asyncio.Queue()
         self.prompter_tasks: set[asyncio.Task] = set()
         self.voice_sums: dict[str, np.ndarray] = {}
         self.voice_ms: dict[str, int] = {}
@@ -172,7 +177,7 @@ class Pipeline:
         self.store.audio_ms = self.builder.now_ms
         self.store.set_phase("review")
         self._settle_speakers()
-        await self._reextract()
+        await self._reextract(list(self.extracted_as))
         await review(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed, today=self.today)
         await summarize(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed)
         self.store.set_phase("ended")
@@ -218,6 +223,10 @@ class Pipeline:
         )
         await self.jobs.put(SegmentJob(segment["id"], time.monotonic()))
         return segment
+
+    def reread(self, segment_ids: list[int]) -> None:
+        """Extracts turns again after the room fixed their speaker by hand."""
+        self.jobs.put_nowait(RereadJob(segment_ids))
 
     def end_intro(self) -> None:
         """Ends introductions at the current audio time, for a live session."""
@@ -406,6 +415,8 @@ class Pipeline:
             match job:
                 case SegmentJob():
                     await self._extract(job)
+                case RereadJob():
+                    await self._reextract(job.segment_ids)
                 case PromptJob():
                     self.store.audio_ms = job.at_ms
                     if job.trigger == "opener":
@@ -426,7 +437,10 @@ class Pipeline:
     async def _extract(self, job: SegmentJob) -> None:
         segment = self.store.graph.segments[job.segment_id]
         respell_people(self.store, segment["text"])
-        speaker_id = self._person(segment["speaker_label"], segment["speaker_confidence"])
+        manual = segment["speaker_manual"]
+        speaker_id = (
+            segment["person_id"] if manual else self._person(segment["speaker_label"], segment["speaker_confidence"])
+        )
         call = extraction_call(
             self.store,
             segment=segment,
@@ -448,7 +462,7 @@ class Pipeline:
             teller = Teller(segment["id"], speaker_id, segment["speaker_confidence"] or 1.0, result.model_call_id)
             intro = segment["speaker_confidence"] is None
             name = None
-            if speaker_id is None or intro:
+            if not manual and (speaker_id is None or intro):
                 name = said_name(
                     segment["text"], output["speaker_name"], intro=intro, unnamed=speaker_id is None, roster=self.roster
                 )
@@ -482,15 +496,15 @@ class Pipeline:
             for segment_id, (voice, _) in self.segment_voices.items():
                 score, person_id = max((float(voice @ v), pid) for pid, v in people.items())
                 segment = self.store.graph.segments[segment_id]
-                if score >= SETTLE_FLOOR and person_id != segment["person_id"]:
+                if score >= SETTLE_FLOOR and person_id != segment["person_id"] and not segment["speaker_manual"]:
                     self.store.update_segment(segment_id, person_id=person_id, speaker_confidence=score)
 
-    async def _reextract(self) -> None:
+    async def _reextract(self, segment_ids: list[int]) -> None:
         """Extracts again each turn whose speaker changed after its extraction, because its facts name the
         wrong teller. The new facts revise the old ones."""
-        for segment_id, speaker_id in list(self.extracted_as.items()):
+        for segment_id in segment_ids:
             segment = self.store.graph.segments[segment_id]
-            if segment["person_id"] in (None, speaker_id):
+            if segment_id not in self.extracted_as or segment["person_id"] in (None, self.extracted_as[segment_id]):
                 continue
             old = [f["id"] for f in self.store.graph.live_facts() if segment_id in f["segment_ids"]]
             call = extraction_call(
