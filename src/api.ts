@@ -1,13 +1,23 @@
 import type { Change, ModelCall, Person, Prompt, Run, Segment, Session } from "./state/types";
 
+// Toasts show String(error), so a server detail reads as a plain sentence, without "Error: 503".
+class ApiError extends Error {
+  toString(): string {
+    return this.message;
+  }
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
     headers: init?.body instanceof FormData ? undefined : { "content-type": "application/json" },
   });
   if (!response.ok) {
-    const detail = await response.json().then((body) => body.detail ?? JSON.stringify(body)).catch(() => "");
-    throw new Error(`${response.status} ${detail || response.statusText}`);
+    const body = await response.json().catch(() => null);
+    // A failed check of the request body sends a list of problems, each with a message.
+    const detail: unknown = body?.detail;
+    const text = Array.isArray(detail) ? detail.map((d: { msg: string }) => d.msg).join(". ") : detail;
+    throw new ApiError(typeof text === "string" && text ? text : `${response.status} ${response.statusText}`);
   }
   return response.json() as Promise<T>;
 }
