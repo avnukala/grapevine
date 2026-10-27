@@ -46,15 +46,31 @@ function mid(range: DateRange): Date {
   return new Date((range.start.getTime() + range.end.getTime()) / 2);
 }
 
+interface EventLabel {
+  x: number;
+  anchor: "start" | "end";
+  start: number;
+  end: number;
+}
+
+// Puts an event label inside a wide bar, else after the bar, or before it when it would run off the chart.
+function eventLabel(item: Extract<Item, { kind: "event" }>, x: d3.ScaleTime<number, number>, plotWidth: number): EventLabel {
+  const x0 = x(item.range.start);
+  const x1 = x0 + Math.max(x(item.range.end) - x0, 8);
+  const text = item.event.name.length * 6.5;
+  if (x1 - x0 > text + 16) return { x: x0 + 8, anchor: "start", start: x0, end: x1 };
+  if (x1 + 6 + text <= plotWidth) return { x: x1 + 6, anchor: "start", start: x0, end: x1 + 6 + text };
+  return { x: x0 - 6, anchor: "end", start: x0 - 6 - text, end: x1 };
+}
+
 // Packs event bars into rows so that bars and their labels do not overlap at the given scale.
-function packEvents(items: Item[], x: d3.ScaleTime<number, number>): Map<string, number> {
+function packEvents(items: Item[], x: d3.ScaleTime<number, number>, plotWidth: number): Map<string, number> {
   const rowEnds: number[] = [];
   const rows = new Map<string, number>();
   for (const item of items) {
     if (item.kind !== "event") continue;
-    const start = x(item.range.start);
-    const end = Math.max(x(item.range.end), start + 8) + item.event.name.length * 6.5 + 20;
-    let row = rowEnds.findIndex((rowEnd) => rowEnd < start);
+    const { start, end } = eventLabel(item, x, plotWidth);
+    let row = rowEnds.findIndex((rowEnd) => rowEnd + 20 < start);
     if (row === -1) row = rowEnds.length;
     rowEnds[row] = end;
     rows.set(item.key, row);
@@ -170,7 +186,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
       .range([0, plotWidth]);
   }, [items, plotWidth]);
   const x = transform.rescaleX(base);
-  const rows = useMemo(() => packEvents(items, base), [items, base]);
+  const rows = useMemo(() => packEvents(items, base, plotWidth), [items, base, plotWidth]);
   const eventsHeight = Math.max(1, ...[...rows.values()].map((r) => r + 1)) * EVENT_ROW + 16;
   const lanesTop = AXIS_HEIGHT + eventsHeight;
   const height = lanesTop + Math.max(lanes.length, 1) * LANE_HEIGHT + 12;
@@ -300,6 +316,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
                   const x0 = x(item.range.start);
                   const w = Math.max(x(item.range.end) - x0, 8);
                   const y = AXIS_HEIGHT + 8 + (rows.get(item.key) ?? 0) * EVENT_ROW;
+                  const label = eventLabel(item, x, plotWidth);
                   return (
                     <g key={item.key} className="cursor-pointer" {...press(item, item.event.name)} data-testid="timeline-event">
                       <rect
@@ -313,8 +330,9 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
                         className={on ? "stroke-warn" : "stroke-primary/50"}
                       />
                       <text
-                        x={w > item.event.name.length * 6.5 + 16 ? x0 + 8 : x0 + w + 6}
+                        x={label.x}
                         y={y + 14}
+                        textAnchor={label.anchor}
                         className="fill-foreground text-[11px] font-semibold"
                       >
                         {item.event.name}
