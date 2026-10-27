@@ -101,6 +101,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const [view, setView] = useState<View>("graph");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [onboarding, setOnboarding] = useState(() => linkedRun() === null);
+  const [promptsHidden, setPromptsHidden] = useState(false);
   const live = useRun(runId);
   const now = useNow();
   const { state } = live;
@@ -148,7 +149,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
 
   const showTranscript = Object.keys(state.segments).length > 0 || runActive;
   const showPrompts = Object.values(state.prompts).some((p) => p.dismissed_at_ms === null);
-  const inset = { top: 90, right: showPrompts ? 390 : 0, bottom: showTranscript ? 250 : 60, left: 0 };
+  const inset = { top: 90, right: showPrompts && !promptsHidden ? 390 : 0, bottom: showTranscript ? 250 : 60, left: 0 };
 
   const guard = (task: () => Promise<unknown>) => task().catch((e) => toast.error(String(e)));
   const onAnswer = (prompt: Prompt, answer: Answer) => guard(() => api.answer(runId!, prompt.id, answer as never));
@@ -252,6 +253,8 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
           <PromptPanel
             state={state}
             className={view === "timeline" ? "top-auto right-[380px] bottom-16" : undefined}
+            hidden={promptsHidden}
+            onHidden={setPromptsHidden}
             onAnswer={onAnswer}
             onDismiss={onDismiss}
           />
