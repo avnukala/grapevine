@@ -18,7 +18,7 @@ import numpy as np
 
 from grapevine.audio import SAMPLE_RATE
 from grapevine.config import RunConfig
-from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload, respell_people
+from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload, respell_people, retell
 from grapevine.llm import LLM, watch_on
 from grapevine.models import Models
 from grapevine.names import misspelled, spell_names
@@ -528,10 +528,7 @@ class Pipeline:
             held = Held(result.output, teller)
             apply_output(self.store, held)
             self.extracted_as[segment_id] = segment["person_id"]
-            new = list(held.fact_ids.values())
-            # With no new fact, an old fact revises itself, which hides it like any revised fact.
-            for fact_id in old:
-                self.store.update_fact(fact_id, revised_by_fact_id=new[0] if new else fact_id)
+            retell(self.store, old, list(held.fact_ids.values()), model_call_id=result.model_call_id)
 
     def _sounds_unlike_label(self, segment: dict) -> bool:
         """Whether a turn sounds unlike the voice its label saved from other turns. The voice of a short turn

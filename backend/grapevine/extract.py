@@ -647,6 +647,17 @@ def revise(store: Store, old: int, new: int, *, model_call_id: int) -> None:
                     store.update_fact(fact_id, disputed=0, model_call_id=model_call_id)
 
 
+def retell(store: Store, old: list[int], new: list[int], *, model_call_id: int) -> None:
+    """Replaces the facts of a turn read again under a new teller. The old facts close their conflicts, and a
+    relationship that only the old facts showed goes away, because "my cousin" named the wrong person. With no
+    new fact, an old fact revises itself, which hides it like any revised fact."""
+    for fact_id in old:
+        revise(store, fact_id, new[0] if new else fact_id, model_call_id=model_call_id)
+    for relationship in list(store.graph.relationships.values()):
+        if relationship["evidence"] and set(relationship["evidence"]) <= set(old):
+            store.remove_relationship(relationship["id"])
+
+
 def dispute(store: Store, old: int, new: int, *, model_call_id: int) -> None:
     """Two people disagree. Both facts stay, and the room is asked once per dispute."""
     already = store.graph.facts[old]["disputed"]

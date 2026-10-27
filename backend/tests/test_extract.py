@@ -1,5 +1,5 @@
 from grapevine.actions import assign_speaker, pick_person, settle_conflict
-from grapevine.extract import Held, Teller, apply_output, couple_of, respell_people, user_message
+from grapevine.extract import Held, Teller, apply_output, couple_of, respell_people, retell, user_message
 from grapevine.runs import open_store
 from grapevine.store import proper_group_name
 from tests.fakes import empty_output, fact
@@ -175,6 +175,43 @@ def test_contradicting_another_teller_is_a_dispute_and_own_correction_settles_it
     assert store.graph.facts[first]["revised_by_fact_id"] == max(store.graph.facts)
     assert not store.graph.facts[second]["disputed"]
     assert store.graph.active_prompts() == []
+
+
+def test_retelling_a_turn_closes_its_conflicts_and_drops_relationships_only_it_showed(store):
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    felix = store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")["id"]
+    store.create_person(name="Dana Price", aliases=["Dana"], gender="female")
+    apply(store, turn(store, marcus, "We met in 2019."), facts=[fact("They met in 2019.", ["speaker", "Felix Ward"])])
+    met = max(store.graph.facts)
+    teller = turn(store, felix, "My cousin Dana Price met us in 2018.")
+    cousin = {
+        "a": "speaker",
+        "b": "Dana Price",
+        "category": "family",
+        "label": "cousin",
+        "status": "current",
+        "met_on": None,
+        "met_event": None,
+        "closeness": None,
+        "recency": None,
+        "sentiment": None,
+        "summary": "",
+        "facts": [0],
+    }
+    apply(
+        store,
+        teller,
+        facts=[fact("They met in 2018.", ["speaker", "Marcus Hale"], disputes=f"f{met}")],
+        relationships=[cousin],
+    )
+    old = [max(store.graph.facts)]
+    assert store.graph.active_prompts() and store.graph.relationships
+
+    retell(store, old, [], model_call_id=None)
+
+    assert store.graph.active_prompts() == []
+    assert store.graph.relationships == {}
+    assert not store.graph.facts[met]["disputed"]
 
 
 def test_settling_a_conflict_keeps_one_fact(store):
