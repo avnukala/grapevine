@@ -468,9 +468,11 @@ def respelled(store: Store, person: Record, heard: str) -> int:
 
 def in_run_first(store: Store, matches: list[Record]) -> list[Record]:
     """Narrows name matches to the people this run already talked about, when any match is one of them.
-    People are global, so "Andrew" would otherwise fit every Andrew from every session."""
+    People are global, so "Andrew" would otherwise fit every Andrew from every session. A name that fits no
+    one in this run and several people of other sessions, such as a first name, is a new person of this run,
+    because the room cannot say which person of another session it means."""
     in_run = [p for p in matches if p["id"] in store.graph.people]
-    return in_run or matches
+    return in_run or (matches if len({p["name"] for p in matches}) == 1 else [])
 
 
 def first_name_person(store: Store, first: str) -> int | None:

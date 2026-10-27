@@ -139,6 +139,17 @@ def test_ambiguous_first_name_waits_for_the_room(store):
     assert {p["person_id"] for p in waited["people"]} == {gao, ray}
 
 
+def test_a_first_name_from_other_sessions_only_is_a_new_person(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    for name in ["Felix Ward", "Felix Shaw"]:
+        store.conn.execute("INSERT INTO people (name, aliases, gender) VALUES (?, '[\"Felix\"]', 'male')", (name,))
+    teller = turn(store, ray, "Felix came with us.")
+    apply(store, teller, facts=[fact("Felix went out with Ray Patel.", ["Felix", "speaker"])])
+
+    assert store.graph.active_prompts() == []
+    assert sorted(p["name"] for p in store.graph.people.values()) == ["Felix", "Ray Patel"]
+
+
 def test_full_name_is_not_ambiguous(store):
     jasper = store.create_person(name="Jasper Lin", aliases=["Jasper"], gender="male")["id"]
     store.create_person(name="Andrew Gao", aliases=["Andrew", "Gao"], gender="male")
