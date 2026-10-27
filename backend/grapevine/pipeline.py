@@ -505,7 +505,11 @@ class Pipeline:
         """Gives each turn to the person whose voice is closest. A person's voice here is the mean of all their
         long turns so far, which is steadier than the voice of one introduction. Turns the voice detector got
         wrong, or left unknown, move to the right person. A turn moves only when its closest voice beats its
-        current person, or the next closest voice, by SETTLE_MARGIN, because the voice of a short turn is noisy."""
+        current person, or the next closest voice, by SETTLE_MARGIN, because the voice of a short turn is noisy.
+        An unknown turn, or a turn of a person with no voice here, moves only past the voice threshold, because
+        it may belong to a person with no voice yet, unless its closest voice is the person its label already
+        names. A wrong speaker is worse than an unknown one, because the room can fix an unknown one with one
+        click."""
         sums: dict[int, np.ndarray] = {}
         for segment_id, (voice, ms) in self.segment_voices.items():
             person_id = self.store.graph.segments[segment_id]["person_id"]
@@ -521,7 +525,9 @@ class Pipeline:
                 person_id = max(scores, key=scores.__getitem__)
                 score = scores.pop(person_id)
                 rival = scores.get(segment["person_id"], max(scores.values()))
-                clear = score >= SETTLE_FLOOR and score - rival >= SETTLE_MARGIN
+                agrees = person_id == self.store.graph.speakers.get(segment["speaker_label"])
+                floor = SETTLE_FLOOR if segment["person_id"] in people or agrees else self.config.voice_threshold
+                clear = score >= floor and score - rival >= SETTLE_MARGIN
                 if clear and person_id != segment["person_id"] and not segment["speaker_manual"]:
                     self.store.update_segment(segment_id, person_id=person_id, speaker_confidence=score)
 

@@ -464,14 +464,16 @@ def test_settling_moves_a_turn_only_to_a_clearly_closer_voice(conn):
         intro_end_ms=0,
         roster=[],
     )
-    marcus, felix = (
-        store.create_person(name=n, aliases=[], gender="male")["id"] for n in ("Marcus Hale", "Felix Ward")
+    marcus, felix, kofi = (
+        store.create_person(name=n, aliases=[], gender="male")["id"]
+        for n in ("Marcus Hale", "Felix Ward", "Kofi Mensah")
     )
+    store.set_speaker("spk0", marcus, None)
 
-    def turn(person_id, voice, ms):
+    def turn(person_id, voice, ms, label="spk0"):
         voice = np.array(voice, dtype=np.float32)
         segment = store.add_segment(
-            start_ms=0, end_ms=ms, speaker_label="spk0", person_id=person_id, confidence=0.9, text="Hi.", timings={}
+            start_ms=0, end_ms=ms, speaker_label=label, person_id=person_id, confidence=0.9, text="Hi.", timings={}
         )
         pipeline.segment_voices[segment["id"]] = (voice / np.linalg.norm(voice), ms)
         return segment["id"]
@@ -480,10 +482,24 @@ def test_settling_moves_a_turn_only_to_a_clearly_closer_voice(conn):
     turn(felix, [0.8, 0.6], 5000)
     near_tie = turn(marcus, [0.94, 0.33], 800)
     clear = turn(marcus, [0.7, 0.7], 800)
+    unknown_near = turn(None, [0.6, 0.8], 800)
+    unknown_far = turn(None, [0.3, 0.95], 800)
+    unnamed_near = turn(None, [0.6, 0.8], 800, label="spk1")
+    unnamed_far = turn(None, [0.3, 0.95], 800, label="spk1")
+    no_voice_yet = turn(kofi, [0.3, 0.95], 800, label="spk2")
+    on_its_label = turn(None, [0.8, -0.6], 800)
+    off_any_label = turn(None, [0.8, -0.6], 800, label="spk1")
     pipeline._settle_speakers()
 
     assert store.graph.segments[near_tie]["person_id"] == marcus
     assert store.graph.segments[clear]["person_id"] == felix
+    assert store.graph.segments[unknown_near]["person_id"] == felix
+    assert store.graph.segments[unknown_far]["person_id"] is None
+    assert store.graph.segments[unnamed_near]["person_id"] == felix
+    assert store.graph.segments[unnamed_far]["person_id"] is None
+    assert store.graph.segments[no_voice_yet]["person_id"] == kofi
+    assert store.graph.segments[on_its_label]["person_id"] == marcus
+    assert store.graph.segments[off_any_label]["person_id"] is None
 
 
 def test_an_edited_turn_is_read_again_with_its_new_text(conn):
