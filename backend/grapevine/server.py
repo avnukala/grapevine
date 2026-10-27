@@ -52,6 +52,7 @@ conn = db.connect(DB_PATH)
 conn.execute("UPDATE runs SET status = 'failed' WHERE status = 'running'")
 clients: set[asyncio.Queue] = set()
 active: dict[int, ActiveRun] = {}
+busy = asyncio.Lock()
 
 
 def broadcast(message: Record) -> None:
@@ -197,18 +198,30 @@ async def idle(stop: asyncio.Event) -> AsyncIterator[np.ndarray]:
     yield
 
 
-@app.post("/api/runs")
-async def new_run(body: NewRun) -> Record:
+def check_idle() -> None:
+    """The server starts one run or merge at a time. With no await between this check and taking `busy` or adding
+    the run to `active`, two requests cannot both pass it."""
     if active:
         raise HTTPException(409, f"run {next(iter(active))} is still going")
+    if busy.locked():
+        raise HTTPException(409, "another run or merge is starting")
+
+
+@app.post("/api/runs")
+async def new_run(body: NewRun) -> Record:
+    check_idle()
     current = session_or_404(body.session_id)
     if body.source == "file" and not current["audio_uri"]:
         raise HTTPException(400, "this session has no audio to replay")
-    config = run_config(dict(body.config))
+    try:
+        config = run_config(dict(body.config))
+    except (TypeError, ValueError) as error:
+        raise HTTPException(400, f"bad run config: {error}") from error
+    async with busy:
+        models = await asyncio.to_thread(load_models, config)
     run_id = create_run(
         conn, session_id=current["id"], kind="replay" if body.source == "file" else "live", config=config
     )
-    models = await asyncio.to_thread(load_models, config)
     run = start_pipeline(conn, run_id=run_id, session=current, config=config, models=models, broadcast=broadcast)
     match body.source:
         case "file":
@@ -417,11 +430,13 @@ async def people() -> list[Record]:
 
 @app.post("/api/merge")
 async def new_merge() -> Record:
+    check_idle()
     config = run_config({})
     store = Store(conn, create_run(conn, session_id=None, kind="merge", config=config), broadcast)
     llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
     try:
-        await merge(store, llm, model=config.summary_model, seed=config.seed)
+        async with busy:
+            await merge(store, llm, model=config.summary_model, seed=config.seed)
     except Exception as error:
         set_status(conn, store.run_id, "failed")
         if isinstance(error, openai.APIConnectionError):

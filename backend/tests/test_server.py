@@ -1,4 +1,8 @@
+import asyncio
+import time
+
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from grapevine import server
@@ -23,3 +27,34 @@ def test_accept_needs_a_finished_run(client, store):
     assert client.post(f"/api/runs/{store.run_id}/accept").status_code == 409
     del server.active[store.run_id]
     assert client.post(f"/api/runs/{store.run_id}/accept").json()["accepted"] == 1
+
+
+def test_bad_run_config_is_a_bad_request(client, store):
+    body = {"session_id": 1, "source": "text"}
+    assert client.post("/api/runs", json=body | {"config": {"bogus": 1}}).status_code == 400
+    assert client.post("/api/runs", json=body | {"config": {"turn_rules": 5}}).status_code == 400
+
+
+def test_merge_waits_for_the_run(client, store):
+    server.active[store.run_id] = object()
+    assert client.post("/api/merge").status_code == 409
+
+
+def test_two_starts_at_once_start_one_run(conn, store, monkeypatch):
+    monkeypatch.setattr(server, "conn", conn)
+    monkeypatch.setattr(server, "active", {})
+
+    def load_models(config):
+        time.sleep(0.2)
+        raise RuntimeError("no models in tests")
+
+    monkeypatch.setattr(server, "load_models", load_models)
+    body = server.NewRun(session_id=1, source="text")
+
+    async def both() -> list:
+        return await asyncio.gather(server.new_run(body), server.new_run(body), return_exceptions=True)
+
+    first, second = asyncio.run(both())
+    assert isinstance(first, RuntimeError)
+    assert isinstance(second, HTTPException) and second.status_code == 409
+    assert conn.execute("SELECT count(*) FROM runs").fetchone()[0] == 1
