@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Literal
 
 import numpy as np
+import openai
 from fastapi import FastAPI, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -17,7 +18,7 @@ from pydantic import BaseModel
 from grapevine import db
 from grapevine.actions import ActionError, assign_speaker, pick_person, pick_speaker, settle_conflict
 from grapevine.audio import file_chunks, mic_chunks
-from grapevine.config import DATA_DIR, DB_PATH, ROOT, RunConfig, run_config
+from grapevine.config import DATA_DIR, DB_PATH, LLM_BASE_URL, ROOT, RunConfig, run_config
 from grapevine.graph import Record
 from grapevine.llm import LLM
 from grapevine.merge import merge, resolve_merge
@@ -406,7 +407,14 @@ async def new_merge() -> Record:
     config = run_config({})
     store = Store(conn, create_run(conn, session_id=None, kind="merge", config=config), broadcast)
     llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
-    await merge(store, llm, model=config.summary_model, seed=config.seed)
+    try:
+        await merge(store, llm, model=config.summary_model, seed=config.seed)
+    except Exception as error:
+        set_status(conn, store.run_id, "failed")
+        if isinstance(error, openai.APIConnectionError):
+            message = f"No model answered at {LLM_BASE_URL}. Load the models in LM Studio, then merge again."
+            raise HTTPException(503, message) from error
+        raise
     set_status(conn, store.run_id, "done")
     return run_record(store.run_id)
 
