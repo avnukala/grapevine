@@ -149,3 +149,41 @@ def test_merge_asks_once_about_a_conflict_the_session_already_found(conn):
 
     [prompt] = store.graph.active_prompts()
     assert prompt["reason"] == "merge_conflict" and sorted(prompt["payload"]["fact_ids"]) == sorted(store.graph.facts)
+
+
+def test_joining_people_closes_only_the_questions_it_answers(conn):
+    runs = [accepted_run(conn, name) for name in ("one", "two", "three")]
+    ray = runs[0].create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    for run, name in zip(runs, ("Andrew Gao", "Andrew", "Andrew Gall"), strict=True):
+        run.show_person(ray)
+        run.create_person(name=name, aliases=[], gender="male")
+        tell(run, ray, f"{name} climbs.", facts=[fact(f"{name} climbs.", [name])])
+    pairs = [{"a": a, "b": b, "confidence": 0.5} for a, b in (("p2", "p3"), ("p3", "p4"))]
+    store = merge_run(conn, FakeChat({}, merged={"relationships": [], "conflicts": [], "same_person": pairs}))
+    name = {p["id"]: p["name"] for p in store.graph.people.values()}
+    [first] = [p for p in store.graph.active_prompts() if name[p["payload"]["keep"]] == "Andrew Gao"]
+
+    resolve_merge(store, first["id"], action="merge_people", fact_id=None)
+
+    [left] = store.graph.active_prompts()
+    assert sorted(name[p] for p in left["person_ids"]) == ["Andrew", "Andrew Gall"]
+
+
+def test_joining_people_closes_a_question_that_now_repeats_another(conn):
+    runs = [accepted_run(conn, name) for name in ("one", "two", "three")]
+    ray = runs[0].create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    for run, name in zip(runs, ("Sam Torres", "San Torres", "Sam Taurus"), strict=True):
+        run.show_person(ray)
+        run.create_person(name=name, aliases=[], gender="male")
+        tell(run, ray, f"{name} climbs.", facts=[fact(f"{name} climbs.", [name])])
+    pairs = [{"a": a, "b": b, "confidence": 0.5} for a, b in (("p2", "p3"), ("p2", "p4"), ("p3", "p4"))]
+    store = merge_run(conn, FakeChat({}, merged={"relationships": [], "conflicts": [], "same_person": pairs}))
+    name = {p["id"]: p["name"] for p in store.graph.people.values()}
+    [first] = [
+        p for p in store.graph.active_prompts() if {name[i] for i in p["person_ids"]} == {"Sam Torres", "San Torres"}
+    ]
+
+    resolve_merge(store, first["id"], action="merge_people", fact_id=None)
+
+    [left] = store.graph.active_prompts()
+    assert "Sam Taurus" in {name[p] for p in left["person_ids"]}

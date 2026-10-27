@@ -209,8 +209,17 @@ def user_message(store: Store, pairs: list[tuple[int, int]]) -> str:
 
 
 def merge_people(store: Store, keep: int, into_other: int) -> None:
+    """Joins two people. An open question that now asks about one person, or repeats another question, closes."""
     store.conn.execute("UPDATE people SET merged_into_id = ? WHERE id = ?", (keep, into_other))
     store.emit({"type": "person", "person": store.person(into_other)})
+    asked = set()
+    for prompt in store.graph.active_prompts():
+        if prompt["reason"] != "merge_people":
+            continue
+        pair = frozenset(canonical(store, p) for p in prompt["person_ids"])
+        if len(pair) < 2 or pair in asked:
+            store.dismiss_prompt(prompt["id"])
+        asked.add(pair)
 
 
 async def merge(store: Store, llm: LLM, *, model: str, seed: int) -> None:
