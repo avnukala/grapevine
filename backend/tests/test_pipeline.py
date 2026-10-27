@@ -1,6 +1,7 @@
 import asyncio
 from dataclasses import replace
 
+import numpy as np
 import pytest
 
 from grapevine import pipeline as pipeline_module
@@ -432,3 +433,43 @@ def test_an_introduction_read_under_another_speaker_is_read_again(conn):
     assert reads == sorted(reads)
     assert [name for _, name in snapshot(store)["segments"]] == ["Ray Patel", "Sophie Moreau", "Jasper Lin"]
     assert snapshot(store)["facts"] == []
+
+
+def test_settling_moves_a_turn_only_to_a_clearly_closer_voice(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    store = Store(
+        conn,
+        conn.execute(
+            "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'replay', '{}', 'test')"
+        ).lastrowid,
+    )
+    chat = FakeChat({})
+    pipeline = Pipeline(
+        store,
+        fake_models([], chat),
+        LLM(conn, chat, model_file_hash="t", reuse=True),
+        RunConfig(),
+        today="2025-10-18",
+        intro_end_ms=0,
+        roster=[],
+    )
+    marcus, felix = (
+        store.create_person(name=n, aliases=[], gender="male")["id"] for n in ("Marcus Hale", "Felix Ward")
+    )
+
+    def turn(person_id, voice, ms):
+        voice = np.array(voice, dtype=np.float32)
+        segment = store.add_segment(
+            start_ms=0, end_ms=ms, speaker_label="spk0", person_id=person_id, confidence=0.9, text="Hi.", timings={}
+        )
+        pipeline.segment_voices[segment["id"]] = (voice / np.linalg.norm(voice), ms)
+        return segment["id"]
+
+    turn(marcus, [1, 0], 5000)
+    turn(felix, [0.8, 0.6], 5000)
+    near_tie = turn(marcus, [0.94, 0.33], 800)
+    clear = turn(marcus, [0.7, 0.7], 800)
+    pipeline._settle_speakers()
+
+    assert store.graph.segments[near_tie]["person_id"] == marcus
+    assert store.graph.segments[clear]["person_id"] == felix
