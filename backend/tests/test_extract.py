@@ -152,6 +152,18 @@ def test_a_first_name_from_other_sessions_only_is_a_new_person(store):
     assert sorted(p["name"] for p in store.graph.people.values()) == ["Felix", "Ray Patel"]
 
 
+def test_a_near_miss_of_someone_in_this_run_beats_a_person_of_other_sessions(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    for name in ["Gretta", "Tina Alvares"]:
+        store.conn.execute("INSERT INTO people (name, gender) VALUES (?, 'female')", (name,))
+    apply(store, turn(store, ray, "Greta is here."), facts=[fact("Greta is here.", ["Greta"])])
+    apply(store, turn(store, ray, "Tina Alvarez cooks."), facts=[fact("Tina Alvarez cooks.", ["Tina Alvarez"])])
+    apply(store, turn(store, ray, "Gretta called."), facts=[fact("Gretta called Ray.", ["Gretta", "speaker"])])
+    apply(store, turn(store, ray, "Tina Alvares too."), facts=[fact("Tina Alvares cooks.", ["Tina Alvares"])])
+
+    assert sorted(p["name"].split()[0] for p in store.graph.people.values()) == ["Greta", "Ray", "Tina"]
+
+
 def test_full_name_is_not_ambiguous(store):
     jasper = store.create_person(name="Jasper Lin", aliases=["Jasper"], gender="male")["id"]
     store.create_person(name="Andrew Gao", aliases=["Andrew", "Gao"], gender="male")

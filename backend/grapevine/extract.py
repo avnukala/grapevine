@@ -394,18 +394,20 @@ def resolve(
     matches = in_run_first(store, name_matches(store.conn, ref))
     if not matches and entry:
         matches = in_run_first(store, name_matches(store.conn, entry["name"]))
+    name = (entry["name"] if entry else ref).strip()
+    gender = entry.get("gender") or "unknown" if entry else "unknown"
+    if matches and matches[0]["id"] not in store.graph.people and near_in_run(store, name, gender):
+        matches = []
     if any(p["id"] in store.graph.removed for p in matches):
         return Removed()
     if len(matches) > 1:
         return Ambiguity(ref, [p["id"] for p in matches])
     if not matches:
-        name = (entry["name"] if entry else ref).strip()
         if not PERSON_NAME.fullmatch(name) or name.split()[0] == "The":
             return None
         aliases = entry.get("aliases") or [] if entry else []
-        gender = entry.get("gender") or "unknown" if entry else "unknown"
         if " " in name:
-            near = [p for p in store.graph.people.values() if misspelled(p["name"], name)]
+            near = near_in_run(store, name, gender)
             if len(near) == 1:
                 return respelled(store, near[0], name)
             if len(near) > 1:
@@ -419,7 +421,7 @@ def resolve(
                 return known
             aliases = [first, *aliases] if first not in aliases else aliases
         else:
-            near = near_people(store, name, gender)
+            near = near_in_run(store, name, gender)
             if any(p["id"] in store.graph.removed for p in near):
                 return Removed()
             if len(near) > 1:
@@ -435,6 +437,14 @@ def resolve(
     if entry:
         store.update_person(person["id"], add_aliases=entry.get("aliases") or [], gender=entry.get("gender"))
     return person["id"]
+
+
+def near_in_run(store: Store, name: str, gender: str) -> list[Record]:
+    """The people of this run whom `name` could be a misspelling of. A leftover misspelling from another
+    session, such as "Gretta", must not win over the Greta this run talks about."""
+    if " " in name:
+        return [p for p in store.graph.people.values() if misspelled(p["name"], name)]
+    return near_people(store, name, gender)
 
 
 def near_people(store: Store, heard: str, gender: str) -> list[Record]:
