@@ -164,6 +164,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const onAnswer = (prompt: Prompt, answer: Answer) => guard(() => api.answer(runId!, prompt.id, answer as never));
   const onDismiss = (prompt: Prompt) => guard(() => api.dismiss(runId!, prompt.id));
   const onAssign = (segment: Segment, answer: SpeakerPick) => guard(() => api.assignSpeaker(runId!, segment.id, answer));
+  const onEdit = (segment: Segment, text: string) => guard(() => api.editLine(runId!, segment.id, text));
   const onRemove = (personId: number) =>
     guard(() => api.removePerson(runId!, personId).then(() => setSelectedId(null)));
 
@@ -294,6 +295,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
                     partial={live.partial}
                     extracting={live.thinking.extractor}
                     onAssign={onAssign}
+                    onEdit={onEdit}
                   />
                 </ScrollBack>
                 {runActive && run?.kind !== "replay" && state.phase !== "review" && <TypedTurn runId={runId!} />}

@@ -18,7 +18,7 @@ import numpy as np
 
 from grapevine.audio import SAMPLE_RATE
 from grapevine.config import RunConfig
-from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload, respell_people, retell
+from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload, read_again, respell_people
 from grapevine.llm import LLM, watch_on
 from grapevine.models import Models
 from grapevine.names import misspelled, spell_names
@@ -146,6 +146,8 @@ class Pipeline:
         self.voice_ms: dict[str, int] = {}
         self.segment_voices: dict[int, tuple[np.ndarray, int]] = {}
         self.extracted_as: dict[int, int | None] = {}
+        # Turns whose text the room edited, read again even when their speaker did not change.
+        self.edited: set[int] = set()
         self.paused = True
         self.active_label: str | None = None
         self.intro_over = False
@@ -234,8 +236,10 @@ class Pipeline:
         await self.jobs.put(SegmentJob(segment["id"], time.monotonic()))
         return segment
 
-    def reread(self, segment_ids: list[int]) -> None:
-        """Extracts turns again after the room fixed their speaker by hand."""
+    def reread(self, segment_ids: list[int], *, edited: bool = False) -> None:
+        """Extracts turns again after the room fixed their speaker or their text by hand."""
+        if edited:
+            self.edited.update(segment_ids)
         self.jobs.put_nowait(RereadJob(segment_ids))
 
     def end_intro(self) -> None:
@@ -519,32 +523,26 @@ class Pipeline:
 
     async def _reextract(self, segment_ids: list[int]) -> None:
         """Extracts again each turn whose speaker changed after its extraction, because its facts name the
-        wrong teller. The new facts revise the old ones."""
+        wrong teller, and each turn whose text the room edited. The new facts revise the old ones."""
         for segment_id in segment_ids:
             segment = self.store.graph.segments[segment_id]
-            if segment_id not in self.extracted_as or segment["person_id"] in (None, self.extracted_as[segment_id]):
+            if segment_id not in self.extracted_as:
                 continue
-            old = [f["id"] for f in self.store.graph.live_facts() if segment_id in f["segment_ids"]]
-            call = extraction_call(
+            edited = segment_id in self.edited
+            if not edited and segment["person_id"] in (None, self.extracted_as[segment_id]):
+                continue
+            answered = await read_again(
                 self.store,
-                segment=segment,
-                speaker_id=segment["person_id"],
+                self.llm,
+                segment_id,
                 today=self.today,
                 model=self.config.extract_model,
                 seed=self.config.seed,
                 context=self.config.context,
             )
-            watch = watch_on(self.store, worker="extractor", segment_id=segment_id)
-            result = await self.llm.call(call, run_id=self.store.run_id, audio_ms=segment["end_ms"], watch=watch)
-            if result.output is None:
-                continue
-            teller = Teller(
-                segment_id, segment["person_id"], segment["speaker_confidence"] or 1.0, result.model_call_id
-            )
-            held = Held(result.output, teller)
-            apply_output(self.store, held)
-            self.extracted_as[segment_id] = segment["person_id"]
-            retell(self.store, old, list(held.fact_ids.values()), model_call_id=result.model_call_id)
+            if answered:
+                self.extracted_as[segment_id] = segment["person_id"]
+                self.edited.discard(segment_id)
 
     def _sounds_unlike_label(self, segment: dict) -> bool:
         """Whether a turn sounds unlike the voice its label saved from other turns. The voice of a short turn

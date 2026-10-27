@@ -9,6 +9,8 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from grapevine import server
+from grapevine.extract import Held, Teller, apply_output
+from tests.fakes import FakeChat, empty_output, fact
 
 
 @pytest.fixture
@@ -104,3 +106,27 @@ def test_upload_outside_the_checkout_keeps_an_absolute_path(client, tmp_path, mo
     answer = client.post("/api/sessions/upload", files={"file": ("talk.wav", wav.read_bytes())})
     assert answer.status_code == 200
     assert Path(answer.json()["audio_uri"]).is_absolute()
+
+
+def test_an_edited_line_of_a_finished_run_gets_new_facts(client, store, monkeypatch):
+    rules = {"Seattle": {"facts": [fact("Marcus Hale works in Seattle.", ["speaker"])]}}
+    monkeypatch.setattr(server, "chat", lambda: FakeChat(rules))
+    monkeypatch.setattr(server, "llm_file_hash", lambda: "t")
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    segment = store.add_segment(
+        start_ms=0,
+        end_ms=900,
+        speaker_label="spk0",
+        person_id=marcus,
+        confidence=0.9,
+        text="I work in Denver.",
+        timings={},
+    )
+    told = {**empty_output(), "facts": [fact("Marcus Hale works in Denver.", ["speaker"])]}
+    apply_output(store, Held(told, Teller(segment["id"], marcus, 0.9, None)))
+
+    response = client.patch(f"/api/runs/{store.run_id}/segments/{segment['id']}", json={"text": "I work in Seattle."})
+
+    assert response.json()["text"] == "I work in Seattle."
+    fresh = server.store_for(store.run_id)
+    assert [f["text"] for f in fresh.graph.live_facts()] == ["Marcus Hale works in Seattle."]

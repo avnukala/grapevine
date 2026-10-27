@@ -51,6 +51,8 @@ export const api = {
     segmentId: number,
     body: { person_id?: number; new_name?: string; every_line?: boolean },
   ) => post<Segment>(`/api/runs/${runId}/segments/${segmentId}/speaker`, body),
+  editLine: (runId: number, segmentId: number, text: string) =>
+    call<Segment>(`/api/runs/${runId}/segments/${segmentId}`, { method: "PATCH", body: JSON.stringify({ text }) }),
   removePerson: (runId: number, personId: number) =>
     call<null>(`/api/runs/${runId}/people/${personId}`, { method: "DELETE" }),
   people: () => call<Person[]>("/api/people"),

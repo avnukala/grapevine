@@ -1,3 +1,4 @@
+import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ interface TranscriptProps {
   partial?: Preview | null;
   extracting?: Thinking | null;
   onAssign?: (segment: Segment, answer: SpeakerPick) => void;
+  onEdit?: (segment: Segment, text: string) => void;
   onSeek?: (ms: number) => void;
 }
 
@@ -34,7 +36,7 @@ export function clock(ms: number): string {
 }
 
 export function Transcript(props: TranscriptProps) {
-  const { state, voiceThreshold, currentMs, showTimings, partial, extracting, onAssign, onSeek } = props;
+  const { state, voiceThreshold, currentMs, showTimings, partial, extracting, onAssign, onEdit, onSeek } = props;
   const segments = Object.values(state.segments).sort((x, y) => x.start_ms - y.start_ms);
   return (
     <ol className="space-y-1.5" data-testid="transcript">
@@ -92,7 +94,7 @@ export function Transcript(props: TranscriptProps) {
                   )
                 )}
               </div>
-              <p className="text-sm leading-snug">{segment.text}</p>
+              <LineText segment={segment} onEdit={onEdit && ((text) => onEdit(segment, text))} />
               {extracting?.segmentId === segment.id ? (
                 <ExtractedList items={extractedSoFar(extracting.text, name)} live />
               ) : (
@@ -268,6 +270,69 @@ function SpeakerPicker({ state, segment, onPick, children }: SpeakerPickerProps)
         </label>
       </PopoverContent>
     </Popover>
+  );
+}
+
+interface LineTextProps {
+  segment: Segment;
+  onEdit?: (text: string) => void;
+}
+
+function LineText({ segment, onEdit }: LineTextProps) {
+  const [draft, setDraft] = useState<string | null>(null);
+  if (draft === null || !onEdit) {
+    return (
+      <p className="group/line text-sm leading-snug">
+        {segment.text}
+        {onEdit && (
+          <button
+            className="ml-1.5 inline-flex align-baseline text-muted-foreground opacity-0 group-hover/line:opacity-100 hover:text-foreground focus-visible:opacity-100"
+            aria-label="Edit line"
+            onClick={() => setDraft(segment.text)}
+          >
+            <Pencil className="size-3" />
+          </button>
+        )}
+      </p>
+    );
+  }
+  const save = () => {
+    const text = draft.trim();
+    if (text && text !== segment.text) onEdit(text);
+    setDraft(null);
+  };
+  return (
+    <form
+      className="mt-0.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save();
+      }}
+    >
+      <textarea
+        autoFocus
+        value={draft}
+        rows={Math.max(2, Math.ceil(draft.length / 80))}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setDraft(null);
+          if (e.key !== "Enter" || e.shiftKey) return;
+          e.preventDefault();
+          save();
+        }}
+        className="w-full resize-none rounded-md border border-input bg-transparent px-2 py-1 text-sm leading-snug outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        aria-label="Line text"
+      />
+      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+        <Button size="xs" type="submit">
+          Save
+        </Button>
+        <Button size="xs" variant="ghost" type="button" onClick={() => setDraft(null)}>
+          Cancel
+        </Button>
+        The facts of the line update after it is read again.
+      </div>
+    </form>
   );
 }
 

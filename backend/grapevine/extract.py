@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from grapevine.config import Context
 from grapevine.graph import Record
-from grapevine.llm import Call
+from grapevine.llm import LLM, Call, watch_on
 from grapevine.names import better_spelling, drop_ly, misspelled, near_first, pairs_of
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
@@ -667,6 +667,27 @@ def revise(store: Store, old: int, new: int, *, model_call_id: int) -> None:
             for fact_id in prompt["payload"]["fact_ids"]:
                 if fact_id != old and store.graph.facts[fact_id]["disputed"]:
                     store.update_fact(fact_id, disputed=0, model_call_id=model_call_id)
+
+
+async def read_again(
+    store: Store, llm: LLM, segment_id: int, *, today: str, model: str, seed: int, context: Context
+) -> bool:
+    """Extracts a turn again with its current speaker and text, and returns whether the model answered. The new
+    facts replace the old facts of the turn."""
+    segment = store.graph.segments[segment_id]
+    old = [f["id"] for f in store.graph.live_facts() if segment_id in f["segment_ids"]]
+    call = extraction_call(
+        store, segment=segment, speaker_id=segment["person_id"], today=today, model=model, seed=seed, context=context
+    )
+    watch = watch_on(store, worker="extractor", segment_id=segment_id)
+    result = await llm.call(call, run_id=store.run_id, audio_ms=segment["end_ms"], watch=watch)
+    if result.output is None:
+        return False
+    teller = Teller(segment_id, segment["person_id"], segment["speaker_confidence"] or 1.0, result.model_call_id)
+    held = Held(result.output, teller)
+    apply_output(store, held)
+    retell(store, old, list(held.fact_ids.values()), model_call_id=result.model_call_id)
+    return True
 
 
 def retell(store: Store, old: list[int], new: list[int], *, model_call_id: int) -> None:

@@ -20,6 +20,7 @@ from grapevine import db
 from grapevine.actions import ActionError, assign_speaker, pick_person, pick_speaker, settle_conflict
 from grapevine.audio import file_chunks, mic_chunks
 from grapevine.config import DATA_DIR, DB_PATH, LLM_BASE_URL, ROOT, RunConfig, run_config
+from grapevine.extract import read_again
 from grapevine.graph import Record
 from grapevine.llm import LLM
 from grapevine.merge import merge, resolve_merge
@@ -398,6 +399,41 @@ async def dismiss_prompt(run_id: int, prompt_id: int) -> Record:
         raise HTTPException(404, f"no prompt {prompt_id} in run {run_id}")
     store.dismiss_prompt(prompt_id)
     return store.graph.prompts[prompt_id]
+
+
+class LineEdit(BaseModel):
+    text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=5000)]
+
+
+@app.patch("/api/runs/{run_id}/segments/{segment_id}")
+async def edit_segment(run_id: int, segment_id: int, body: LineEdit) -> Record:
+    """Fixes the text of a turn and reads it again, so its facts follow the fix."""
+    store = store_for(run_id)
+    if segment_id not in store.graph.segments:
+        raise HTTPException(404, f"segment {segment_id} is not in run {run_id}")
+    store.update_segment(segment_id, text=body.text)
+    if run_id in active:
+        active[run_id].pipeline.reread([segment_id], edited=True)
+        return store.graph.segments[segment_id]
+    row = conn.execute("SELECT config_json, session_id FROM runs WHERE id = ?", (run_id,)).fetchone()
+    config = run_config(json.loads(row["config_json"]))
+    llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
+    today = session(conn, row["session_id"])["recorded_at"][:10]
+    try:
+        await read_again(
+            store,
+            llm,
+            segment_id,
+            today=today,
+            # The model of an old run may no longer be loaded, so an edit reads with the model of today.
+            model=RunConfig().extract_model,
+            seed=config.seed,
+            context=config.context,
+        )
+    except openai.APIError as error:
+        message = f"The text is saved, but the model at {LLM_BASE_URL} did not answer, so its facts did not change."
+        raise HTTPException(503, message) from error
+    return store.graph.segments[segment_id]
 
 
 class SpeakerAnswer(BaseModel):

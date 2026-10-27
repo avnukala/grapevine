@@ -270,18 +270,20 @@ class Store:
         speaker_confidence: float | None = None,
         speaker_manual: bool | None = None,
         timings: dict[str, int] | None = None,
+        text: str | None = None,
     ) -> None:
         segment = self.segment(segment_id)
         with self.batch():
             self.conn.execute(
                 "UPDATE segments SET person_id = ?, speaker_label = ?, speaker_confidence = ?, speaker_manual = ?, "
-                "timings_json = ? WHERE id = ?",
+                "timings_json = ?, text = ? WHERE id = ?",
                 (
                     person_id if person_id is not None else segment["person_id"],
                     speaker_label or segment["speaker_label"],
                     speaker_confidence if speaker_confidence is not None else segment["speaker_confidence"],
                     speaker_manual if speaker_manual is not None else segment["speaker_manual"],
                     json.dumps({**segment["timings"], **(timings or {})}),
+                    text or segment["text"],
                     segment_id,
                 ),
             )
