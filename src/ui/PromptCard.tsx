@@ -23,6 +23,7 @@ const STYLE: Record<string, { icon: typeof HelpCircle; accent: string; title: st
   merge_conflict: { icon: Scale, accent: "border-l-alert", title: "Sessions disagree" },
   merge_people: { icon: Users, accent: "border-l-warn", title: "Same person?" },
 };
+const ORDINALS = ["first", "second", "third"];
 const SUGGESTION = { icon: MessageCircleQuestion, accent: "border-l-primary", title: "Ask the room" };
 
 interface PromptCardProps {
@@ -36,6 +37,12 @@ export function PromptCard({ prompt, state, onAnswer, onDismiss }: PromptCardPro
   const [name, setName] = useState("");
   const factIds = (prompt.payload.fact_ids as number[] | undefined) ?? [];
   const factText = (id: number) => state.facts[id]?.text ?? `Fact ${id}`;
+  // A button names the teller only when each fact has a teller with a first name of their own.
+  const tellers = factIds.map((id) => {
+    const teller = state.facts[id]?.told_by_person_id;
+    return teller == null ? null : personName(state, teller).split(" ")[0];
+  });
+  const byTeller = tellers.every((t) => t !== null) && new Set(tellers).size === tellers.length;
   const style = STYLE[prompt.reason] ?? SUGGESTION;
   const Icon = style.icon;
   const suggestion = !(prompt.reason in STYLE);
@@ -84,9 +91,9 @@ export function PromptCard({ prompt, state, onAnswer, onDismiss }: PromptCardPro
         )}
         {prompt.reason === "conflict" && (
           <>
-            {factIds.map((id) => (
+            {factIds.map((id, i) => (
               <Button key={id} size="sm" onClick={() => onAnswer(prompt, { keep_fact_id: id })} title={factText(id)}>
-                Keep {personName(state, state.facts[id]?.told_by_person_id).split(" ")[0]}'s
+                {byTeller ? `Keep ${tellers[i]}'s` : `Keep the ${ORDINALS[i] ?? i + 1}`}
               </Button>
             ))}
             <Button size="sm" variant="outline" onClick={() => onAnswer(prompt, { keep_fact_id: null })}>
