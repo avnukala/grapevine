@@ -626,6 +626,13 @@ def test_lone_misspellings_of_room_members_match_them(store):
     assert len(store.graph.people) == 4
 
 
+def test_a_lone_name_that_sounds_like_someone_only_mentioned_is_them(store):
+    felix = store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")["id"]
+    apply(store, turn(store, felix, "Hanna Cole climbs."), facts=[fact("Hanna Cole climbs.", ["Hanna Cole"])])
+    apply(store, turn(store, felix, "Me and Ana."), facts=[fact("Ana climbs with Felix.", ["Ana", "speaker"])])
+    assert sorted(p["name"] for p in store.graph.people.values()) == ["Felix Ward", "Hanna Cole"]
+
+
 def test_misspelled_full_names_of_room_members_match_them(store):
     *_, felix = room_of(store, "Sam Torres", "Mia Rao", "Kate Russo", "Felix Ward")
     for heard in ["San Torres", "Sam Taurus", "Miaely Rao", "Kay Russo"]:

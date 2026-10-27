@@ -122,16 +122,16 @@ def english() -> frozenset[str]:
 
 def near_first(heard: str, first: str, *, room: bool) -> bool:
     """Whether a lone name could be a first name that Whisper or the model misspelled, such as "Nima" for Nina,
-    "Pria" for Priya, or "Sophiely" for Sophie. Someone in the room also matches by sound, as in "Anna" for
-    Hannah. Else an English word never matches, so "Mark" stays apart from Mary, and a common first name only
-    matches someone in the room."""
+    "Pria" for Priya, or "Sophiely" for Sophie. Anyone also matches by sound, as in "Anna" for Hannah, because
+    Whisper drops the h of a name that the room only mentions too. Else an English word never matches, so "Mark"
+    stays apart from Mary, and a common first name only matches someone in the room."""
 
     def sound(word: str) -> str:
         return re.sub(r"(.)\1+", r"\1", word.lower().replace("h", ""))
 
     if heard == first or len(heard) < 3:
         return False
-    if room and sound(heard) == sound(first):
+    if sound(heard) == sound(first):
         return True
     if heard.lower() in english() or (heard in proper_names() and not room):
         return False
