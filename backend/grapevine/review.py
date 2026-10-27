@@ -8,6 +8,7 @@ Each call writes short notes before its list, which the list then follows."""
 import asyncio
 import re
 from collections import defaultdict
+from dataclasses import replace
 from difflib import SequenceMatcher
 from itertools import combinations
 
@@ -23,11 +24,11 @@ from grapevine.extract import (
     year_in,
 )
 from grapevine.graph import Record
-from grapevine.llm import LLM, Call, watch_on
+from grapevine.llm import LLM, Call, Result, watch_on
 from grapevine.names import misspelled
 from grapevine.store import GROUP_WORDS, Store, group_key, proper_group_name
 
-PROMPT_VERSION = "review-v21"
+PROMPT_VERSION = "review-v22"
 SAME_EVENT = 0.6
 # The prompt says that how two people met, or that they dated, is not a happening, and the model still lists it.
 NOT_HAPPENINGS = {"relationship", "meeting", "met", "dating", "friendship"}
@@ -38,6 +39,7 @@ MAX_CANDIDATES = 8
 THE_NAME = re.compile(r"\b(The [A-Z][\w'-]*(?: [A-Z][\w'-]*)*)")
 NOUN_NAME = re.compile(r"\b((?:[A-Z][\w'-]* )+(?:crew|team|league|club|band|Crew|Team|League|Club|Band))\b")
 VOTE_TEMPERATURE = 0.5
+RETRY_TEMPERATURE = 0.3
 
 INTRO = """You check the record of a group conversation against its full transcript, and complete it. Return JSON only.
 
@@ -101,6 +103,8 @@ EVENTS_SYSTEM = (
 NULLABLE = {"type": ["string", "null"]}
 NAMES = {"type": "array", "items": {"type": "string"}}
 TEXT = {"type": "string"}
+# At temperature 0 the model can repeat one sentence in its notes until it runs out of tokens.
+ANALYSIS = {"type": "string", "maxLength": 1500}
 
 
 def _object(**properties: dict) -> dict:
@@ -120,7 +124,7 @@ TIE = {
 def relationships_schema(pairs: list[str]) -> dict:
     """One required key for each pair in the room, so the model answers for every pair."""
     return _object(
-        analysis=TEXT,
+        analysis=ANALYSIS,
         room=_object(**{pair: {"type": "array", "items": _object(**TIE)} for pair in pairs}),
         other={"type": "array", "items": _object(a=TEXT, b=TEXT, **TIE)},
     )
@@ -132,7 +136,7 @@ def groups_schema(groups: list[str], candidates: list[str], people: list[str]) -
     members = _object(**{name: {"type": "boolean"} for name in people})
     candidate = _object(is_group={"type": "boolean"}, also_called=NAMES, members=members)
     return _object(
-        analysis=TEXT,
+        analysis=ANALYSIS,
         known=_object(**{group: _object(also_called=NAMES, members=members) for group in groups}),
         candidates=_object(**{name: candidate for name in candidates}),
         new={"type": "array", "items": _object(name=TEXT, also_called=NAMES, members=NAMES)},
@@ -163,10 +167,10 @@ def events_schema(record: list[str]) -> dict:
         place=NULLABLE,
         people=NAMES,
     )
-    return _object(analysis=TEXT, happenings={"type": "array", "items": happening})
+    return _object(analysis=ANALYSIS, happenings={"type": "array", "items": happening})
 
 
-MEMBERS_SCHEMA = _object(analysis=TEXT, members=NAMES)
+MEMBERS_SCHEMA = _object(analysis=ANALYSIS, members=NAMES)
 
 
 def user_message(store: Store, *, today: str) -> str:
@@ -219,8 +223,8 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
     texts = [s["text"] for s in sorted(store.graph.segments.values(), key=lambda s: s["start_ms"])]
     groups_call = ask(GROUPS_SYSTEM, groups_schema(known_groups, candidate_groups(texts, known_groups), people))
     groups, events, *voted = await asyncio.gather(
-        llm.call(groups_call, run_id=store.run_id, audio_ms=store.audio_ms),
-        llm.call(ask(EVENTS_SYSTEM, events_schema(list(record_events))), run_id=store.run_id, audio_ms=store.audio_ms),
+        call_or_retry(store, llm, groups_call),
+        call_or_retry(store, llm, ask(EVENTS_SYSTEM, events_schema(list(record_events)))),
         *[
             llm.call(vote, run_id=store.run_id, audio_ms=store.audio_ms, watch=watch if i == 0 else None)
             for i, vote in enumerate(votes)
@@ -288,8 +292,18 @@ async def members_of(store: Store, llm: LLM, group: Record, *, model: str, seed:
         + ["", "LINES:", *lines]
     )
     call = Call("reviewer", model, PROMPT_VERSION, MEMBERS_SYSTEM, user, MEMBERS_SCHEMA, seed, max_tokens=1500)
-    result = await llm.call(call, run_id=store.run_id, audio_ms=store.audio_ms)
+    result = await call_or_retry(store, llm, call)
     return result.output["members"] if result.output else []
+
+
+async def call_or_retry(store: Store, llm: LLM, call: Call) -> Result:
+    """Asks once more with another seed and a small temperature when the output is not valid JSON, such as
+    JSON cut off when the model loops until it runs out of tokens."""
+    result = await llm.call(call, run_id=store.run_id, audio_ms=store.audio_ms)
+    if result.output is not None:
+        return result
+    retry = replace(call, seed=call.seed + VOTES, temperature=RETRY_TEMPERATURE)
+    return await llm.call(retry, run_id=store.run_id, audio_ms=store.audio_ms)
 
 
 def group_lines(texts: list[str], group_names: list[str]) -> list[int]:

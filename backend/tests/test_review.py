@@ -1,4 +1,7 @@
-from grapevine.review import agreed, apply_happenings, candidate_groups, group_lines, ties
+import asyncio
+
+from grapevine.llm import Call, Result
+from grapevine.review import agreed, apply_happenings, call_or_retry, candidate_groups, group_lines, ties
 
 IDS = {"Ray Patel": 1, "Jasper Lin": 2, "Sophie Moreau": 3}
 
@@ -81,3 +84,21 @@ def test_bandmates_are_friends_even_when_the_band_is_paid():
         "friend",
         "professional",
     ]
+
+
+class CutOff:
+    """Returns cut-off JSON for the first call and valid JSON after it."""
+
+    def __init__(self) -> None:
+        self.calls: list[Call] = []
+
+    async def call(self, call: Call, **_) -> Result:
+        self.calls.append(call)
+        return Result(None if len(self.calls) == 1 else {"members": []}, len(self.calls))
+
+
+def test_cut_off_output_is_asked_again_with_another_seed_and_temperature(store):
+    llm = CutOff()
+    result = asyncio.run(call_or_retry(store, llm, Call("reviewer", "m", "v", "s", "u", {}, seed=7)))
+    assert result.output == {"members": []}
+    assert [(c.seed, c.temperature) for c in llm.calls] == [(7, 0), (10, 0.3)]
