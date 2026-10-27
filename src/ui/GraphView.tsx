@@ -316,12 +316,13 @@ function GraphView({ state, pulses, speakingId, factors, selectedId, onSelect }:
     nodeGroups.call(
       d3
         .drag<SVGGElement, Node>()
-        .on("start", (event, n) => {
-          if (!event.active) simRef.current?.alphaTarget(0.2).restart();
+        .on("start", (_, n) => {
           n.fx = n.x;
           n.fy = n.y;
         })
+        // A click also starts a drag, so the layout wakes only when the node moves.
         .on("drag", (event, n) => {
+          simRef.current?.alphaTarget(0.2).restart();
           n.fx = event.x;
           n.fy = event.y;
         })
