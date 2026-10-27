@@ -1,0 +1,433 @@
+{
+  "audio": "game-night-5p.mp3",
+  "intro_end_ms": 46598,
+  "duration_ms": 183062,
+  "turns": [
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 500,
+      "end_ms": 6030,
+      "text": "Okay, okay, before we start, quick names. I'm Lena, this is my place."
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 6277,
+      "end_ms": 10327,
+      "text": "I'm Jonah, I work with Lena at the library, and this is my brother"
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 9823,
+      "end_ms": 12553,
+      "text": "Eli. I can say my own name, Jonah."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 13075,
+      "end_ms": 13465,
+      "text": "Ha!"
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 13637,
+      "end_ms": 15717,
+      "text": "Younger brother. Better looking."
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 15583,
+      "end_ms": 16183,
+      "text": "No way."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 16839,
+      "end_ms": 20819,
+      "text": "Hi, I'm Tessa, Lena's roommate. I teach third grade."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 21517,
+      "end_ms": 21957,
+      "text": "Yeah."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 22071,
+      "end_ms": 26741,
+      "text": "And I'm Kofi. Kofi Mensah. I'm the one who keeps winning."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 25951,
+      "end_ms": 27311,
+      "text": "He does not keep winning."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 27891,
+      "end_ms": 28791,
+      "text": "Mm-hm."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 28978,
+      "end_ms": 35638,
+      "text": "I won twice! Jonah and I go way back, we met at band camp in 2014."
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 35855,
+      "end_ms": 39505,
+      "text": "It was 2015. Summer of 2015."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 39033,
+      "end_ms": 43003,
+      "text": "No, it was 2014, I had braces."
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 43216,
+      "end_ms": 43636,
+      "text": "Right."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 44148,
+      "end_ms": 46348,
+      "text": "Okay, so Eli, what do you do?"
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 47070,
+      "end_ms": 51180,
+      "text": "I'm a line cook at a diner downtown. Night shifts, mostly."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 51748,
+      "end_ms": 52388,
+      "text": "Oh nice."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 53018,
+      "end_ms": 55728,
+      "text": "Who wants to shuffle? Kofi, you shuffle."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 55053,
+      "end_ms": 56123,
+      "text": "Sure, sure."
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 56439,
+      "end_ms": 59549,
+      "text": "So Tessa, how long have you and Lena lived together?"
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 60207,
+      "end_ms": 66527,
+      "text": "Three years. We met in college at Ohio State, in 2018. We were in the same dorm."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 67141,
+      "end_ms": 67571,
+      "text": "Yeah."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 67698,
+      "end_ms": 70068,
+      "text": "She stole my parking spot the first week."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 69511,
+      "end_ms": 70261,
+      "text": "I did not!"
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 70861,
+      "end_ms": 71451,
+      "text": "Mm."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 72003,
+      "end_ms": 82993,
+      "text": "Okay, the four of us, me, Jonah, Lena, and Nate Ross, we do trivia every Thursday at the pub on Elm Street. We are the Thursday Quizzards."
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 83249,
+      "end_ms": 83699,
+      "text": "The what?"
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 84213,
+      "end_ms": 86563,
+      "text": "Quizzards. Like wizards."
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 86076,
+      "end_ms": 86516,
+      "text": "Don't."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 87055,
+      "end_ms": 87915,
+      "text": "That's terrible."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 88467,
+      "end_ms": 92267,
+      "text": "We won the spring league in 2023, thank you very much."
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 92562,
+      "end_ms": 94812,
+      "text": "Wait, Nate Ross, or Nate Kim?"
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 95352,
+      "end_ms": 99512,
+      "text": "Nate Ross. Nate Kim is Kofi's boss, at the bike shop."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 100110,
+      "end_ms": 102010,
+      "text": "Yeah, he owns the shop."
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 102227,
+      "end_ms": 102737,
+      "text": "Got it."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 103404,
+      "end_ms": 104654,
+      "text": "Your turn, Tessa."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 104873,
+      "end_ms": 105643,
+      "text": "Hold on."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 106237,
+      "end_ms": 108277,
+      "text": "Okay, I play the red seven."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 108915,
+      "end_ms": 110385,
+      "text": "Oh, come on."
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 110602,
+      "end_ms": 112722,
+      "text": "Hey Kofi, are you still with Nora?"
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 113346,
+      "end_ms": 119236,
+      "text": "Yeah, Nora and I got engaged in August, on the camping trip at Crater Lake."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 118556,
+      "end_ms": 119986,
+      "text": "What? Congrats!"
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 120526,
+      "end_ms": 121286,
+      "text": "Oh my god."
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 121521,
+      "end_ms": 124211,
+      "text": "I was there. He dropped the ring in the tent."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 124807,
+      "end_ms": 125707,
+      "text": "It was dark!"
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 125925,
+      "end_ms": 126535,
+      "text": "Classic."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 127209,
+      "end_ms": 129019,
+      "text": "Jonah, tell them about Gwen."
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 129248,
+      "end_ms": 136138,
+      "text": "Gwen and I dated for two years in college. We broke up in 2019, but we are still close friends."
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 136757,
+      "end_ms": 137797,
+      "text": "Mm-hm."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 138297,
+      "end_ms": 140207,
+      "text": "Is she the one who runs the bakery?"
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 139699,
+      "end_ms": 140509,
+      "text": "Yeah, yeah."
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 141229,
+      "end_ms": 143389,
+      "text": "And our cousin Walt works for her now."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 143923,
+      "end_ms": 144673,
+      "text": "Small world."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 145049,
+      "end_ms": 145649,
+      "text": "Uno!"
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 145815,
+      "end_ms": 146175,
+      "text": "No!"
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 146697,
+      "end_ms": 147697,
+      "text": "Are you kidding me?"
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 148403,
+      "end_ms": 154643,
+      "text": "Okay, Tessa and I are hosting a Friendsgiving next week, on the twenty second. Everyone is invited."
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 154877,
+      "end_ms": 155437,
+      "text": "I'm in."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 155969,
+      "end_ms": 156559,
+      "text": "Same."
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 156879,
+      "end_ms": 160899,
+      "text": "Wait, Lena, should I bring anything? I make a decent pie."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 161493,
+      "end_ms": 165243,
+      "text": "Pie, yes. Eli, can you bring the stuffing from the diner?"
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 164475,
+      "end_ms": 166105,
+      "text": "Only if Jonah drives me."
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 166623,
+      "end_ms": 167143,
+      "text": "Fine."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 167797,
+      "end_ms": 170887,
+      "text": "Kofi, bring Nora. I want to see the ring."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 171575,
+      "end_ms": 175755,
+      "text": "She'll love that. She has been showing it to everyone at work."
+    },
+    {
+      "speaker": "Lena Ortiz",
+      "start_ms": 175072,
+      "end_ms": 175972,
+      "text": "Mm-hm."
+    },
+    {
+      "speaker": "Tessa Quinn",
+      "start_ms": 176159,
+      "end_ms": 178799,
+      "text": "Okay, new round. Who's dealing?"
+    },
+    {
+      "speaker": "Eli Pierce",
+      "start_ms": 179429,
+      "end_ms": 180259,
+      "text": "Not Kofi."
+    },
+    {
+      "speaker": "Jonah Pierce",
+      "start_ms": 180111,
+      "end_ms": 181601,
+      "text": "Definitely not Kofi."
+    },
+    {
+      "speaker": "Kofi Mensah",
+      "start_ms": 182162,
+      "end_ms": 182652,
+      "text": "Wow."
+    }
+  ]
+}
