@@ -1,4 +1,11 @@
+import os
+import tempfile
+from pathlib import Path
+
 import pytest
+
+# Importing the server opens GRAPEVINE_DB, so the tests point it away from the real database first.
+os.environ["GRAPEVINE_DB"] = str(Path(tempfile.mkdtemp()) / "server.db")
 
 from grapevine import db
 from grapevine.store import Store

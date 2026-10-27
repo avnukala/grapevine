@@ -67,6 +67,13 @@ def store_for(run_id: int) -> Store:
     return open_store(conn, run_id, broadcast)
 
 
+def session_or_404(session_id: int) -> Record:
+    try:
+        return session(conn, session_id)
+    except KeyError:
+        raise HTTPException(404, f"no session {session_id}") from None
+
+
 def threshold(run_id: int) -> float:
     config = json.loads(conn.execute("SELECT config_json FROM runs WHERE id = ?", (run_id,)).fetchone()[0])
     return config.get("voice_threshold", RunConfig().voice_threshold)
@@ -161,6 +168,7 @@ class SessionUpdate(BaseModel):
 
 @app.patch("/api/sessions/{session_id}")
 async def update_session(session_id: int, body: SessionUpdate) -> Record:
+    session_or_404(session_id)
     for key, value in body.model_dump(exclude_none=True).items():
         if key == "roster":
             value = json.dumps(clean_roster(value))
@@ -170,7 +178,7 @@ async def update_session(session_id: int, body: SessionUpdate) -> Record:
 
 @app.get("/api/sessions/{session_id}/audio")
 async def session_audio(session_id: int) -> FileResponse:
-    uri = session(conn, session_id)["audio_uri"]
+    uri = session_or_404(session_id)["audio_uri"]
     if not uri or not audio_path(uri).is_file():
         raise HTTPException(404, "this session has no audio")
     return FileResponse(audio_path(uri))
@@ -193,7 +201,7 @@ async def idle(stop: asyncio.Event) -> AsyncIterator[np.ndarray]:
 async def new_run(body: NewRun) -> Record:
     if active:
         raise HTTPException(409, f"run {next(iter(active))} is still going")
-    current = session(conn, body.session_id)
+    current = session_or_404(body.session_id)
     if body.source == "file" and not current["audio_uri"]:
         raise HTTPException(400, "this session has no audio to replay")
     config = run_config(dict(body.config))
@@ -304,7 +312,12 @@ async def intro_done(run_id: int) -> Record:
 
 @app.post("/api/runs/{run_id}/accept")
 async def accept_run(run_id: int) -> Record:
-    session_id = conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()[0]
+    row = conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()
+    if row is None:
+        raise HTTPException(404, f"no run {run_id}")
+    if run_id in active:
+        raise HTTPException(409, f"run {run_id} is still going")
+    session_id = row[0]
     conn.execute("BEGIN")
     conn.execute("UPDATE runs SET accepted = 0 WHERE session_id = ?", (session_id,))
     conn.execute("UPDATE runs SET accepted = 1 WHERE id = ?", (run_id,))
