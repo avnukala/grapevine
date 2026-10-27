@@ -19,6 +19,10 @@ svg.graph .hull text {
   text-transform: uppercase;
   text-anchor: middle;
   opacity: 0.8;
+  paint-order: stroke;
+  stroke: var(--background);
+  stroke-width: 4px;
+  pointer-events: none;
 }
 
 svg.graph .edges path {
@@ -44,6 +48,16 @@ svg.graph .edge-labels text {
   stroke: var(--background);
   stroke-width: 3px;
   pointer-events: none;
+}
+
+svg.graph.dense:not(.zoomed) .edge-labels text {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+svg.graph.dense:not(.zoomed) .edge-labels text.near,
+svg.graph.dense:not(.zoomed) .edge-labels text.picked {
+  opacity: 0.9;
 }
 
 svg.graph .captions rect {

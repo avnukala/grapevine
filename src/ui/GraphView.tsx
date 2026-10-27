@@ -76,6 +76,9 @@ const OUTSIDE_RADIUS = 19;
 const HULL_PAD = 46;
 const CHAR_PX = 6.4;
 const GROUP_PULL = 0.08;
+// Past this many ties, a tie shows its label only for the person under the pointer or picked, or when zoomed in.
+const DENSE_EDGES = 8;
+const ZOOMED_IN = 1.4;
 const GROUP_PUSH = 0.4;
 // People with no ties feel only the charge, which pushes them far out unless the centre pulls harder.
 const LONER_PULL = 0.12;
@@ -171,7 +174,10 @@ function GraphView({ state, inset, pulses, speakingId, factors, selectedId, onSe
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.3, 3])
-      .on("zoom", (event) => layer.attr("transform", event.transform));
+      .on("zoom", (event) => {
+        layer.attr("transform", event.transform);
+        root.classed("zoomed", event.transform.k >= ZOOMED_IN);
+      });
     zoomRef.current = zoom;
     root.call(zoom);
     return () => {
@@ -310,6 +316,7 @@ function GraphView({ state, inset, pulses, speakingId, factors, selectedId, onSe
       .join("text")
       .attr("fill", (e) => CATEGORIES[e.rel.category].color)
       .text((e) => e.rel.label.toLowerCase());
+    svg.classed("dense", edges.length > DENSE_EDGES);
 
     const nodeGroups = svg
       .select("g.nodes")
@@ -378,6 +385,9 @@ function GraphView({ state, inset, pulses, speakingId, factors, selectedId, onSe
           n.fy = null;
         }),
     );
+    nodeGroups
+      .on("mouseenter focus", (_, n) => edgeLabels.classed("near", (e) => e.source.id === n.id || e.target.id === n.id))
+      .on("mouseleave blur", () => edgeLabels.classed("near", false));
     svg.on("click", () => onSelect(null));
 
     const ticked = () => {
@@ -438,6 +448,10 @@ function GraphView({ state, inset, pulses, speakingId, factors, selectedId, onSe
     }
     const edges = svg.select("g.edges").selectAll<SVGPathElement, Edge>("path");
     edges.classed("lit", (e) => litRelationships.has(e.rel.id) || litPairs.has(pairKey(e.source.id, e.target.id)));
+    svg
+      .select("g.edge-labels")
+      .selectAll<SVGTextElement, Edge>("text")
+      .classed("picked", (e) => selectedId !== null && (e.source.id === selectedId || e.target.id === selectedId));
     // A fact about several people lights every pair among them. Caption it on one edge only.
     const captioned = new Map<string, Edge>();
     edges.each((e) => {
