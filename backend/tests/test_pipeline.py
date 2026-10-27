@@ -425,6 +425,10 @@ def test_an_introduction_read_under_another_speaker_is_read_again(conn):
     )
     asyncio.run(pipeline.run(chunks(render(lines, 9000))))
 
-    assert any("speaker: Ray Patel):\nHi, I'm Sophie" in r["messages"][1]["content"] for r in chat.requests)
+    turns = [r["messages"][1]["content"].split("NEW TURN", 1)[-1] for r in chat.requests]
+    reads = [
+        next(i for i, turn in enumerate(turns) if key in turn) for key in ("Ray Patel):\nHi", "Moreau):\nHi", "Jasper")
+    ]
+    assert reads == sorted(reads)
     assert [name for _, name in snapshot(store)["segments"]] == ["Ray Patel", "Sophie Moreau", "Jasper Lin"]
     assert snapshot(store)["facts"] == []

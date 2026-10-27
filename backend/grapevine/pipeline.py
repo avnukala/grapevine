@@ -443,6 +443,7 @@ class Pipeline:
                     if call is not None:
                         task = asyncio.create_task(suggest(self.store, self.llm, call, at_ms=job.at_ms))
                         self.prompter_tasks.add(task)
+            await self._reextract(list(self.extracted_as))
 
     async def _extract(self, job: SegmentJob) -> None:
         segment = self.store.graph.segments[job.segment_id]
