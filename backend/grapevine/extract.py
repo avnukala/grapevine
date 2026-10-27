@@ -10,7 +10,7 @@ from grapevine.names import better_spelling, drop_ly, misspelled, near_first, pa
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
-PROMPT_VERSION = "extract-v12"
+PROMPT_VERSION = "extract-v13"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
 
@@ -37,7 +37,7 @@ FACTS
 - people: every person the fact is about, by name.
 - when_text: the time as said, for example "freshman year". start_date and end_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD" when the turn, the known facts, or today's date resolve it. "Tonight" and "today" are today's date.
 - event: for a named or dated happening (a festival, a show or concert, including one tonight, a trip, a wedding, a proposal, an accident, a move to a new city or house), the event name, also listed in "events". To talk about a known event again, list it in "events" with its "id" ("e2") and use its known name. Name a new event by what and when, for example "Coachella 2018". All facts of one story share one event. A school, a place, or a group is not an event.
-- If the speaker corrects a fact that they told, or agrees with a correction, use kind correction and set "revises" to the old fact id.
+- If the speaker corrects a fact that they told, or agrees with a correction, use kind correction and set "revises" to the old fact id. A speaker who gives in, such as with "okay, fine" or "you are right", agrees with the correction. Write that correction first, even though it repeats a known fact. For example, Mia Rao told f3 "Mia Rao moved to Seattle in 2016.", Dana Cole said it was 2017, and Mia Rao now says "Okay, fine, it was 2017, and I love it there": the first fact is {"kind": "correction", "text": "Mia Rao moved to Seattle in 2017.", "people": ["speaker"], "start_date": "2017", "revises": "f3"}.
 - If the speaker contradicts a fact that ANOTHER person told, write the speaker's version and set "disputes" to the other fact id. Set "disputes" only when the two facts give different values for the same thing, such as two years for one trip.
 - A turn that starts with "that is true, but" or "yes, and" agrees with the turn before. Its new facts do not dispute anything.
 
