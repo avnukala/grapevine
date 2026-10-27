@@ -76,7 +76,7 @@ export function SessionControls(props: SessionControlsProps) {
       </Select>
       {session && (
         <Select value={runId ? String(runId) : ""} onValueChange={(v) => onRun(Number(v))}>
-          <SelectTrigger className="w-56" aria-label="Run" data-testid="run-select">
+          <SelectTrigger className="w-72" aria-label="Run" data-testid="run-select">
             <SelectValue placeholder="No runs yet" />
           </SelectTrigger>
           <SelectContent>
