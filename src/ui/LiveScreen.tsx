@@ -379,7 +379,7 @@ interface ScrollBackProps {
   children: React.ReactNode;
 }
 
-// Keeps the newest line in view while the room talks, until someone scrolls up to read an earlier line.
+// Keeps the newest line in view while the room talks, until someone scrolls up to read or edit an earlier line.
 function ScrollBack({ lines, follow, children }: ScrollBackProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [atEnd, setAtEnd] = useState(true);
@@ -387,7 +387,7 @@ function ScrollBack({ lines, follow, children }: ScrollBackProps) {
   const toEnd = () => ref.current?.scrollTo({ top: ref.current.scrollHeight });
 
   useLayoutEffect(() => {
-    if (atEnd) toEnd();
+    if (atEnd && !ref.current?.contains(document.activeElement)) toEnd();
   }, [lines, follow, tall, atEnd]);
 
   return (
