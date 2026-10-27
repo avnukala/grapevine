@@ -128,3 +128,24 @@ def test_misspelled_names_are_candidates_for_the_same_person(conn):
     store = merge_run(conn, same_person(0.9))
     [prompt] = store.graph.active_prompts()
     assert prompt["reason"] == "merge_people"
+
+
+def test_merge_asks_once_about_a_conflict_the_session_already_found(conn):
+    run = accepted_run(conn, "one")
+    ray = run.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    jasper = run.create_person(name="Jasper Lin", aliases=["Jasper"], gender="male")["id"]
+    tell(run, jasper, "Ray broke his arm in 2017.", facts=[fact("Ray Patel broke his arm in 2017.", ["Ray Patel"])])
+    first = max(run.graph.facts)
+    tell(
+        run,
+        ray,
+        "No, it was 2018.",
+        facts=[fact("Ray Patel broke his arm in 2018.", ["speaker"], disputes=f"f{first}")],
+    )
+    model_conflict = {"facts": ["f2", "f1"], "question": "Did Ray break his arm in 2017 or 2018?"}
+    chat = FakeChat({}, merged={"relationships": [], "conflicts": [model_conflict], "same_person": []})
+
+    store = merge_run(conn, chat)
+
+    [prompt] = store.graph.active_prompts()
+    assert prompt["reason"] == "merge_conflict" and sorted(prompt["payload"]["fact_ids"]) == sorted(store.graph.facts)

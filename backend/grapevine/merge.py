@@ -66,9 +66,15 @@ SCHEMA = {
 
 
 def review(store: Store, **prompt) -> None:
-    """Adds an item to the merge review. Unlike the live prompt panel, the review shows every item."""
-    if not any(p["text"] == prompt["text"] for p in store.graph.active_prompts()):
-        store.add_prompt(**prompt)
+    """Adds an item to the merge review. Unlike the live prompt panel, the review shows every item, but only once
+    for the same text or the same facts in dispute."""
+    facts = set(prompt["payload"].get("fact_ids", []))
+    for open_prompt in store.graph.active_prompts():
+        if open_prompt["text"] == prompt["text"] or (
+            facts and set(open_prompt["payload"].get("fact_ids", [])) == facts
+        ):
+            return
+    store.add_prompt(**prompt)
 
 
 def canonical(store: Store, person_id: int) -> int:
