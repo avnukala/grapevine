@@ -27,6 +27,11 @@ import type { SpeakerPick } from "./Transcript";
 import { WeightPanel } from "./WeightPanel";
 
 export type View = "graph" | "timeline";
+
+// The URL names the open run, so a reload or a shared link opens it again.
+export function linkedRun(): number | null {
+  return Number(new URLSearchParams(location.hash.split("?")[1]).get("run")) || null;
+}
 const GLOW_MS = 2500;
 
 interface ViewSwitchProps {
@@ -92,10 +97,10 @@ interface LiveScreenProps {
 export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
-  const [runId, setRunId] = useState<number | null>(null);
+  const [runId, setRunId] = useState<number | null>(linkedRun);
   const [view, setView] = useState<View>("graph");
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [onboarding, setOnboarding] = useState(true);
+  const [onboarding, setOnboarding] = useState(() => linkedRun() === null);
   const live = useRun(runId);
   const now = useNow();
   const { state } = live;
@@ -117,8 +122,14 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
     setRunId(run.id);
   };
   useEffect(() => {
-    void api.activeRun().then((run) => run && open(run));
+    void api.activeRun().then((run) => run && !linkedRun() && open(run));
   }, []);
+  useEffect(() => {
+    if (sessionId === null && runId !== null) setSessionId(sessions.find((s) => s.runs.some((r) => r.id === runId))?.id ?? null);
+  }, [sessions, sessionId, runId]);
+  useEffect(() => {
+    history.replaceState(null, "", runId ? `#/?run=${runId}` : "#/");
+  }, [runId]);
   useEffect(() => {
     if (live.error) toast.error(live.error, { duration: Infinity, closeButton: true });
   }, [live.error]);

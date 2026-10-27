@@ -15,7 +15,7 @@ import { stateAt } from "../state/reducer";
 import type { Change, ModelCall, RunState, Session } from "../state/types";
 import { useRun } from "../state/useRun";
 import { GraphView } from "./GraphView";
-import { Stats, ViewSwitch } from "./LiveScreen";
+import { Stats, ViewSwitch, linkedRun } from "./LiveScreen";
 import type { View } from "./LiveScreen";
 import { TimelineView } from "./TimelineView";
 import { Transcript } from "./Transcript";
@@ -30,7 +30,7 @@ interface DebugScreenProps {
 // current audio time, next to the transcript, the model calls, and the change log.
 export function DebugScreen({ factors }: DebugScreenProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [runId, setRunId] = useState<number | null>(() => Number(new URLSearchParams(location.hash.split("?")[1]).get("run")) || null);
+  const [runId, setRunId] = useState<number | null>(linkedRun);
   const [calls, setCalls] = useState<ModelCall[]>([]);
   const [ms, setMs] = useState(0);
   const [speed, setSpeed] = useState(1);
@@ -39,6 +39,9 @@ export function DebugScreen({ factors }: DebugScreenProps) {
   const audio = useRef<HTMLAudioElement>(null);
   const live = useRun(runId);
 
+  useEffect(() => {
+    history.replaceState(null, "", runId ? `#/debug?run=${runId}` : "#/debug");
+  }, [runId]);
   useEffect(() => {
     api.sessions().then(setSessions).catch(() => setSessions([]));
   }, [live.status]);
