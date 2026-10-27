@@ -1,4 +1,4 @@
-import { Gauge } from "lucide-react";
+import { Gauge, Pause, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { GraphView, TOOLBAR_INSET } from "./GraphView";
 import { Stats, ViewSwitch, linkedRun } from "./LiveScreen";
 import type { View } from "./LiveScreen";
 import { TimelineView } from "./TimelineView";
-import { Transcript } from "./Transcript";
+import { Transcript, clock } from "./Transcript";
 
 const SPEEDS = [0.5, 1, 1.5, 2, 4];
 
@@ -34,6 +34,7 @@ export function DebugScreen({ factors }: DebugScreenProps) {
   const [calls, setCalls] = useState<ModelCall[]>([]);
   const [ms, setMs] = useState(0);
   const [speed, setSpeed] = useState(1);
+  const [playing, setPlaying] = useState(false);
   const [view, setView] = useState<View>("graph");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const audio = useRef<HTMLAudioElement>(null);
@@ -84,14 +85,24 @@ export function DebugScreen({ factors }: DebugScreenProps) {
           </SelectContent>
         </Select>
         {session?.audio_uri && (
-          <audio
-            ref={audio}
-            src={audioUrl(session.id)}
-            controls
-            className="h-8"
-            onTimeUpdate={(e) => setMs(Math.round(e.currentTarget.currentTime * 1000))}
-            onLoadedMetadata={(e) => (e.currentTarget.playbackRate = speed)}
-          />
+          <>
+            <audio
+              ref={audio}
+              src={audioUrl(session.id)}
+              onTimeUpdate={(e) => setMs(Math.round(e.currentTarget.currentTime * 1000))}
+              onLoadedMetadata={(e) => (e.currentTarget.playbackRate = speed)}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+            />
+            <Button
+              size="icon-sm"
+              aria-label={playing ? "Pause" : "Play"}
+              onClick={() => (playing ? audio.current!.pause() : audio.current!.play())}
+              data-testid="play"
+            >
+              {playing ? <Pause /> : <Play />}
+            </Button>
+          </>
         )}
         <div className="flex items-center gap-1">
           <Gauge className="size-4 text-muted-foreground" />
@@ -112,7 +123,7 @@ export function DebugScreen({ factors }: DebugScreenProps) {
           data-testid="scrubber"
         />
         <span className="font-mono text-xs tabular-nums" data-testid="clock">
-          {(ms / 1000).toFixed(1)}s / {(duration / 1000).toFixed(1)}s
+          {clock(ms)} / {clock(duration)}
         </span>
       </div>
 

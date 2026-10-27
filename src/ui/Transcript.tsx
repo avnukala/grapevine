@@ -29,7 +29,7 @@ export function isUnknown(segment: Segment, threshold: number): boolean {
   return segment.person_id === null || (segment.speaker_confidence !== null && segment.speaker_confidence < threshold);
 }
 
-function clock(ms: number): string {
+export function clock(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
