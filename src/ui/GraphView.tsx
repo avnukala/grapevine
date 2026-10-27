@@ -101,6 +101,8 @@ function inertia(nodes: Node[], phase: "start" | "end"): d3.Force<Node, undefine
 
 // Pulls the members of a named group toward their center, so groups form clusters, and pushes other people out of it.
 function cohesion(hulls: Hull[], byId: Map<number, Node>): d3.Force<Node, undefined> {
+  // Only people in no group are pushed. Two groups that push each other's members spread without end.
+  const grouped = new Set(hulls.flatMap((h) => h.members));
   return (alpha) => {
     for (const hull of hulls) {
       const members = hull.members.map((id) => byId.get(id)!);
@@ -112,7 +114,7 @@ function cohesion(hulls: Hull[], byId: Map<number, Node>): d3.Force<Node, undefi
       }
       const reach = (d3.max(members, (n) => Math.hypot((n.x ?? 0) - cx, (n.y ?? 0) - cy)) ?? 0) + HULL_PAD * 2;
       for (const node of byId.values()) {
-        if (hull.members.includes(node.id)) continue;
+        if (grouped.has(node.id)) continue;
         const dx = (node.x ?? 0) - cx;
         const dy = (node.y ?? 0) - cy;
         const distance = Math.hypot(dx, dy) || 1;
