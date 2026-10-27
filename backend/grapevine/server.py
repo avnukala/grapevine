@@ -7,13 +7,13 @@ import shutil
 from collections.abc import AsyncIterator
 from datetime import date, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 import numpy as np
 import openai
 from fastapi import FastAPI, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, StringConstraints
 
 from grapevine import db
 from grapevine.actions import ActionError, assign_speaker, pick_person, pick_speaker, settle_conflict
@@ -43,6 +43,8 @@ from grapevine.store import Store
 
 log = logging.getLogger(__name__)
 AUDIO_SUFFIXES = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aiff"}
+# Every person and speaker needs a name, because name matching splits it into words.
+Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 
 app = FastAPI(title="Grapevine")
 # One connection for the whole server. Every route that uses it, or a running pipeline, is async, so it runs on
@@ -108,11 +110,11 @@ async def sessions() -> list[Record]:
 
 
 class NewSession(BaseModel):
-    name: str
+    name: Name
     audio_uri: str | None = None
     recorded_at: str | None = None
     intro_end_ms: int | None = None
-    roster: list[str] = []
+    roster: list[Annotated[str, StringConstraints(max_length=100)]] = []
 
 
 @app.post("/api/sessions")
@@ -161,10 +163,10 @@ def clean_roster(names: list[str]) -> list[str]:
 
 
 class SessionUpdate(BaseModel):
-    name: str | None = None
+    name: Name | None = None
     notes: str | None = None
     intro_end_ms: int | None = None
-    roster: list[str] | None = None
+    roster: list[Annotated[str, StringConstraints(max_length=100)]] | None = None
 
 
 @app.patch("/api/sessions/{session_id}")
@@ -339,21 +341,19 @@ async def accept_run(run_id: int) -> Record:
 
 
 class TextTurn(BaseModel):
-    speaker: str
-    text: str
+    speaker: Name
+    text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=5000)]
 
 
 @app.post("/api/runs/{run_id}/text")
 async def text_turn(run_id: int, body: TextTurn) -> Record:
-    if not body.text.strip() or not body.speaker.strip():
-        raise HTTPException(400, "a text turn needs a speaker and text")
-    return await active_run(run_id).pipeline.add_text(body.speaker.strip(), body.text.strip())
+    return await active_run(run_id).pipeline.add_text(body.speaker, body.text)
 
 
 class Answer(BaseModel):
     person_id: int | None = None
-    new_name: str | None = None
-    nickname: str | None = None
+    new_name: Name | None = None
+    nickname: Name | None = None
     keep_fact_id: int | None = None
 
 
@@ -391,7 +391,7 @@ async def dismiss_prompt(run_id: int, prompt_id: int) -> Record:
 
 class SpeakerAnswer(BaseModel):
     person_id: int | None = None
-    new_name: str | None = None
+    new_name: Name | None = None
     every_line: bool = False
 
 

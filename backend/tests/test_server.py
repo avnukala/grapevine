@@ -58,3 +58,14 @@ def test_two_starts_at_once_start_one_run(conn, store, monkeypatch):
     assert isinstance(first, RuntimeError)
     assert isinstance(second, HTTPException) and second.status_code == 409
     assert conn.execute("SELECT count(*) FROM runs").fetchone()[0] == 1
+
+
+def test_blank_or_long_names_are_rejected(client, store):
+    segment = store.add_segment(
+        start_ms=0, end_ms=1000, speaker_label="s1", person_id=None, confidence=None, text="hi", timings={}
+    )
+    for name in ["   ", "a" * 101]:
+        answer = client.post(f"/api/runs/{store.run_id}/segments/{segment['id']}/speaker", json={"new_name": name})
+        assert answer.status_code == 422
+        assert client.post("/api/sessions", json={"name": name}).status_code == 422
+    assert store.conn.execute("SELECT count(*) FROM people").fetchone()[0] == 0
