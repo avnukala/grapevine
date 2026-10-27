@@ -299,7 +299,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
                     onEdit={onEdit}
                   />
                 </ScrollBack>
-                {runActive && run?.kind !== "replay" && state.phase !== "review" && <TypedTurn runId={runId!} />}
+                {runActive && run?.kind !== "replay" && state.phase !== "review" && <TypedTurn runId={runId!} names={roomIds(state).map((id) => personName(state, id))} />}
               </div>
               <div className="pointer-events-auto ml-auto flex flex-col items-end gap-2">
                 <WeightPanel factors={factors} onChange={onFactors} />
@@ -429,9 +429,10 @@ function ScrollBack({ lines, follow, children }: ScrollBackProps) {
 
 interface TypedTurnProps {
   runId: number;
+  names: string[];
 }
 
-function TypedTurn({ runId }: TypedTurnProps) {
+function TypedTurn({ runId, names }: TypedTurnProps) {
   const [speaker, setSpeaker] = useState("");
   const [text, setText] = useState("");
   return (
@@ -446,7 +447,19 @@ function TypedTurn({ runId }: TypedTurnProps) {
           .catch((err) => toast.error(String(err)));
       }}
     >
-      <Input className="w-36" value={speaker} onChange={(e) => setSpeaker(e.target.value)} placeholder="Speaker" aria-label="Speaker" />
+      <Input
+        className="w-36"
+        value={speaker}
+        onChange={(e) => setSpeaker(e.target.value)}
+        placeholder="Speaker"
+        aria-label="Speaker"
+        list="room-names"
+      />
+      <datalist id="room-names">
+        {names.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
       <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type what they said" aria-label="Turn" />
       <Button size="icon" aria-label="Add turn">
         <Send />
