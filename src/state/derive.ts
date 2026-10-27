@@ -48,7 +48,10 @@ export function nodeLabels(state: RunState): Record<number, string> {
   for (const person of people) {
     const unique = candidates(person).filter((n) => owners.get(n.toLowerCase()) === person.id);
     const used = (name: string) => transcript.split(name.toLowerCase()).length - 1;
-    const best = [...unique].sort((x, y) => used(y) - used(x) || x.length - y.length)[0];
+    const first = person.name.split(" ")[0];
+    const best = [...unique].sort(
+      (x, y) => used(y) - used(x) || Number(x !== first) - Number(y !== first) || x.length - y.length,
+    )[0];
     labels[person.id] = best ?? person.name;
   }
   return labels;
