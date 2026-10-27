@@ -1,5 +1,5 @@
-import { CalendarRange, Check, Network, Send } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowDown, CalendarRange, Check, Maximize2, Minimize2, Network, Send } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,8 @@ export function linkedRun(): number | null {
   return Number(new URLSearchParams(location.hash.split("?")[1]).get("run")) || null;
 }
 const GLOW_MS = 2500;
+// The graph keeps this much room for the transcript. A taller transcript, opened to read back, covers the graph.
+const TRANSCRIPT_ROOM = 320;
 
 interface ViewSwitchProps {
   view: View;
@@ -156,7 +158,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
 
   const showTranscript = Object.keys(state.segments).length > 0 || runActive;
   const showPrompts = Object.values(state.prompts).some((p) => p.dismissed_at_ms === null);
-  const inset = { top: 90, right: showPrompts && !promptsHidden ? 390 : 0, bottom: showTranscript ? transcriptHeight + 30 : 60, left: 0 };
+  const inset = { top: 90, right: showPrompts && !promptsHidden ? 390 : 0, bottom: showTranscript ? Math.min(transcriptHeight, TRANSCRIPT_ROOM) + 30 : 60, left: 0 };
 
   const guard = (task: () => Promise<unknown>) => task().catch((e) => toast.error(String(e)));
   const onAnswer = (prompt: Prompt, answer: Answer) => guard(() => api.answer(runId!, prompt.id, answer as never));
@@ -295,14 +297,18 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
                   !showTranscript && "hidden",
                 )}
               >
-                <Transcript
-                  state={state}
-                  voiceThreshold={threshold}
-                  limit={3}
-                  partial={live.partial}
-                  extracting={live.thinking.extractor}
-                  onAssign={onAssign}
-                />
+                <ScrollBack
+                  lines={Object.keys(state.segments).length}
+                  follow={`${live.partial?.text.length}-${live.thinking.extractor?.text.length}`}
+                >
+                  <Transcript
+                    state={state}
+                    voiceThreshold={threshold}
+                    partial={live.partial}
+                    extracting={live.thinking.extractor}
+                    onAssign={onAssign}
+                  />
+                </ScrollBack>
                 {runActive && run?.kind !== "replay" && state.phase !== "review" && <TypedTurn runId={runId!} />}
               </div>
               <div className="pointer-events-auto ml-auto flex flex-col items-end gap-2">
@@ -330,6 +336,60 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
         onClose={() => setSelectedId(null)}
         onRemove={runId !== null ? onRemove : undefined}
       />
+    </div>
+  );
+}
+
+interface ScrollBackProps {
+  lines: number;
+  follow: string;
+  children: React.ReactNode;
+}
+
+// Keeps the newest line in view while the room talks, until someone scrolls up to read an earlier line.
+function ScrollBack({ lines, follow, children }: ScrollBackProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [atEnd, setAtEnd] = useState(true);
+  const [tall, setTall] = useState(false);
+  const toEnd = () => ref.current?.scrollTo({ top: ref.current.scrollHeight });
+
+  useLayoutEffect(() => {
+    if (atEnd) toEnd();
+  }, [lines, follow, tall, atEnd]);
+
+  return (
+    <div className="relative">
+      <div className="mb-1 flex items-center gap-2 px-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+        Transcript
+        <span className="font-normal tracking-normal normal-case tabular-nums">
+          {lines} {lines === 1 ? "line" : "lines"}
+        </span>
+        <Button
+          size="icon-xs"
+          variant="ghost"
+          className="ml-auto"
+          aria-label={tall ? "Show fewer lines" : "Show more lines"}
+          onClick={() => setTall(!tall)}
+        >
+          {tall ? <Minimize2 /> : <Maximize2 />}
+        </Button>
+      </div>
+      <div
+        ref={ref}
+        className={cn("overflow-y-auto overscroll-contain", tall ? "max-h-[60vh]" : "max-h-56")}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          setAtEnd(el.scrollHeight - el.scrollTop - el.clientHeight < 24);
+        }}
+        data-testid="transcript-scroll"
+      >
+        {children}
+      </div>
+      {!atEnd && (
+        <Button size="xs" variant="secondary" className="absolute bottom-2 left-1/2 -translate-x-1/2 shadow-md" onClick={toEnd}>
+          <ArrowDown /> Latest
+        </Button>
+      )}
     </div>
   );
 }

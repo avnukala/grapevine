@@ -13,7 +13,6 @@ import type { Preview, Thinking } from "../state/useRun";
 interface TranscriptProps {
   state: RunState;
   voiceThreshold: number;
-  limit?: number;
   currentMs?: number | null;
   showTimings?: boolean;
   partial?: Preview | null;
@@ -35,12 +34,11 @@ export function clock(ms: number): string {
 }
 
 export function Transcript(props: TranscriptProps) {
-  const { state, voiceThreshold, limit, currentMs, showTimings, partial, extracting, onAssign, onSeek } = props;
+  const { state, voiceThreshold, currentMs, showTimings, partial, extracting, onAssign, onSeek } = props;
   const segments = Object.values(state.segments).sort((x, y) => x.start_ms - y.start_ms);
-  const shown = limit ? segments.slice(-(partial ? limit - 1 : limit)) : segments;
   return (
     <ol className="space-y-1.5" data-testid="transcript">
-      {shown.map((segment) => {
+      {segments.map((segment) => {
         const naming = state.phase === "intro" && segment.person_id === null && segment.speaker_confidence === null;
         const unknown = !naming && isUnknown(segment, voiceThreshold);
         const current = currentMs != null && segment.start_ms <= currentMs && currentMs < segment.end_ms;
