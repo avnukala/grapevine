@@ -21,7 +21,7 @@ from grapevine.config import RunConfig
 from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload, read_again, respell_people
 from grapevine.llm import LLM, watch_on
 from grapevine.models import Models
-from grapevine.names import misspelled, spell_names
+from grapevine.names import english, misspelled, proper_names, spell_names
 from grapevine.prompter import prompter_call, show_prompt, suggest
 from grapevine.review import review
 from grapevine.store import Store, name_matches
@@ -46,6 +46,8 @@ SETTLE_MARGIN = 0.05
 SETTLE_FLOOR = 0.7
 MAX_VOICES = 100
 LEADING_NAME = re.compile(r"(?:(?:Hi|Hey|Hello|So),?\s+)?([A-Z][a-z]+ [A-Z][a-z]+)(?:[,.]|$)")
+INTRODUCES = re.compile(r"\bthis is (?:my [a-z]+)?\s*([A-Z][a-z]+)?[.!]?$")
+BARE_NAME = re.compile(r"([A-Z][a-z]+)[.!,]?(?:\s|$)")
 SELF_INTRO = re.compile(r"\b(?:I'm|I am|my name is|name's|call me)\s+([A-Z][a-z]+)\b(?!['’]s)")
 
 
@@ -58,17 +60,30 @@ def goes_by(person: dict, name: str) -> bool:
     return first in {person["name"].split()[0].lower(), *(a.lower() for a in person["aliases"])}
 
 
-def said_name(text: str, model_name: str | None, *, intro: bool, unnamed: bool, roster: list[str]) -> str | None:
+def said_name(
+    text: str, model_name: str | None, *, intro: bool, unnamed: bool, roster: list[str], introduced: str | None = None
+) -> str | None:
     """The name speakers give for themselves. The model's name counts only when the turn says it. Outside
     introductions, the turn must also say "I'm" or "my name is" before the name. A full name at the start
     of a turn, as in "Chris Porter, I'm an accountant", counts only for an unnamed voice in introductions,
-    and only when it is on the roster if there is one, so a reply like "Most Sundays." names no one."""
+    and only when it is on the roster if there is one, so a reply like "Most Sundays." names no one.
+
+    `introduced` is set when another voice just ended a turn with "this is my brother" or "this is Greta",
+    and holds the name it gave, if any. Then an unnamed voice in introductions that starts with a bare first
+    name, as in "Felix.", is that person, and one that gives no name is the person just introduced."""
     first_names = [m[1] for m in SELF_INTRO.finditer(text)]
     if intro and model_name and all(word in text for word in model_name.split()):
         return model_name
     leading = LEADING_NAME.match(text)
     if intro and unnamed and leading and (not roster or leading[1] in roster):
         return leading[1]
+    if intro and unnamed and introduced is not None and not first_names and not leading:
+        bare = BARE_NAME.match(text)
+        firsts = {name.split()[0] for name in roster}
+        if bare and (bare[1] in firsts if roster else bare[1] in proper_names() and bare[1].lower() not in english()):
+            return bare[1]
+        if introduced and (not roster or introduced in firsts):
+            return introduced
     if not first_names:
         return None
     if model_name and model_name.split()[0] in first_names and all(w in text for w in model_name.split()):
@@ -483,7 +498,12 @@ class Pipeline:
             name = None
             if not manual and (speaker_id is None or intro):
                 name = said_name(
-                    segment["text"], output["speaker_name"], intro=intro, unnamed=speaker_id is None, roster=self.roster
+                    segment["text"],
+                    output["speaker_name"],
+                    intro=intro,
+                    unnamed=speaker_id is None,
+                    roster=self.roster,
+                    introduced=self._introduced(segment),
                 )
             if name and speaker_id is not None and goes_by(self.store.person(speaker_id), name):
                 name = None
@@ -500,6 +520,19 @@ class Pipeline:
                 apply_output(self.store, Held(output, replace(teller, person_id=speaker_id)))
         total_ms = int((time.monotonic() - job.heard_at) * 1000)
         self.store.update_segment(segment["id"], timings={"extract_ms": extract_ms, "total_ms": total_ms})
+
+    def _introduced(self, segment: dict) -> str | None:
+        """The name that the turn before, by another voice, gave when it ended with "this is ...", or "" when it
+        gave none. None when that turn introduced no one."""
+        before = [
+            s
+            for s in self.store.graph.segments.values()
+            if s["start_ms"] < segment["start_ms"] and s["speaker_label"] != segment["speaker_label"]
+        ]
+        if not before:
+            return None
+        cue = INTRODUCES.search(max(before, key=lambda s: s["start_ms"])["text"])
+        return (cue[1] or "") if cue else None
 
     def _settle_speakers(self) -> None:
         """Gives each turn to the person whose voice is closest. A person's voice here is the mean of all their

@@ -310,6 +310,20 @@ def test_a_leading_full_name_names_a_voice_only_when_it_is_on_the_roster():
     assert heard("Chris Porter, I'm an accountant.", ["Chris Porter"]) == "Chris Porter"
 
 
+def test_a_name_given_by_the_voice_before_names_an_unnamed_voice_in_introductions():
+    def heard(text, introduced, roster=(), intro=True):
+        return said_name(text, None, intro=intro, unnamed=True, roster=list(roster), introduced=introduced)
+
+    assert heard("Felix. I can say my own name.", "") == "Felix"
+    assert heard("Felix. Hi.", "", ["Felix Ward"]) == "Felix"
+    assert heard("Okay. Hi.", "") is None
+    assert heard("Dana. Hi.", "", ["Felix Ward"]) is None
+    assert heard("Hi, everyone.", "Felix") == "Felix"
+    assert heard("Hi, everyone.", "Felix", intro=False) is None
+    assert heard("Felix. Hi.", None) is None
+    assert heard("Hi, I'm Dana.", "Felix") == "Dana"
+
+
 def test_the_review_completes_relationships_groups_and_events(conn):
     conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
 
