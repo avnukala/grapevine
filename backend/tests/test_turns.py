@@ -40,6 +40,14 @@ def test_long_turn_splits_at_a_pause():
     assert turns == [Turn(0, 0, 2150), Turn(0, 2150, 4300)]
 
 
+def test_a_voice_the_detector_splits_across_labels_is_still_speech():
+    unsure = np.zeros((60, MAX_SPEAKERS), dtype=np.float32)
+    unsure[:, 2], unsure[:, 4] = 0.45, 0.2
+    builder = TurnBuilder(TurnRules())
+    turns = builder.push(np.concatenate([frames((2, 500)), unsure, frames((None, 1000))]))
+    assert turns == [Turn(2, 0, 1100)]
+
+
 def test_silence_counts_from_the_last_speech():
     builder = TurnBuilder(TurnRules())
     builder.push(frames((0, 1000), (None, 7000)))

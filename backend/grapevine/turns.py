@@ -54,7 +54,8 @@ class TurnBuilder:
             ms = self.now_ms
             self.now_ms += FRAME_MS
             top = int(np.argmax(probs))
-            speaking = top if probs[top] > self.rules.speech_threshold else None
+            # The detector splits an unsure voice across labels, so speech counts by the sum of all of them.
+            speaking = top if probs.sum() > self.rules.speech_threshold else None
             if speaking is not None:
                 self.last_speech_ms = self.now_ms
             turns += self._frame(ms, speaking)
