@@ -69,3 +69,19 @@ def test_blank_or_long_names_are_rejected(client, store):
         assert answer.status_code == 422
         assert client.post("/api/sessions", json={"name": name}).status_code == 422
     assert store.conn.execute("SELECT count(*) FROM people").fetchone()[0] == 0
+
+
+def test_speaker_needs_one_known_person(client, store):
+    segment = store.add_segment(
+        start_ms=0, end_ms=1000, speaker_label="s1", person_id=None, confidence=None, text="hi", timings={}
+    )
+    person = store.create_person(name="Mia Rao", aliases=[], gender="unknown")
+    url = f"/api/runs/{store.run_id}/segments/{segment['id']}/speaker"
+    for body in [{}, {"person_id": person["id"], "new_name": "Felix Ward"}, {"person_id": 999}]:
+        assert client.post(url, json=body).status_code == 400
+    assert (
+        client.post(f"/api/runs/{store.run_id}/segments/999/speaker", json={"new_name": "Felix Ward"}).status_code
+        == 400
+    )
+    assert store.conn.execute("SELECT count(*) FROM people").fetchone()[0] == 1
+    assert client.post(url, json={"new_name": "Felix Ward"}).json()["person_id"] != person["id"]

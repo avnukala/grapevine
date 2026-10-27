@@ -398,14 +398,14 @@ class SpeakerAnswer(BaseModel):
 @app.post("/api/runs/{run_id}/segments/{segment_id}/speaker")
 async def set_segment_speaker(run_id: int, segment_id: int, body: SpeakerAnswer) -> Record:
     store = store_for(run_id)
-    person_id = body.person_id
-    if person_id is None:
-        if not body.new_name:
-            raise HTTPException(400, "pick a person or give a new name")
-        person_id = store.create_person(name=body.new_name, aliases=[], gender="unknown")["id"]
     try:
         changed = assign_speaker(
-            store, segment_id, person_id=person_id, every_line=body.every_line, threshold=threshold(run_id)
+            store,
+            segment_id,
+            person_id=body.person_id,
+            new_name=body.new_name,
+            every_line=body.every_line,
+            threshold=threshold(run_id),
         )
     except ActionError as error:
         raise HTTPException(400, str(error)) from error

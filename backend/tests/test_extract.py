@@ -485,7 +485,7 @@ def test_a_voice_set_by_hand_moves_every_line_of_that_voice(store):
     store.set_speaker("spk0", ray, None)
     first, second = turn(store, ray, "I'm Jasper."), turn(store, ray, "I climb.")
 
-    changed = assign_speaker(store, first.segment_id, person_id=jasper, every_line=True, threshold=0.5)
+    changed = assign_speaker(store, first.segment_id, person_id=jasper, new_name=None, every_line=True, threshold=0.5)
 
     assert changed == [first.segment_id, second.segment_id]
     assert store.graph.speakers["spk0"] == jasper
@@ -500,9 +500,9 @@ def test_a_line_set_by_hand_keeps_the_voice_of_its_label(store):
     store.set_speaker("spk0", ray, None)
     first, second = turn(store, ray, "Hi."), turn(store, ray, "I climb.")
 
-    assert assign_speaker(store, second.segment_id, person_id=jasper, every_line=False, threshold=0.5) == [
-        second.segment_id
-    ]
+    assert assign_speaker(
+        store, second.segment_id, person_id=jasper, new_name=None, every_line=False, threshold=0.5
+    ) == [second.segment_id]
     assert store.graph.speakers["spk0"] == ray
     assert store.graph.segments[first.segment_id]["person_id"] == ray
 

@@ -71,15 +71,26 @@ def settle_conflict(store: Store, prompt_id: int, *, keep_fact_id: int | None) -
         store.dismiss_prompt(prompt_id)
 
 
-def assign_speaker(store: Store, segment_id: int, *, person_id: int, every_line: bool, threshold: float) -> list[int]:
+def assign_speaker(
+    store: Store, segment_id: int, *, person_id: int | None, new_name: str | None, every_line: bool, threshold: float
+) -> list[int]:
     """Says by hand who spoke a turn, and returns the turns whose speaker changed. With `every_line`, the voice
     of the turn is that person, which fixes an introduction that named the wrong voice. Turns set by hand keep
-    their speaker when the pipeline matches voices again."""
+    their speaker when the pipeline matches voices again. A new name adds a person of that name."""
     segment = store.graph.segments.get(segment_id)
     if segment is None:
         raise ActionError(f"segment {segment_id} is not in this run")
+    if (person_id is None) == (new_name is None):
+        raise ActionError("pick a person or give a new name, not both")
+    if (
+        person_id is not None
+        and store.conn.execute("SELECT 1 FROM people WHERE id = ?", (person_id,)).fetchone() is None
+    ):
+        raise ActionError(f"no person {person_id}")
     label = segment["speaker_label"]
     with store.batch():
+        if person_id is None:
+            person_id = store.create_person(name=new_name, aliases=[], gender="unknown")["id"]
         store.show_person(person_id)
         if every_line:
             old = store.graph.speakers.get(label)
