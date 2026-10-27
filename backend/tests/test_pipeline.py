@@ -7,7 +7,7 @@ from grapevine import pipeline as pipeline_module
 from grapevine.audio import SAMPLE_RATE
 from grapevine.config import RunConfig
 from grapevine.llm import LLM
-from grapevine.pipeline import Pipeline, said_name
+from grapevine.pipeline import Pipeline, RunStopping, said_name
 from grapevine.store import Store
 from tests.fakes import FakeChat, Line, chunks, fact, fake_models, render
 
@@ -362,3 +362,25 @@ def test_a_typed_run_fails_on_its_first_turn_when_the_model_is_down(conn):
 
     with pytest.raises(ConnectionError):
         asyncio.run(go())
+
+
+def test_a_typed_turn_after_the_run_stops_is_refused(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    run_id = conn.execute(
+        "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'live', '{}', 'test')"
+    ).lastrowid
+    chat = FakeChat({})
+    llm = LLM(conn, chat, model_file_hash="t", reuse=True)
+    pipeline = Pipeline(
+        Store(conn, run_id), fake_models([], chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[]
+    )
+
+    async def no_chunks():
+        return
+        yield
+
+    asyncio.run(pipeline.run(no_chunks()))
+
+    with pytest.raises(RunStopping):
+        asyncio.run(pipeline.add_text("Marcus Hale", "One more thing."))
+    assert pipeline.store.graph.segments == {}

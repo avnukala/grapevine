@@ -23,6 +23,7 @@ from grapevine.config import DATA_DIR, DB_PATH, LLM_BASE_URL, ROOT, RunConfig, r
 from grapevine.graph import Record
 from grapevine.llm import LLM
 from grapevine.merge import merge, resolve_merge
+from grapevine.pipeline import RunStopping
 from grapevine.runs import (
     ActiveRun,
     audio_path,
@@ -354,7 +355,10 @@ class TextTurn(BaseModel):
 
 @app.post("/api/runs/{run_id}/text")
 async def text_turn(run_id: int, body: TextTurn) -> Record:
-    return await active_run(run_id).pipeline.add_text(body.speaker, body.text)
+    try:
+        return await active_run(run_id).pipeline.add_text(body.speaker, body.text)
+    except RunStopping as error:
+        raise HTTPException(409, str(error)) from error
 
 
 class Answer(BaseModel):

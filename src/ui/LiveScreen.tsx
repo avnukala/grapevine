@@ -295,7 +295,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
                   extracting={live.thinking.extractor}
                   onAssign={onAssign}
                 />
-                {runActive && <TypedTurn runId={runId!} />}
+                {runActive && state.phase !== "review" && <TypedTurn runId={runId!} />}
               </div>
               <div className="pointer-events-auto ml-auto flex flex-col items-end gap-2">
                 <WeightPanel factors={factors} onChange={onFactors} />

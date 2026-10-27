@@ -49,6 +49,10 @@ LEADING_NAME = re.compile(r"(?:(?:Hi|Hey|Hello|So),?\s+)?([A-Z][a-z]+ [A-Z][a-z]
 SELF_INTRO = re.compile(r"\b(?:I'm|I am|my name is|name's|call me)\s+([A-Z][a-z]+)\b(?!['’]s)")
 
 
+class RunStopping(Exception):
+    """A typed turn came after the run stopped taking turns, so no worker would read it."""
+
+
 def goes_by(person: dict, name: str) -> bool:
     first = name.split()[0].lower()
     return first in {person["name"].split()[0].lower(), *(a.lower() for a in person["aliases"])}
@@ -149,6 +153,7 @@ class Pipeline:
         self.closed_ms = 0
         self.previewed_ms = 0
         self.whisper = asyncio.Lock()
+        self.fed = False
 
     async def run(self, chunks: AsyncIterator[np.ndarray]) -> None:
         self.models.detector.start()
@@ -180,6 +185,7 @@ class Pipeline:
             self.audio.append(chunk)
             frames = await asyncio.to_thread(self.models.detector.push, chunk)
             await self._frames(frames)
+        self.fed = True
         await self._frames(await asyncio.to_thread(self.models.detector.finish))
         await self._turns(self.builder.close())
         await self.turns.put(None)
@@ -203,6 +209,8 @@ class Pipeline:
 
     async def add_text(self, speaker: str, text: str) -> dict:
         """Adds a typed turn, for a run without audio. The speaker is a name, and a new name adds a person."""
+        if self.fed:
+            raise RunStopping("the run is stopping and takes no more turns")
         matches = self._roster_matches(speaker) or name_matches(self.store.conn, speaker)
         person_id = matches[0]["id"] if matches else None
         if person_id is None:
