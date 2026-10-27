@@ -47,6 +47,8 @@ app = FastAPI(title="Grapevine")
 # One connection for the whole server. Every route that uses it, or a running pipeline, is async, so it runs on
 # the event loop with the pipelines and never on a worker thread at the same time.
 conn = db.connect(DB_PATH)
+# A run that was going when the last server stopped can never finish, so it would stay "running" forever.
+conn.execute("UPDATE runs SET status = 'failed' WHERE status = 'running'")
 clients: set[asyncio.Queue] = set()
 active: dict[int, ActiveRun] = {}
 
