@@ -132,6 +132,31 @@ def test_an_edited_line_of_a_finished_run_gets_new_facts(client, store, monkeypa
     assert [f["text"] for f in fresh.graph.live_facts()] == ["Marcus Hale works in Seattle."]
 
 
+def test_a_line_moved_to_another_speaker_after_a_run_gets_new_facts(client, store, monkeypatch):
+    rules = {"Denver": {"facts": [fact("Felix Ward works in Denver.", ["speaker"])]}}
+    monkeypatch.setattr(server, "chat", lambda: FakeChat(rules))
+    monkeypatch.setattr(server, "llm_file_hash", lambda: "t")
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    felix = store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")["id"]
+    segment = store.add_segment(
+        start_ms=0,
+        end_ms=900,
+        speaker_label="spk0",
+        person_id=marcus,
+        confidence=0.9,
+        text="I work in Denver.",
+        timings={},
+    )
+    told = {**empty_output(), "facts": [fact("Marcus Hale works in Denver.", ["speaker"])]}
+    apply_output(store, Held(told, Teller(segment["id"], marcus, 0.9, None)))
+
+    body = {"person_id": felix, "every_line": False}
+    client.post(f"/api/runs/{store.run_id}/segments/{segment['id']}/speaker", json=body)
+
+    [new] = server.store_for(store.run_id).graph.live_facts()
+    assert (new["text"], new["told_by_person_id"]) == ("Felix Ward works in Denver.", felix)
+
+
 def test_renaming_a_roster_person_renames_them_on_the_roster(client, store, conn):
     conn.execute("UPDATE sessions SET roster = ? WHERE id = 1", ('["Miaely Rao", "Dana Cole"]',))
     mia = store.create_person(name="Miaely Rao", aliases=["Miaely"], gender="female")["id"]

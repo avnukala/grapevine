@@ -414,26 +414,32 @@ async def edit_segment(run_id: int, segment_id: int, body: LineEdit) -> Record:
     store.update_segment(segment_id, text=body.text)
     if run_id in active:
         active[run_id].pipeline.reread([segment_id], edited=True)
-        return store.graph.segments[segment_id]
+    else:
+        await read_after_run(run_id, store, [segment_id], saved="text")
+    return store.graph.segments[segment_id]
+
+
+async def read_after_run(run_id: int, store: Store, segment_ids: list[int], *, saved: str) -> None:
+    """Reads turns of an ended run again after the room fixed them, so their facts follow the fix. It reads with
+    the model of today, because the model of an old run may no longer be loaded."""
     row = conn.execute("SELECT config_json, session_id FROM runs WHERE id = ?", (run_id,)).fetchone()
     config = run_config(json.loads(row["config_json"]))
     llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
     today = session(conn, row["session_id"])["recorded_at"][:10]
     try:
-        await read_again(
-            store,
-            llm,
-            segment_id,
-            today=today,
-            # The model of an old run may no longer be loaded, so an edit reads with the model of today.
-            model=RunConfig().extract_model,
-            seed=config.seed,
-            context=config.context,
-        )
+        for segment_id in segment_ids:
+            await read_again(
+                store,
+                llm,
+                segment_id,
+                today=today,
+                model=RunConfig().extract_model,
+                seed=config.seed,
+                context=config.context,
+            )
     except openai.APIError as error:
-        message = f"The text is saved, but the model at {LLM_BASE_URL} did not answer, so its facts did not change."
+        message = f"The {saved} is saved, but the model at {LLM_BASE_URL} did not answer, so the facts did not change."
         raise HTTPException(503, message) from error
-    return store.graph.segments[segment_id]
 
 
 class Rename(BaseModel):
@@ -481,6 +487,8 @@ async def set_segment_speaker(run_id: int, segment_id: int, body: SpeakerAnswer)
         raise HTTPException(400, str(error)) from error
     if run_id in active:
         active[run_id].pipeline.reread(changed)
+    else:
+        await read_after_run(run_id, store, changed, saved="speaker")
     return store.graph.segments[segment_id]
 
 
