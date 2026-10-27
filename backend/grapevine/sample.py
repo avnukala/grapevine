@@ -1,7 +1,10 @@
 """Builds a sample conversation MP3 and its hand labels from a script, with macOS `say` voices.
 
 A voice is a `say` voice name, or an object with the name, a pitch shift in semitones, and a rate in words
-per minute. Several macOS voices sound alike to speaker models, so a shift keeps the speakers distinct."""
+per minute. Several macOS voices sound alike to speaker models, so a shift keeps the speakers distinct.
+
+A negative `pause_after_ms` starts the next line before this one ends, so the two overlap. A script `noise`
+level mixes in seeded room noise and a mains hum at that amplitude, so each build gives the same audio."""
 
 import json
 import subprocess
@@ -17,6 +20,8 @@ from grapevine.audio import SAMPLE_RATE, decode
 GAP_MS = 500
 SILENCE = 0.003
 WINDOW_MS = 10
+HUM_HZ = 60
+NOISE_SEED = 0
 
 
 def synthesize(text: str, voice: str | dict, workdir: Path, index: int) -> np.ndarray:
@@ -39,37 +44,52 @@ def voiced_ms(speech: np.ndarray) -> int:
     return (loud[-1] + window) * 1000 // SAMPLE_RATE if loud else 0
 
 
+def arrange(lines: list[dict], speeches: list[np.ndarray], noise: float = 0.0) -> tuple[np.ndarray, list[dict]]:
+    """Mixes the lines onto one track. Each line starts after the previous line's audio plus its pause."""
+    labels = []
+    starts = []
+    cursor_ms = GAP_MS
+    for line, speech in zip(lines, speeches, strict=True):
+        starts.append(cursor_ms)
+        labels.append(
+            {
+                "speaker": line["speaker"],
+                "start_ms": cursor_ms,
+                "end_ms": cursor_ms + voiced_ms(speech),
+                "text": line["text"],
+            }
+        )
+        cursor_ms = max(GAP_MS, cursor_ms + len(speech) * 1000 // SAMPLE_RATE + line.get("pause_after_ms", GAP_MS))
+
+    end_ms = max([cursor_ms] + [start + len(speech) * 1000 // SAMPLE_RATE for start, speech in zip(starts, speeches)])
+    audio = np.zeros(SAMPLE_RATE * end_ms // 1000, dtype=np.float32)
+    for start_ms, speech in zip(starts, speeches):
+        offset = SAMPLE_RATE * start_ms // 1000
+        audio[offset : offset + len(speech)] += speech
+    if noise:
+        seconds = np.arange(len(audio)) / SAMPLE_RATE
+        hiss = np.random.default_rng(NOISE_SEED).normal(0, noise, len(audio))
+        audio += (hiss + noise * np.sin(2 * np.pi * HUM_HZ * seconds)).astype(np.float32)
+    return np.clip(audio, -1, 1), labels
+
+
 def build(script_path: Path) -> None:
     script = json.loads(script_path.read_text())
     stem = script_path.name.removesuffix(".script.json")
-    gap = np.zeros(SAMPLE_RATE * GAP_MS // 1000, dtype=np.float32)
-    parts = [gap]
-    labels = []
-    cursor_ms = GAP_MS
-
     with tempfile.TemporaryDirectory() as tmp:
-        for index, line in enumerate(script["lines"]):
-            speech = synthesize(line["text"], script["voices"][line["speaker"]], Path(tmp), index)
-            duration_ms = len(speech) * 1000 // SAMPLE_RATE
-            labels.append(
-                {
-                    "speaker": line["speaker"],
-                    "start_ms": cursor_ms,
-                    "end_ms": cursor_ms + voiced_ms(speech),
-                    "text": line["text"],
-                }
-            )
-            pause_ms = line.get("pause_after_ms", GAP_MS)
-            parts += [speech, np.zeros(SAMPLE_RATE * pause_ms // 1000, dtype=np.float32)]
-            cursor_ms += duration_ms + pause_ms
+        speeches = [
+            synthesize(line["text"], script["voices"][line["speaker"]], Path(tmp), index)
+            for index, line in enumerate(script["lines"])
+        ]
+    audio, labels = arrange(script["lines"], speeches, script.get("noise", 0.0))
 
-    audio = np.concatenate(parts)
+    duration_ms = len(audio) * 1000 // SAMPLE_RATE
     mp3 = script_path.with_name(f"{stem}.mp3")
     sf.write(mp3, audio, SAMPLE_RATE, format="MP3")
     intro_end_ms = labels[script["intro_lines"] - 1]["end_ms"] + GAP_MS // 2
-    out = {"audio": mp3.name, "intro_end_ms": intro_end_ms, "duration_ms": cursor_ms, "turns": labels}
+    out = {"audio": mp3.name, "intro_end_ms": intro_end_ms, "duration_ms": duration_ms, "turns": labels}
     script_path.with_name(f"{stem}.labels.json").write_text(json.dumps(out, indent=2) + "\n")
-    print(f"wrote {mp3} ({cursor_ms / 1000:.1f}s, {len(labels)} turns)")
+    print(f"wrote {mp3} ({duration_ms / 1000:.1f}s, {len(labels)} turns)")
 
 
 if __name__ == "__main__":
