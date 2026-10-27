@@ -84,7 +84,8 @@ export default function App() {
             {current === "debug" && <DebugScreen factors={factors} />}
           </main>
         </div>
-  <Toaster position="bottom-right" />
+        {/* Above the legend and the edge weight button in the bottom right of the graph. */}
+        <Toaster position="bottom-right" offset={{ bottom: 100 }} />
       </TooltipProvider>
     </ThemeProvider>
   );
