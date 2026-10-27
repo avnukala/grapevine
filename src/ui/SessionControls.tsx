@@ -53,9 +53,12 @@ export function SessionControls(props: SessionControlsProps) {
 
   const start = (source: Source, speed: number | null = null) => {
     setStarting(`${source}-${speed}`);
-    void act(async () => onRun((await api.startRun({ session_id: sessionId!, source, speed })).id)).finally(() =>
-      setStarting(null),
-    );
+    // The session list must hold the new run before it opens, or the run picker and status show it blank.
+    void act(async () => {
+      const run = await api.startRun({ session_id: sessionId!, source, speed });
+      await onRefresh();
+      onRun(run.id);
+    }).finally(() => setStarting(null));
   };
   const icon = (key: string, idle: ReactNode) =>
     starting === key ? <LoaderCircle className="animate-spin" /> : idle;
