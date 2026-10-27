@@ -1,4 +1,4 @@
-import { Mic, Plus, Sparkles, X } from "lucide-react";
+import { LoaderCircle, Mic, Plus, Sparkles, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,19 +9,30 @@ import { GROUP_COLORS, initials } from "../state/categories";
 
 interface OnboardingProps {
   blocked: boolean;
+  known: string[];
   onCreated: (sessionId: number, runId: number | null) => Promise<void>;
   onCancel: (() => void) | null;
 }
 
-export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
+export function Onboarding({ blocked, known, onCreated, onCancel }: OnboardingProps) {
   const [title, setTitle] = useState("");
   const [names, setNames] = useState(["", ""]);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"live" | "save" | null>(null);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   const roster = names.map((n) => n.trim()).filter(Boolean);
   const firstNames = roster.map((n) => n.split(/\s+/)[0].toLowerCase());
   const unclear = roster.some((n, i) => !n.includes(" ") && firstNames.some((f, j) => j !== i && f === firstNames[i]));
+  const suggested = known.filter((n) => !roster.some((r) => r.toLowerCase() === n.toLowerCase())).slice(0, 12);
+
+  // Fills the empty rows first, so a click on a suggestion or a pasted list does not leave gaps.
+  function addNames(added: string[]) {
+    setNames((current) => {
+      const kept = current.filter((n) => n.trim());
+      const next = [...kept, ...added];
+      return next.length < 2 ? [...next, ""] : next;
+    });
+  }
 
   function addRow(after: number) {
     setNames((current) => [...current.slice(0, after + 1), "", ...current.slice(after + 1)]);
@@ -29,7 +40,7 @@ export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
   }
 
   async function create(live: boolean) {
-    setBusy(true);
+    setBusy(live ? "live" : "save");
     try {
       const name = title.trim() || `Session ${new Date().toLocaleDateString()}`;
       const session = await api.newSession({ name, roster });
@@ -38,7 +49,7 @@ export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
     } catch (e) {
       toast.error(String(e));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -85,6 +96,12 @@ export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
                     e.preventDefault();
                     addRow(index);
                   }}
+                  onPaste={(e) => {
+                    const pasted = e.clipboardData.getData("text").split(/[,\n]/).map((n) => n.trim()).filter(Boolean);
+                    if (pasted.length < 2) return;
+                    e.preventDefault();
+                    addNames(pasted);
+                  }}
                   placeholder="First and last name"
                   aria-label={`Person ${index + 1}`}
                 />
@@ -102,6 +119,16 @@ export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
             <Button size="sm" variant="ghost" onClick={() => addRow(names.length - 1)}>
               <Plus /> Add person
             </Button>
+            {suggested.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-muted-foreground">
+                In earlier sessions:
+                {suggested.map((name) => (
+                  <Button key={name} size="xs" variant="secondary" onClick={() => addNames([name])}>
+                    <Plus /> {name}
+                  </Button>
+                ))}
+              </div>
+            )}
             {unclear && (
               <p className="text-xs text-warn">
                 Two people have the same first name. Last names help tell them apart.
@@ -125,16 +152,22 @@ export function Onboarding({ blocked, onCreated, onCancel }: OnboardingProps) {
           </ol>
         </CardContent>
         <CardFooter className="justify-end gap-2">
+          {busy === "live" && (
+            <span className="mr-auto text-xs text-muted-foreground">Loading the speech models. This can take a minute.</span>
+          )}
           {onCancel && (
-            <Button variant="ghost" onClick={onCancel} disabled={busy}>
+            <Button variant="ghost" onClick={onCancel} disabled={busy !== null}>
               Cancel
             </Button>
           )}
-          <Button variant="outline" disabled={busy || roster.length === 0} onClick={() => create(false)}>
-            Create only
+          <Button variant="outline" disabled={busy !== null || roster.length === 0} onClick={() => create(false)}>
+            Save for later
           </Button>
-          <Button disabled={busy || blocked || roster.length === 0} onClick={() => create(true)}>
-            <Mic /> Start live with {roster.length} {roster.length === 1 ? "person" : "people"}
+          <Button disabled={busy !== null || blocked || roster.length === 0} onClick={() => create(true)}>
+            {busy === "live" ? <LoaderCircle className="animate-spin" /> : <Mic />}
+            {roster.length === 0
+              ? "Start live"
+              : `Start live with ${roster.length} ${roster.length === 1 ? "person" : "people"}`}
           </Button>
         </CardFooter>
       </Card>

@@ -201,6 +201,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
       {onboarding ? (
         <Onboarding
           blocked={going !== null}
+          known={knownNames(sessions)}
           onCreated={async (id, newRunId) => {
             await refresh();
             setSessionId(id);
@@ -338,6 +339,13 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
       />
     </div>
   );
+}
+
+// The people of earlier rooms, newest first. A first name drops out when a full name starts with it, and test
+// entries such as "asdf" drop out because a name starts with a capital letter.
+function knownNames(sessions: Session[]): string[] {
+  const names = [...new Set([...sessions].sort((x, y) => y.id - x.id).flatMap((s) => s.roster))];
+  return names.filter((n) => /^\p{Lu}/u.test(n) && !names.some((m) => m !== n && m.startsWith(`${n} `)));
 }
 
 interface ScrollBackProps {
