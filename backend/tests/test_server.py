@@ -1,7 +1,10 @@
 import asyncio
 import time
+from pathlib import Path
 
+import numpy as np
 import pytest
+import soundfile as sf
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -85,3 +88,19 @@ def test_speaker_needs_one_known_person(client, store):
     )
     assert store.conn.execute("SELECT count(*) FROM people").fetchone()[0] == 1
     assert client.post(url, json={"new_name": "Felix Ward"}).json()["person_id"] != person["id"]
+
+
+def test_upload_rejects_a_file_that_is_not_audio(client, tmp_path, monkeypatch):
+    monkeypatch.setattr(server, "recordings_dir", lambda: tmp_path / "audio")
+    answer = client.post("/api/sessions/upload", files={"file": ("talk.mp3", b"not audio")})
+    assert answer.status_code == 400
+    assert list((tmp_path / "audio").iterdir()) == []
+
+
+def test_upload_outside_the_checkout_keeps_an_absolute_path(client, tmp_path, monkeypatch):
+    monkeypatch.setattr(server, "recordings_dir", lambda: tmp_path)
+    wav = tmp_path / "source.wav"
+    sf.write(wav, np.zeros(1600, dtype=np.float32), 16000)
+    answer = client.post("/api/sessions/upload", files={"file": ("talk.wav", wav.read_bytes())})
+    assert answer.status_code == 200
+    assert Path(answer.json()["audio_uri"]).is_absolute()

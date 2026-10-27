@@ -11,6 +11,7 @@ from typing import Annotated, Literal
 
 import numpy as np
 import openai
+import soundfile as sf
 from fastapi import FastAPI, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, StringConstraints
@@ -25,6 +26,7 @@ from grapevine.merge import merge, resolve_merge
 from grapevine.runs import (
     ActiveRun,
     audio_path,
+    audio_uri,
     chat,
     create_run,
     create_session,
@@ -145,13 +147,18 @@ async def upload_session(file: UploadFile) -> Record:
     def copy() -> None:
         with target.open("wb") as out:
             shutil.copyfileobj(file.file, out)
+        sf.info(target)
 
-    await asyncio.to_thread(copy)
+    try:
+        await asyncio.to_thread(copy)
+    except sf.LibsndfileError as error:
+        target.unlink()
+        raise HTTPException(400, f"{name} is not audio that can be read") from error
     return create_session(
         conn,
         name=Path(name).stem,
         recorded_at=date.today().isoformat(),
-        audio_uri=str(target.relative_to(ROOT)),
+        audio_uri=audio_uri(target),
         intro_end_ms=None,
         roster=[],
     )

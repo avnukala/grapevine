@@ -55,10 +55,16 @@ def audio_path(audio_uri: str) -> Path:
     return path if path.is_absolute() else ROOT / path
 
 
+def audio_uri(path: Path) -> str:
+    """The path relative to the checkout when it is inside it, so the database moves with the checkout."""
+    path = path.resolve()
+    return str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path)
+
+
 def session_for_audio(conn: sqlite3.Connection, path: Path) -> Record:
     """Finds the session of an audio file, or creates it. A sample with a `.labels.json` file next to it
     gets its name, date, end of introductions, and roster from the labels and script."""
-    uri = str(path.resolve().relative_to(ROOT)) if path.resolve().is_relative_to(ROOT) else str(path.resolve())
+    uri = audio_uri(path)
     row = conn.execute("SELECT id FROM sessions WHERE audio_uri = ? ORDER BY id LIMIT 1", (uri,)).fetchone()
     if row:
         return session(conn, row[0])
