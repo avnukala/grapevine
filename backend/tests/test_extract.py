@@ -661,3 +661,23 @@ def test_a_person_cannot_take_the_name_of_another_person_in_the_run(store):
 
     with pytest.raises(ActionError):
         rename_person(store, dana, "mia rao")
+
+
+def test_news_from_the_same_teller_does_not_hide_an_unrelated_fact(store):
+    dana = store.create_person(name="Dana Cole", aliases=["Dana"], gender="female")["id"]
+    apply(
+        store,
+        turn(store, dana, "Tina lives in Austin."),
+        facts=[fact("Tina Alvarez lives in Austin.", ["Tina Alvarez"])],
+    )
+    home = max(store.graph.facts)
+    apply(store, turn(store, dana, "Tina is a teacher."), facts=[fact("Tina Alvarez is a teacher.", ["Tina Alvarez"])])
+    job = max(store.graph.facts)
+
+    news = fact("Tina Alvarez is moving to Denver next spring.", ["Tina Alvarez"], kind="story", revises=f"f{home}")
+    apply(store, turn(store, dana, "She is moving to Denver next spring."), facts=[news])
+    fix = fact("Tina Alvarez is a professor.", ["Tina Alvarez"], kind="correction", revises=f"f{job}")
+    apply(store, turn(store, dana, "Sorry, a professor."), facts=[fix])
+
+    assert store.graph.facts[home]["revised_by_fact_id"] is None
+    assert store.graph.facts[job]["revised_by_fact_id"] is not None

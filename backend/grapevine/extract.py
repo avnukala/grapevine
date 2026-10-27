@@ -640,9 +640,11 @@ def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, 
     if old is None:
         return record["id"]
     told_by = store.graph.facts[old]["told_by_person_id"]
-    if told_by is None or told_by == teller.person_id:
+    related = same_thing(store, store.graph.facts[old], store.graph.facts[record["id"]])
+    # The model also sets "revises" on news, such as a planned move against where someone lives.
+    if (told_by is None or told_by == teller.person_id) and (fact["kind"] == "correction" or related):
         revise(store, old, record["id"], model_call_id=teller.model_call_id)
-    elif same_thing(store, store.graph.facts[old], store.graph.facts[record["id"]]):
+    elif told_by != teller.person_id and related:
         dispute(store, old, record["id"], model_call_id=teller.model_call_id)
     return record["id"]
 
