@@ -1,9 +1,10 @@
 import { Trash2, TriangleAlert } from "lucide-react";
+import { useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CATEGORIES, GENDER_COLORS, KIND_COLORS, initials } from "../state/categories";
 import { canonicalId, liveFacts, personName } from "../state/derive";
 import type { RunState } from "../state/types";
@@ -16,16 +17,22 @@ interface PersonDetailsProps {
 }
 
 export function PersonDetails({ state, personId, onClose, onRemove }: PersonDetailsProps) {
-  const person = personId !== null ? state.people[personId] : undefined;
-  const same = (id: number) => canonicalId(state, id) === personId;
+  const open = personId !== null && state.people[personId] !== undefined;
+  // The sheet slides out after it closes, so it keeps the last person until then.
+  const last = useRef(personId);
+  if (open) last.current = personId;
+  const shownId = last.current;
+  const person = shownId !== null ? state.people[shownId] : undefined;
+  const same = (id: number) => canonicalId(state, id) === shownId;
   const relationships = person ? Object.values(state.relationships).filter((r) => same(r.a) || same(r.b)) : [];
   const facts = person ? liveFacts(state).filter((f) => f.people.some((p) => same(p.person_id) && p.role !== "teller")) : [];
+  const aliases = person ? person.aliases.filter((a) => a !== person.name.split(" ")[0]) : [];
   const groups = person
     ? [...new Set(Object.values(state.members).filter((m) => same(m.person_id)).map((m) => state.groups[m.group_id]?.name))].filter(Boolean)
     : [];
 
   return (
-    <Sheet open={person !== undefined} onOpenChange={(open) => !open && onClose()}>
+    <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
       <SheetContent className="w-[420px] sm:max-w-[420px]" data-testid="person-details">
         {person && (
           <>
@@ -40,20 +47,10 @@ export function PersonDetails({ state, personId, onClose, onRemove }: PersonDeta
                 <div>
                   <SheetTitle className="text-xl">{person.name}</SheetTitle>
                   <SheetDescription>
-                    {person.aliases.length > 0 ? `Also called ${person.aliases.join(", ")}` : "No aliases"}
+                    {aliases.length > 0 ? `Also called ${aliases.join(", ")}` : "No other names"}
                   </SheetDescription>
                 </div>
               </div>
-              {onRemove && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="w-fit"
-                  onClick={() => window.confirm(`Remove ${person.name} from this run?`) && onRemove(person.id)}
-                >
-                  <Trash2 /> Remove from this run
-                </Button>
-              )}
               {groups.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-2">
                   {groups.map((g) => (
@@ -102,6 +99,20 @@ export function PersonDetails({ state, personId, onClose, onRemove }: PersonDeta
                 {facts.length === 0 && <li className="text-sm text-muted-foreground">None yet</li>}
               </ul>
             </ScrollArea>
+            {onRemove && (
+              <SheetFooter className="border-t border-border">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-fit text-alert hover:bg-alert/10 hover:text-alert"
+                  onClick={() =>
+                    window.confirm(`Remove ${person.name} from this run? Their ties and facts go too.`) && onRemove(person.id)
+                  }
+                >
+                  <Trash2 /> Remove from this run
+                </Button>
+              </SheetFooter>
+            )}
           </>
         )}
       </SheetContent>
