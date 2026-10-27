@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from grapevine.config import Context
 from grapevine.graph import Record
 from grapevine.llm import Call
-from grapevine.names import better_spelling, drop_ly, misspelled, pairs_of
+from grapevine.names import better_spelling, drop_ly, misspelled, near_first, pairs_of
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
@@ -399,6 +399,8 @@ def resolve(
             near = [p for p in store.graph.people.values() if misspelled(p["name"], name)]
             if len(near) == 1:
                 return respelled(store, near[0], name)
+            if len(near) > 1:
+                return Ambiguity(ref, [p["id"] for p in near])
             first = name.split()[0]
             known = first_name_person(store, first)
             if known in store.graph.removed:
@@ -407,6 +409,15 @@ def resolve(
                 store.update_person(known, add_aliases=[first, *aliases], gender=gender, name=name)
                 return known
             aliases = [first, *aliases] if first not in aliases else aliases
+        else:
+            near = near_people(store, name, gender)
+            if any(p["id"] in store.graph.removed for p in near):
+                return Removed()
+            if len(near) > 1:
+                return Ambiguity(ref, [p["id"] for p in near])
+            if near:
+                store.update_person(near[0]["id"], add_aliases=[name], gender=None)
+                return near[0]["id"]
         return store.create_person(name=name, aliases=aliases, gender=gender)["id"]
 
     person = matches[0]
@@ -415,6 +426,21 @@ def resolve(
     if entry:
         store.update_person(person["id"], add_aliases=entry.get("aliases") or [], gender=entry.get("gender"))
     return person["id"]
+
+
+def near_people(store: Store, heard: str, gender: str) -> list[Record]:
+    """The people of this run whose first name or a one-word alias the lone name `heard` is a near miss of. A
+    person of another gender is never one."""
+    room = set(store.graph.room())
+    return [
+        p
+        for p in store.graph.people.values()
+        if p["merged_into_id"] is None
+        and (gender == p["gender"] or {gender, p["gender"]} & {"unknown", None})
+        and any(
+            near_first(heard, n, room=p["id"] in room) for n in [p["name"].split()[0], *p["aliases"]] if " " not in n
+        )
+    ]
 
 
 def respell_people(store: Store, text: str) -> None:

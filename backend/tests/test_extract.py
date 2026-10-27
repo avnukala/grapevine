@@ -505,3 +505,54 @@ def test_a_line_set_by_hand_keeps_the_voice_of_its_label(store):
     ]
     assert store.graph.speakers["spk0"] == ray
     assert store.graph.segments[first.segment_id]["person_id"] == ray
+
+
+def room_of(store, *names):
+    ids = [store.create_person(name=n, aliases=[n.split()[0]], gender="unknown")["id"] for n in names]
+    store.emit({"type": "roster", "person_ids": ids})
+    return ids
+
+
+def test_a_lone_name_one_letter_off_is_the_one_room_member_it_fits(store):
+    dana, felix = room_of(store, "Dana Cole", "Felix Ward")
+    people = [{"name": "Dena", "aliases": [], "gender": "female"}]
+    apply(
+        store,
+        turn(store, felix, "Happy birthday, Dena."),
+        people=people,
+        facts=[fact("Felix wished Dena well.", ["Dena"])],
+    )
+    [wish] = store.graph.facts.values()
+    assert [p["person_id"] for p in wish["people"] if p["person_id"] != felix] == [dana]
+    assert len(store.graph.people) == 2
+
+
+def test_lone_misspellings_of_room_members_match_them(store):
+    priya, hannah, mia, felix = room_of(store, "Priya Nair", "Hannah Kim", "Mia Rao", "Felix Ward")
+    for heard, who in [("Pria", priya), ("Anna", hannah), ("Miaely", mia)]:
+        apply(store, turn(store, felix, f"{heard} cooks."), facts=[fact(f"{heard} cooks.", [heard])])
+        assert who in {p["person_id"] for f in store.graph.facts.values() for p in f["people"]}
+    assert len(store.graph.people) == 4
+
+
+def test_misspelled_full_names_of_room_members_match_them(store):
+    *_, felix = room_of(store, "Sam Torres", "Mia Rao", "Kate Russo", "Felix Ward")
+    for heard in ["San Torres", "Sam Taurus", "Miaely Rao", "Kay Russo"]:
+        apply(store, turn(store, felix, f"{heard} cooks."), facts=[fact(f"{heard} cooks.", [heard])])
+    assert len(store.graph.people) == 4
+
+
+def test_a_near_miss_of_two_people_asks_the_room(store):
+    felix, _, _ = room_of(store, "Felix Ward", "Dana Cole", "Dina Park")
+    apply(store, turn(store, felix, "Dena cooks."), facts=[fact("Dena cooks.", ["Dena"])])
+    [prompt] = store.graph.active_prompts()
+    assert prompt["reason"] == "which_person"
+
+
+def test_a_real_different_name_stays_its_own_person(store):
+    felix, mark = room_of(store, "Felix Ward", "Mark Hale")
+    store.update_person(mark, add_aliases=[], gender="male")
+    people = [{"name": "Mary", "aliases": [], "gender": "female"}]
+    apply(store, turn(store, felix, "Mary cooks."), people=people, facts=[fact("Mary cooks.", ["Mary"])])
+    apply(store, turn(store, felix, "Mark sings."), facts=[fact("Mark sings.", ["Mark"])])
+    assert sorted(p["name"] for p in store.graph.people.values()) == ["Felix Ward", "Mark Hale", "Mary"]
