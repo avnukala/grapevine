@@ -146,6 +146,10 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const speakingId =
     live.speaking.personId ?? (lastSegment && lastSegmentAt && now - lastSegmentAt < GLOW_MS ? lastSegment.person_id : null);
 
+  const showTranscript = Object.keys(state.segments).length > 0 || runActive;
+  const showPrompts = Object.values(state.prompts).some((p) => p.dismissed_at_ms === null);
+  const inset = { top: 90, right: showPrompts ? 390 : 0, bottom: showTranscript ? 250 : 60, left: 0 };
+
   const guard = (task: () => Promise<unknown>) => task().catch((e) => toast.error(String(e)));
   const onAnswer = (prompt: Prompt, answer: Answer) => guard(() => api.answer(runId!, prompt.id, answer as never));
   const onDismiss = (prompt: Prompt) => guard(() => api.dismiss(runId!, prompt.id));
@@ -201,6 +205,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
             {view === "graph" ? (
               <GraphView
                 state={state}
+                inset={inset}
                 pulses={changed.pulses}
                 speakingId={speakingId}
                 factors={factors}
@@ -256,7 +261,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
               <div
                 className={cn(
                   "pointer-events-auto max-w-3xl flex-1 rounded-xl border border-border bg-card p-3",
-                  Object.keys(state.segments).length === 0 && !runActive && "hidden",
+                  !showTranscript && "hidden",
                 )}
               >
                 <Transcript

@@ -14,7 +14,7 @@ import { recent, speakerAt } from "../state/pulses";
 import { stateAt } from "../state/reducer";
 import type { Change, ModelCall, RunState, Session } from "../state/types";
 import { useRun } from "../state/useRun";
-import { GraphView } from "./GraphView";
+import { GraphView, TOOLBAR_INSET } from "./GraphView";
 import { Stats, ViewSwitch, linkedRun } from "./LiveScreen";
 import type { View } from "./LiveScreen";
 import { TimelineView } from "./TimelineView";
@@ -136,6 +136,7 @@ export function DebugScreen({ factors }: DebugScreenProps) {
             {view === "graph" ? (
               <GraphView
                 state={state}
+                inset={TOOLBAR_INSET}
                 pulses={changed.pulses}
                 speakingId={speakerAt(state, ms)}
                 factors={factors}

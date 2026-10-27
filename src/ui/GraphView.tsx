@@ -12,8 +12,27 @@ export interface Pulse {
   text: string | null;
 }
 
+// The edges of the view that panels cover, in pixels. The layout centres in the rest and fits into it.
+export interface Inset {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+// Only the view switch and the counts sit over the top of the graph.
+export const TOOLBAR_INSET: Inset = { top: 90, right: 0, bottom: 0, left: 0 };
+
+interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
 interface GraphViewProps {
   state: RunState;
+  inset: Inset;
   pulses: Pulse[];
   speakingId: number | null;
   factors: WeightFactors;
@@ -57,6 +76,8 @@ const OUTSIDE_RADIUS = 19;
 const HULL_PAD = 46;
 const CHAR_PX = 6.4;
 const GROUP_PULL = 0.08;
+// People with no ties feel only the charge, which pushes them far out unless the centre pulls harder.
+const LONER_PULL = 0.12;
 
 function pairKey(a: number, b: number): string {
   return a < b ? `${a}-${b}` : `${b}-${a}`;
@@ -119,7 +140,7 @@ function radius(node: Node): number {
   return node.inRoom ? ROOM_RADIUS : OUTSIDE_RADIUS;
 }
 
-function GraphView({ state, pulses, speakingId, factors, selectedId, onSelect }: GraphViewProps) {
+function GraphView({ state, inset, pulses, speakingId, factors, selectedId, onSelect }: GraphViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const nodesRef = useRef(new Map<number, Node>());
   const simRef = useRef<d3.Simulation<Node, PairLink> | null>(null);
@@ -185,6 +206,9 @@ function GraphView({ state, pulses, speakingId, factors, selectedId, onSelect }:
 
   useEffect(() => {
     const { width, height } = size;
+    const box = { left: inset.left, top: inset.top, right: width - inset.right, bottom: height - inset.bottom };
+    const cx = (box.left + box.right) / 2;
+    const cy = (box.top + box.bottom) / 2;
     const known = nodesRef.current;
     const nodes: Node[] = people.map((person) => {
       const existing = known.get(person.id);
@@ -195,7 +219,7 @@ function GraphView({ state, pulses, speakingId, factors, selectedId, onSelect }:
         return existing;
       }
       const index = roomList.indexOf(person.id);
-      const spread = Math.min(width, height);
+      const spread = Math.min(box.right - box.left, box.bottom - box.top);
       const angle = inRoom
         ? (2 * Math.PI * index) / Math.max(roomList.length, 1) - Math.PI / 2
         : ((person.id * 137.5) % 360) * (Math.PI / 180);
@@ -206,8 +230,8 @@ function GraphView({ state, pulses, speakingId, factors, selectedId, onSelect }:
         inRoom,
         pvx: 0,
         pvy: 0,
-        x: width / 2 + distance * Math.cos(angle),
-        y: height / 2 + distance * Math.sin(angle),
+        x: cx + distance * Math.cos(angle),
+        y: cy + distance * Math.sin(angle),
       };
       known.set(person.id, node);
       return node;
@@ -236,6 +260,7 @@ function GraphView({ state, pulses, speakingId, factors, selectedId, onSelect }:
       links.push({ key, source: byId.get(rels[0].a)!, target: byId.get(rels[0].b)!, weight });
     }
     const groupHulls = hulls.filter((h) => h.members.every((id) => byId.has(id)));
+    const linked = new Set(edges.flatMap((e) => [e.rel.a, e.rel.b]));
 
     const svg = d3.select(svgRef.current!);
     const hullPaths = svg
@@ -364,17 +389,17 @@ function GraphView({ state, pulses, speakingId, factors, selectedId, onSelect }:
           .strength((l) => 0.15 + l.weight * 0.6),
       )
       .force("charge", d3.forceManyBody<Node>().strength(-380))
-      .force("x", d3.forceX<Node>(width / 2).strength(0.035))
-      .force("y", d3.forceY<Node>(height * 0.42).strength(0.035))
+      .force("x", d3.forceX<Node>(cx).strength((n) => (linked.has(n.id) ? 0.035 : LONER_PULL)))
+      .force("y", d3.forceY<Node>(cy).strength((n) => (linked.has(n.id) ? 0.035 : LONER_PULL)))
       .force("groups", cohesion(groupHulls, byId))
       .force("collide", d3.forceCollide<Node>((n) => radius(n) + 22))
       .force("inertia-end", inertia(nodes, "end"))
       .alpha(0.6)
       .alphaDecay(0.015)
       .on("tick", ticked)
-      .on("end", () => fitIfOutside(svgRef.current!, zoomRef.current!, nodes, width, height));
+      .on("end", () => fitIfOutside(svgRef.current!, zoomRef.current!, nodes, box));
     ticked();
-  }, [people, room, roomList, labels, relationships, hulls, genders, names, factors, size, onSelect]);
+  }, [people, room, roomList, labels, relationships, hulls, genders, names, factors, size, inset.top, inset.right, inset.bottom, inset.left, onSelect]);
 
   useEffect(() => {
     const svg = d3.select(svgRef.current!);
@@ -443,23 +468,25 @@ function GraphView({ state, pulses, speakingId, factors, selectedId, onSelect }:
 
 // Zooms out to show every node when the layout settles with some outside the view. A view that already
 // shows everything stays as the user left it.
-function fitIfOutside(
-  svg: SVGSVGElement,
-  zoom: d3.ZoomBehavior<SVGSVGElement, unknown>,
-  nodes: Node[],
-  width: number,
-  height: number,
-): void {
+function fitIfOutside(svg: SVGSVGElement, zoom: d3.ZoomBehavior<SVGSVGElement, unknown>, nodes: Node[], box: Box): void {
   if (nodes.length === 0) return;
   const t = d3.zoomTransform(svg);
-  const pad = 60;
+  const pad = 50;
   const [x0, x1] = d3.extent(nodes, (n) => n.x ?? 0) as [number, number];
   const [y0, y1] = d3.extent(nodes, (n) => n.y ?? 0) as [number, number];
-  const inside = t.applyX(x0) > pad && t.applyX(x1) < width - pad && t.applyY(y0) > pad && t.applyY(y1) < height - pad;
+  const inside =
+    t.applyX(x0) > box.left + pad &&
+    t.applyX(x1) < box.right - pad &&
+    t.applyY(y0) > box.top + pad &&
+    t.applyY(y1) < box.bottom - pad;
   if (inside) return;
-  const k = Math.min(1, (width - 2 * pad) / Math.max(x1 - x0, 1), (height - 2 * pad - 80) / Math.max(y1 - y0, 1));
+  const k = Math.min(
+    1,
+    (box.right - box.left - 2 * pad) / Math.max(x1 - x0, 1),
+    (box.bottom - box.top - 2 * pad) / Math.max(y1 - y0, 1),
+  );
   const target = d3.zoomIdentity
-    .translate(width / 2, height / 2 - 20)
+    .translate((box.left + box.right) / 2, (box.top + box.bottom) / 2)
     .scale(k)
     .translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
   d3.select(svg).transition().duration(600).call(zoom.transform, target);

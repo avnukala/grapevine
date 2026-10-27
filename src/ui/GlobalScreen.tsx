@@ -8,7 +8,7 @@ import { api } from "../api";
 import type { WeightFactors } from "../state/derive";
 import type { Prompt, Run, Session } from "../state/types";
 import { useRun } from "../state/useRun";
-import { GraphView } from "./GraphView";
+import { GraphView, TOOLBAR_INSET } from "./GraphView";
 import { Stats, ViewSwitch } from "./LiveScreen";
 import type { View } from "./LiveScreen";
 import { PersonDetails } from "./PersonDetails";
@@ -79,7 +79,7 @@ export function GlobalScreen({ factors }: GlobalScreenProps) {
         <div className="relative min-w-0 flex-1">
           <div className="absolute inset-0">
             {view === "graph" ? (
-              <GraphView state={state} pulses={[]} speakingId={null} factors={factors} selectedId={selectedId} onSelect={setSelectedId} />
+              <GraphView state={state} inset={TOOLBAR_INSET} pulses={[]} speakingId={null} factors={factors} selectedId={selectedId} onSelect={setSelectedId} />
             ) : (
               <TimelineView state={state} recentFactIds={[]} recentEventIds={[]} />
             )}
