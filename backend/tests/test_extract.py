@@ -188,6 +188,23 @@ def test_contradicting_another_teller_is_a_dispute_and_own_correction_settles_it
     assert store.graph.active_prompts() == []
 
 
+def test_a_new_story_marked_as_a_dispute_is_only_a_fact(store):
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    store.create_person(name="Tina Alvarez", aliases=["Tina"], gender="female")
+    store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")
+    tina_said = "Felix Ward ate Tina Alvarez's lunch every day."
+    apply(store, turn(store, marcus, "Felix ate your lunch."), facts=[fact(tina_said, ["Felix Ward", "Tina Alvarez"])])
+    first = max(store.graph.facts)
+    apply(
+        store,
+        turn(store, person_named(store, "Tina Alvarez"), "That is true, but Felix drove me to the hospital."),
+        facts=[fact("Felix Ward drove Tina Alvarez to the hospital.", ["Felix Ward", "speaker"], disputes=f"f{first}")],
+    )
+
+    assert not any(f["disputed"] for f in store.graph.facts.values())
+    assert store.graph.active_prompts() == []
+
+
 def test_retelling_a_turn_closes_its_conflicts_and_drops_relationships_only_it_showed(store):
     marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
     felix = store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")["id"]

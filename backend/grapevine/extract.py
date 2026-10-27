@@ -10,7 +10,7 @@ from grapevine.names import better_spelling, drop_ly, misspelled, near_first, pa
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
-PROMPT_VERSION = "extract-v11"
+PROMPT_VERSION = "extract-v12"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
 
@@ -38,7 +38,8 @@ FACTS
 - when_text: the time as said, for example "freshman year". start_date and end_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD" when the turn, the known facts, or today's date resolve it. "Tonight" and "today" are today's date.
 - event: for a named or dated happening (a festival, a show or concert, including one tonight, a trip, a wedding, a proposal, an accident, a move to a new city or house), the event name, also listed in "events". To talk about a known event again, list it in "events" with its "id" ("e2") and use its known name. Name a new event by what and when, for example "Coachella 2018". All facts of one story share one event. A school, a place, or a group is not an event.
 - If the speaker corrects a fact that they told, or agrees with a correction, use kind correction and set "revises" to the old fact id.
-- If the speaker contradicts a fact that ANOTHER person told, write the speaker's version and set "disputes" to the other fact id.
+- If the speaker contradicts a fact that ANOTHER person told, write the speaker's version and set "disputes" to the other fact id. Set "disputes" only when the two facts give different values for the same thing, such as two years for one trip.
+- A turn that starts with "that is true, but" or "yes, and" agrees with the turn before. Its new facts do not dispute anything.
 
 RELATIONSHIPS
 - Add one entry for each pair whose relationship the turn tells about, for example coworkers, cousins, roommates, exes, or old friends. A pair has at most one entry per category, for example a past romantic one and a current friend one.
@@ -60,12 +61,12 @@ KNOWN PEOPLE:
 - Felix Ward (aliases: Felix)
 - Felix Shaw (aliases: Felix)
 FACTS:
-f4 told by Tom Becker: Tom Becker and Maria Lopez met in 2015.
+f4 told by Tom Becker: Tom Becker and Maria Lopez went to Lollapalooza in 2015.
 NEW TURN (speaker: Maria Lopez):
-No, we met in 2014 at Lollapalooza. Felix drove us. My sister Ana was there too, she runs the Saturday book club with me.
+No, we went to Lollapalooza in 2014, that is where we met. Felix drove us. My sister Ana was there too, she runs the Saturday book club with me.
 
 EXAMPLE OUTPUT
-{"speaker_name": null, "people": [{"name": "Ana", "gender": "female"}], "events": [{"name": "Lollapalooza 2014", "start_date": "2014", "people": ["speaker", "Tom Becker", "Ana"]}], "facts": [{"kind": "relationship", "text": "Maria Lopez and Tom Becker met at Lollapalooza in 2014.", "people": ["speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014", "disputes": "f4"}, {"kind": "story", "text": "Felix drove Maria Lopez and Tom Becker to Lollapalooza.", "people": ["Felix", "speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014"}, {"kind": "membership", "text": "Ana and Maria Lopez run the Saturday book club.", "people": ["Ana", "speaker"], "group": "Saturday book club"}], "relationships": [{"a": "speaker", "b": "Tom Becker", "category": "friend", "label": "friend", "status": "current", "met_on": "2014", "met_event": "Lollapalooza 2014", "facts": [0]}, {"a": "speaker", "b": "Ana", "category": "family", "label": "sister", "status": "current", "closeness": 4, "recency": 5, "sentiment": 1, "facts": [2]}]}"""
+{"speaker_name": null, "people": [{"name": "Ana", "gender": "female"}], "events": [{"name": "Lollapalooza 2014", "start_date": "2014", "people": ["speaker", "Tom Becker", "Ana"]}], "facts": [{"kind": "relationship", "text": "Maria Lopez and Tom Becker met at Lollapalooza in 2014.", "people": ["speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014"}, {"kind": "story", "text": "Maria Lopez and Tom Becker went to Lollapalooza in 2014.", "people": ["speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014", "disputes": "f4"}, {"kind": "story", "text": "Felix drove Maria Lopez and Tom Becker to Lollapalooza.", "people": ["Felix", "speaker", "Tom Becker"], "start_date": "2014", "event": "Lollapalooza 2014"}, {"kind": "membership", "text": "Ana and Maria Lopez run the Saturday book club.", "people": ["Ana", "speaker"], "group": "Saturday book club"}], "relationships": [{"a": "speaker", "b": "Tom Becker", "category": "friend", "label": "friend", "status": "current", "met_on": "2014", "met_event": "Lollapalooza 2014", "facts": [0]}, {"a": "speaker", "b": "Ana", "category": "family", "label": "sister", "status": "current", "closeness": 4, "recency": 5, "sentiment": 1, "facts": [3]}]}"""
 
 NULLABLE = {"type": ["string", "null"]}
 DATE = {"type": ["string", "null"], "description": "YYYY, YYYY-MM, or YYYY-MM-DD"}
@@ -141,6 +142,11 @@ SEASONS = ("spring", "summer", "fall", "autumn", "winter")
 PERSON_NAME = re.compile(r"[A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*){0,3}")
 SPEAKER_REFS = {"speaker", "the speaker", "unknown speaker", "i", "me", "myself"}
 RECENT_TURNS = 4
+FUNCTION_WORDS = (
+    {"a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "of", "for", "with", "from", "by"}
+    | {"is", "was", "are", "were", "he", "she", "his", "her", "they", "them", "their", "it", "s", "that"}
+    | {"this", "after", "before", "when", "while", "used", "also", "too", "not", "no"}
+)
 COUPLE_EVENTS = {"wedding": "married", "engagement": "engaged"}
 FRIEND_LABELS = ("bandmate", "roommate", "housemate", "teammate", "climbing partner", "league mate")
 WORK_LABELS = ("coworker", "co-worker", "colleague", "manager", "boss", "at work")
@@ -636,9 +642,20 @@ def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, 
     told_by = store.graph.facts[old]["told_by_person_id"]
     if told_by is None or told_by == teller.person_id:
         revise(store, old, record["id"], model_call_id=teller.model_call_id)
-    else:
+    elif same_thing(store, store.graph.facts[old], store.graph.facts[record["id"]]):
         dispute(store, old, record["id"], model_call_id=teller.model_call_id)
     return record["id"]
+
+
+def same_thing(store: Store, a: Record, b: Record) -> bool:
+    """Whether two facts can disagree: they share an event or a word other than a name. The model marks a
+    new story as a dispute at times, such as "drove Felix to the hospital" against "ate Felix's lunch"."""
+    names = {w for p in store.graph.people.values() for w in re.findall(r"[a-z]+", p["name"].lower())}
+
+    def words(text: str) -> set[str]:
+        return set(re.findall(r"[a-z]+", text.lower())) - names - FUNCTION_WORDS
+
+    return (a["event_id"] is not None and a["event_id"] == b["event_id"]) or bool(words(a["text"]) & words(b["text"]))
 
 
 def revise(store: Store, old: int, new: int, *, model_call_id: int) -> None:
