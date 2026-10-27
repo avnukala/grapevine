@@ -29,6 +29,8 @@ interface Lane {
 }
 
 const LABEL_WIDTH = 168;
+// The legend sits right of the view switch, so it shows only when the plot has room for both.
+const LEGEND_MIN_PLOT = 500;
 const AXIS_HEIGHT = 34;
 const EVENT_ROW = 26;
 const LANE_HEIGHT = 46;
@@ -132,7 +134,7 @@ function TimelineView({ state, recentFactIds, recentEventIds }: TimelineViewProp
   }, [newest]);
 
   return (
-    <div className="flex size-full min-h-0" data-testid="timeline">
+    <div className="@container flex size-full min-h-0" data-testid="timeline">
       <SwimlaneChart
         state={state}
         lanes={lanes}
@@ -281,7 +283,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
   return (
     <div ref={wrapRef} className="relative min-w-0 flex-1 overflow-auto">
       <div className="sticky top-0 z-10 flex h-14 items-center justify-end gap-2 bg-background px-4">
-        <Legend />
+        {width - LABEL_WIDTH >= LEGEND_MIN_PLOT && <Legend />}
         <Button size="sm" variant="outline" onClick={fit}>
           Fit all
         </Button>
@@ -477,7 +479,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
 
 function Legend() {
   return (
-    <div className="hidden items-center gap-3 rounded-md border border-border bg-card px-3 py-1.5 text-[11px] text-muted-foreground lg:flex">
+    <div className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-1.5 text-[11px] text-muted-foreground">
       {Object.entries(KIND_COLORS).map(([kind, color]) => (
         <span key={kind} className="flex items-center gap-1">
           <span className="size-2 rounded-full" style={{ background: color }} />
@@ -780,7 +782,7 @@ function StoryFeed({ state, items, recent, focusKey, onFocus }: StoryFeedProps) 
   const undated = facts.filter((f) => !factRange(f, state) && f.kind !== "personal");
 
   return (
-    <ScrollArea className="w-[360px] shrink-0 border-l border-border bg-card/40">
+    <ScrollArea className="hidden w-[360px] shrink-0 border-l border-border bg-card/40 @4xl:block">
       <div className="p-4">
         <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           <CalendarDays className="size-4" /> Stories
