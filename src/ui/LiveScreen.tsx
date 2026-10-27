@@ -107,6 +107,13 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const { state } = live;
 
   const [going, setGoing] = useState<Run | null>(null);
+  const [transcriptHeight, setTranscriptHeight] = useState(0);
+  const transcriptRef = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return;
+    const observer = new ResizeObserver(() => setTranscriptHeight(Math.ceil(el.offsetHeight / 40) * 40));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const refresh = useCallback(async () => {
     const [all, current] = await Promise.all([api.sessions(), api.activeRun()]);
@@ -149,7 +156,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
 
   const showTranscript = Object.keys(state.segments).length > 0 || runActive;
   const showPrompts = Object.values(state.prompts).some((p) => p.dismissed_at_ms === null);
-  const inset = { top: 90, right: showPrompts && !promptsHidden ? 390 : 0, bottom: showTranscript ? 250 : 60, left: 0 };
+  const inset = { top: 90, right: showPrompts && !promptsHidden ? 390 : 0, bottom: showTranscript ? transcriptHeight + 30 : 60, left: 0 };
 
   const guard = (task: () => Promise<unknown>) => task().catch((e) => toast.error(String(e)));
   const onAnswer = (prompt: Prompt, answer: Answer) => guard(() => api.answer(runId!, prompt.id, answer as never));
@@ -282,6 +289,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
           {view === "graph" && (
             <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10 flex items-end gap-4">
               <div
+                ref={transcriptRef}
                 className={cn(
                   "pointer-events-auto max-w-3xl flex-1 rounded-xl border border-border bg-card p-3",
                   !showTranscript && "hidden",
