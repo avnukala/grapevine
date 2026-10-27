@@ -79,6 +79,9 @@ const GROUP_PULL = 0.08;
 // Past this many ties, a tie shows its label only for the person under the pointer or picked, or when zoomed in.
 const DENSE_EDGES = 8;
 const ZOOMED_IN = 1.4;
+// In a small window the open area can be tiny. Below this scale names cannot be read, so the graph may run under
+// the panels instead, where the room can pan to it.
+const MIN_FIT = 0.55;
 const GROUP_PUSH = 0.4;
 // People with no ties feel only the charge, which pushes them far out unless the centre pulls harder.
 const LONER_PULL = 0.12;
@@ -516,11 +519,11 @@ function fitIfOutside(svg: SVGSVGElement, zoom: d3.ZoomBehavior<SVGSVGElement, u
     t.applyY(y0) > box.top + pad &&
     t.applyY(y1) < box.bottom - pad;
   if (inside) return;
-  const k = Math.min(
-    1,
+  const fit = Math.min(
     (box.right - box.left - 2 * pad) / Math.max(x1 - x0, 1),
     (box.bottom - box.top - 2 * pad) / Math.max(y1 - y0, 1),
   );
+  const k = Math.max(MIN_FIT, Math.min(1, fit));
   const target = d3.zoomIdentity
     .translate((box.left + box.right) / 2, (box.top + box.bottom) / 2)
     .scale(k)
