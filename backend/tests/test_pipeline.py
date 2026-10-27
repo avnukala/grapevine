@@ -200,6 +200,17 @@ def test_a_new_name_under_a_named_voice_gets_its_own_voice(conn):
     ]
 
 
+def test_a_self_introduction_respells_a_known_person(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    conn.execute("INSERT INTO people (name, aliases) VALUES ('Sophiely Moreau', '[\"Sophie\", \"Sophie Moreau\"]')")
+    store = replay(conn, FakeChat(RULES))
+
+    sophie = store.person(1)
+    assert snapshot(store)["segments"][2] == ("Hi, I'm Sophie Moreau.", "Sophie Moreau")
+    assert sophie["name"] == "Sophie Moreau"
+    assert "Sophiely Moreau" in sophie["aliases"]
+
+
 def test_the_roster_seats_people_and_fixes_how_their_names_are_spelled(conn):
     conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
     lines = [replace(LINES[0], text="Hey, I'm Ray Patell."), replace(LINES[1], text="I'm Jasper Lind."), *LINES[2:]]
