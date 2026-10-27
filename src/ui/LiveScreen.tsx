@@ -246,6 +246,26 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
             )}
           </div>
 
+          {session && runId === null && (
+            <div className="absolute inset-0 flex items-center justify-center" data-testid="no-run">
+              <div className="max-w-md rounded-xl border border-border bg-card p-5 text-sm">
+                <div className="font-semibold">{session.name} has no run yet</div>
+                {session.roster.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {session.roster.map((name) => (
+                      <Badge key={name} variant="outline">
+                        {name}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-3 text-muted-foreground">
+                  Click Start live to listen through the microphone of this computer, or Typed run to type each line.
+                </p>
+              </div>
+            </div>
+          )}
+
           {(live.thinking.reviewer ?? live.thinking.summarizer) && (
             <StoryWriter thinking={(live.thinking.reviewer ?? live.thinking.summarizer)!} />
           )}
