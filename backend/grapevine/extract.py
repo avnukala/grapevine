@@ -389,6 +389,8 @@ def resolve(
         return teller.person_id
     ref = drop_ly(ref)
     entry = {**entry, "name": drop_ly(entry["name"])} if entry else None
+    if re.search(rf"\b(?:dog|cat|puppy|kitten|pet)s? {re.escape(ref)}\b", text):
+        return None
     if ref in answers:
         return answers[ref]
     matches = in_run_first(store, name_matches(store.conn, ref))

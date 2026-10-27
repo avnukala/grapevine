@@ -164,6 +164,17 @@ def test_a_near_miss_of_someone_in_this_run_beats_a_person_of_other_sessions(sto
     assert sorted(p["name"].split()[0] for p in store.graph.people.values()) == ["Greta", "Ray", "Tina"]
 
 
+def test_a_pet_named_in_the_turn_is_not_a_person(store):
+    store.conn.execute("INSERT INTO people (name) VALUES ('Pickles')")
+    felix = store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")["id"]
+    teller = turn(store, felix, "I live in Austin with my dog Pickles.")
+    apply(store, teller, facts=[fact("Felix Ward lives with his dog Pickles.", ["speaker", "Pickles"])])
+
+    assert [p["name"] for p in store.graph.people.values()] == ["Felix Ward"]
+    [lives] = store.graph.facts.values()
+    assert [p["person_id"] for p in lives["people"]] == [felix]
+
+
 def test_full_name_is_not_ambiguous(store):
     jasper = store.create_person(name="Jasper Lin", aliases=["Jasper"], gender="male")["id"]
     store.create_person(name="Andrew Gao", aliases=["Andrew", "Gao"], gender="male")
