@@ -224,6 +224,7 @@ function SpeakerPicker({ state, segment, onPick, children }: SpeakerPickerProps)
   const [name, setName] = useState("");
   const [everyLine, setEveryLine] = useState(true);
   const room = roomIds(state);
+  const voiceLines = Object.values(state.segments).filter((s) => s.speaker_label === segment.speaker_label).length;
   const others = Object.keys(state.people)
     .map(Number)
     .filter((id) => !room.includes(id));
@@ -263,7 +264,7 @@ function SpeakerPicker({ state, segment, onPick, children }: SpeakerPickerProps)
         </form>
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <input type="checkbox" checked={everyLine} onChange={(e) => setEveryLine(e.target.checked)} />
-          Every line from this voice ({segment.speaker_label})
+          Every line from this voice ({voiceLines} {voiceLines === 1 ? "line" : "lines"})
         </label>
       </PopoverContent>
     </Popover>
