@@ -64,18 +64,18 @@ interface StatsProps {
 }
 
 export function Stats({ state }: StatsProps) {
-  const counts: [string, number][] = [
-    ["people", Object.values(state.people).filter((p) => p.merged_into_id === null).length],
-    ["relationships", Object.keys(state.relationships).length],
-    ["facts", liveFacts(state).length],
-    ["events", Object.keys(state.events).length],
+  const counts: [string, string, number][] = [
+    ["person", "people", Object.values(state.people).filter((p) => p.merged_into_id === null).length],
+    ["relationship", "relationships", Object.keys(state.relationships).length],
+    ["fact", "facts", liveFacts(state).length],
+    ["event", "events", Object.keys(state.events).length],
   ];
   return (
     <div className="flex gap-1.5" data-testid="stats">
-      {counts.map(([label, count]) => (
-        <Badge key={label} variant="secondary" className="bg-card">
+      {counts.map(([one, many, count]) => (
+        <Badge key={many} variant="secondary" className="bg-card">
           <span className="font-semibold tabular-nums">{count}</span>
-          <span className="text-muted-foreground">{label}</span>
+          <span className="text-muted-foreground">{count === 1 ? one : many}</span>
         </Badge>
       ))}
     </div>
