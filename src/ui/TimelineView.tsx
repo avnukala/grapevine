@@ -53,12 +53,13 @@ interface EventLabel {
   end: number;
 }
 
-// Puts an event label inside a wide bar, else after the bar, or before it when it would run off the chart.
+// Puts an event label inside the visible part of a wide bar, else after the bar, or before it when it would run off the chart.
 function eventLabel(item: Extract<Item, { kind: "event" }>, x: d3.ScaleTime<number, number>, plotWidth: number): EventLabel {
   const x0 = x(item.range.start);
   const x1 = x0 + Math.max(x(item.range.end) - x0, 8);
   const text = item.event.name.length * 6.5;
-  if (x1 - x0 > text + 16) return { x: x0 + 8, anchor: "start", start: x0, end: x1 };
+  const left = Math.max(x0, 0);
+  if (Math.min(x1, plotWidth) - left > text + 16) return { x: left + 8, anchor: "start", start: x0, end: x1 };
   if (x1 + 6 + text <= plotWidth) return { x: x1 + 6, anchor: "start", start: x0, end: x1 + 6 + text };
   return { x: x0 - 6, anchor: "end", start: x0 - 6 - text, end: x1 };
 }
@@ -305,9 +306,11 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
             {ticks.map((tick) => (
               <g key={tick.getTime()} transform={`translate(${x(tick)},0)`}>
                 <line y1={AXIS_HEIGHT - 4} y2={height} className="stroke-foreground/[0.08]" />
-                <text y={AXIS_HEIGHT - 12} textAnchor="middle" className="fill-muted-foreground text-[11px]">
-                  {format(tick)}
-                </text>
+                {Math.min(x(tick), plotWidth - x(tick)) > format(tick).length * 3.5 && (
+                  <text y={AXIS_HEIGHT - 12} textAnchor="middle" className="fill-muted-foreground text-[11px]">
+                    {format(tick)}
+                  </text>
+                )}
               </g>
             ))}
             {items.map((item) => {
@@ -332,14 +335,16 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
                         strokeWidth={ringed ? 2.5 : 1}
                         className={ringed ? "stroke-foreground" : on ? "stroke-warn" : "stroke-primary/50"}
                       />
-                      <text
-                        x={label.x}
-                        y={y + 14}
-                        textAnchor={label.anchor}
-                        className="fill-foreground text-[11px] font-semibold"
-                      >
-                        {item.event.name}
-                      </text>
+                      {x0 + w >= 0 && x0 <= plotWidth && (
+                        <text
+                          x={label.x}
+                          y={y + 14}
+                          textAnchor={label.anchor}
+                          className="fill-foreground text-[11px] font-semibold"
+                        >
+                          {item.event.name}
+                        </text>
+                      )}
                     </g>
                   );
                 }
