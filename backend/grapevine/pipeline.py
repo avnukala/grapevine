@@ -485,7 +485,9 @@ class Pipeline:
                 speaker_id = self._name_speaker(segment, name, Held(output, teller))
                 if speaker_id is not None and segment["person_id"] != speaker_id:
                     self.store.update_segment(segment["id"], person_id=speaker_id)
-            if speaker_id is not None or not name:
+            # A read under another speaker tells facts such as "my name is Mia, not Dana", so it is read again.
+            moved = teller.person_id not in (None, speaker_id)
+            if not moved and (speaker_id is not None or not name):
                 apply_output(self.store, Held(output, replace(teller, person_id=speaker_id)))
         total_ms = int((time.monotonic() - job.heard_at) * 1000)
         self.store.update_segment(segment["id"], timings={"extract_ms": extract_ms, "total_ms": total_ms})

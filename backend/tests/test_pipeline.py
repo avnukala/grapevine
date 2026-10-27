@@ -395,3 +395,36 @@ def test_a_typed_turn_after_the_run_stops_is_refused(conn):
     with pytest.raises(RunStopping):
         asyncio.run(pipeline.add_text("Marcus Hale", "One more thing."))
     assert pipeline.store.graph.segments == {}
+
+
+def test_an_introduction_read_under_another_speaker_is_read_again(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    lines = [
+        Line(0, 500, 2700, "Hey, I'm Ray Patel."),
+        Line(2, 3700, 5200, "Hi, I'm Sophie Moreau."),
+        Line(1, 5700, 7200, "I'm Jasper Lin."),
+    ]
+    wrong = fact("The speaker's name is Sophie Moreau, not Ray Patel.", ["speaker"])
+    chat = FakeChat(
+        {"speaker: Ray Patel):\nHi, I'm Sophie": {"speaker_name": "Sophie Moreau", "facts": [wrong]}, **RULES}
+    )
+    store = Store(
+        conn,
+        conn.execute(
+            "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'replay', '{}', 'test')"
+        ).lastrowid,
+    )
+    pipeline = Pipeline(
+        store,
+        fake_models(lines, chat, {2: 0}),
+        LLM(conn, chat, model_file_hash="t", reuse=True),
+        RunConfig(),
+        today="2025-10-18",
+        intro_end_ms=7600,
+        roster=[],
+    )
+    asyncio.run(pipeline.run(chunks(render(lines, 9000))))
+
+    assert any("speaker: Ray Patel):\nHi, I'm Sophie" in r["messages"][1]["content"] for r in chat.requests)
+    assert [name for _, name in snapshot(store)["segments"]] == ["Ray Patel", "Sophie Moreau", "Jasper Lin"]
+    assert snapshot(store)["facts"] == []
