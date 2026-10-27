@@ -157,21 +157,14 @@ class Pipeline:
         self._seat_roster()
         workers = [asyncio.create_task(self._transcribe_turns()), asyncio.create_task(self._extract_jobs())]
         partials = asyncio.create_task(self._partials()) if self.partials else None
+        feed = asyncio.create_task(self._feed(chunks))
         try:
-            async for chunk in chunks:
-                for worker in workers:
-                    if worker.done():
-                        worker.result()
-                self.audio.append(chunk)
-                frames = await asyncio.to_thread(self.models.detector.push, chunk)
-                await self._frames(frames)
-            await self._frames(await asyncio.to_thread(self.models.detector.finish))
-            await self._turns(self.builder.close())
-            await self.turns.put(None)
-            await asyncio.gather(*workers)
+            # A typed run gets no chunks, so a failed worker must end the run without waiting for one.
+            await asyncio.wait([feed, *workers], return_when=asyncio.FIRST_EXCEPTION)
+            await asyncio.gather(feed, *workers)
             await asyncio.gather(*self.prompter_tasks)
         finally:
-            for task in [*workers, partials]:
+            for task in [feed, *workers, partials]:
                 if task is not None:
                     task.cancel()
         self.store.audio_ms = self.builder.now_ms
@@ -181,6 +174,15 @@ class Pipeline:
         await review(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed, today=self.today)
         await summarize(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed)
         self.store.set_phase("ended")
+
+    async def _feed(self, chunks: AsyncIterator[np.ndarray]) -> None:
+        async for chunk in chunks:
+            self.audio.append(chunk)
+            frames = await asyncio.to_thread(self.models.detector.push, chunk)
+            await self._frames(frames)
+        await self._frames(await asyncio.to_thread(self.models.detector.finish))
+        await self._turns(self.builder.close())
+        await self.turns.put(None)
 
     def _seat_roster(self) -> None:
         """Puts the people the room typed in before the session into the graph. A typed name that one known

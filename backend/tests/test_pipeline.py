@@ -1,6 +1,8 @@
 import asyncio
 from dataclasses import replace
 
+import pytest
+
 from grapevine import pipeline as pipeline_module
 from grapevine.audio import SAMPLE_RATE
 from grapevine.config import RunConfig
@@ -329,3 +331,34 @@ def test_the_review_completes_relationships_groups_and_events(conn):
         "Sophie Moreau",
     }
     assert [e["name"] for e in graph.events.values()] == ["Electric Zoo 2018"]
+
+
+class DownChat(FakeChat):
+    async def complete(self, request: dict, on_text=None) -> str:
+        raise ConnectionError("no model loaded")
+
+
+def test_a_typed_run_fails_on_its_first_turn_when_the_model_is_down(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    run_id = conn.execute(
+        "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'live', '{}', 'test')"
+    ).lastrowid
+    chat = DownChat({})
+    llm = LLM(conn, chat, model_file_hash="t", reuse=True)
+    pipeline = Pipeline(
+        Store(conn, run_id), fake_models([], chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[]
+    )
+    stop = asyncio.Event()
+
+    async def idle():
+        await stop.wait()
+        return
+        yield
+
+    async def go():
+        run = asyncio.create_task(pipeline.run(idle()))
+        await pipeline.add_text("Ray Patel", "I work as a nurse in Denver.")
+        await asyncio.wait_for(run, timeout=5)
+
+    with pytest.raises(ConnectionError):
+        asyncio.run(go())

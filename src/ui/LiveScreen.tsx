@@ -120,7 +120,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
     void api.activeRun().then((run) => run && open(run));
   }, []);
   useEffect(() => {
-    if (live.error) toast.error(live.error);
+    if (live.error) toast.error(live.error, { duration: Infinity, closeButton: true });
   }, [live.error]);
 
   const session = sessions.find((s) => s.id === sessionId) ?? null;

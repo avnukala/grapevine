@@ -1,5 +1,6 @@
 import { Check, FastForward, FileAudio, Keyboard, LoaderCircle, Mic, Play, Plus, Square, Upload, UserCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,8 @@ export function SessionControls(props: SessionControlsProps) {
   const { sessions, sessionId, runId, runActive, phase, onSession, onRun, onRefresh, onOnboard } = props;
   const [files, setFiles] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  // Starting a run loads the speech models first, which takes a few seconds.
+  const [starting, setStarting] = useState<string | null>(null);
   // A stopped run still reads its last turns and writes the review, which takes about a minute.
   const [stoppedId, setStoppedId] = useState<number | null>(null);
   const finishing = phase === "review" || (runId !== null && stoppedId === runId);
@@ -48,8 +51,14 @@ export function SessionControls(props: SessionControlsProps) {
     }
   }
 
-  const start = (source: Source, speed: number | null = null) =>
-    act(async () => onRun((await api.startRun({ session_id: sessionId!, source, speed })).id));
+  const start = (source: Source, speed: number | null = null) => {
+    setStarting(`${source}-${speed}`);
+    void act(async () => onRun((await api.startRun({ session_id: sessionId!, source, speed })).id)).finally(() =>
+      setStarting(null),
+    );
+  };
+  const icon = (key: string, idle: ReactNode) =>
+    starting === key ? <LoaderCircle className="animate-spin" /> : idle;
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/30 px-4 py-2" data-testid="controls">
@@ -91,22 +100,22 @@ export function SessionControls(props: SessionControlsProps) {
       {session && !runActive && (
         <>
           <Button size="sm" disabled={busy} onClick={() => start("mic")}>
-            <Mic /> Start live
+            {icon("mic-null", <Mic />)} Start live
           </Button>
           {session.audio_uri && (
             <>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => start("file", 1)}>
-                <Play /> Replay 1×
+                {icon("file-1", <Play />)} Replay 1×
               </Button>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => start("file", null)}>
-                <FastForward /> Replay fast
+                {icon("file-null", <FastForward />)} Replay fast
               </Button>
             </>
           )}
           <Button size="sm" variant="outline" disabled={busy} onClick={() => start("text")}>
-            <Keyboard /> Typed run
+            {icon("text-null", <Keyboard />)} Typed run
           </Button>
-          {run && run.kind !== "merge" && !run.accepted && run.status !== "running" && (
+          {run && run.kind !== "merge" && !run.accepted && (run.status === "done" || run.status === "stopped") && (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => api.accept(run.id))}>
               <Check /> Accept run
             </Button>

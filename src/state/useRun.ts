@@ -6,7 +6,7 @@ import type { Change, RunState } from "./types";
 export type ServerMessage =
   | { type: "change"; run_id: number; change: Change }
   | { type: "activity"; run_id: number; speaker_label: string | null; person_id: number | null }
-  | { type: "status"; run_id: number; status: string }
+  | { type: "status"; run_id: number; status: string; error?: string }
   | { type: "partial"; run_id: number; start_ms: number; text: null }
   | {
       type: "partial";
@@ -112,6 +112,7 @@ export function useRun(runId: number | null): LiveRun {
       if (message.type === "status") {
         setStatus(message.status);
         setPartial(null);
+        if (message.error) setError(message.error);
       }
       if (message.type === "thinking") {
         const { worker, text, segment_id: segmentId = null } = message;

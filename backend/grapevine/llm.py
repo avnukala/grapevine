@@ -88,7 +88,12 @@ class LLM:
                 "SELECT response_json FROM model_calls WHERE input_hash = ? ORDER BY id LIMIT 1", (input_hash,)
             ).fetchone()
         started = time.monotonic()
-        content = stored[0] if stored else await self.chat.complete(request, watch)
+        try:
+            content = stored[0] if stored else await self.chat.complete(request, watch)
+        except Exception:
+            if watch:
+                watch(None)
+            raise
         latency_ms = 0 if stored else int((time.monotonic() - started) * 1000)
         if watch:
             watch(content)

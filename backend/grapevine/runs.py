@@ -11,6 +11,7 @@ from functools import cache
 from pathlib import Path
 
 import numpy as np
+import openai
 
 from grapevine.config import DATA_DIR, LLM_BASE_URL, LLM_MODEL_PATH, ROOT, RunConfig, code_version
 from grapevine.graph import Record
@@ -149,14 +150,20 @@ class ActiveRun:
 async def run_pipeline(conn: sqlite3.Connection, active: ActiveRun, chunks: AsyncIterator[np.ndarray]) -> None:
     try:
         await active.pipeline.run(chunks)
-    except Exception:
+    except Exception as error:
         log.exception("run %s failed", active.run_id)
         set_status(conn, active.run_id, "failed")
-        active.store.notify({"type": "status", "status": "failed"})
+        active.store.notify({"type": "status", "status": "failed", "error": failure(error)})
         raise
     status = "stopped" if active.stop.is_set() else "done"
     set_status(conn, active.run_id, status)
     active.store.notify({"type": "status", "status": status})
+
+
+def failure(error: Exception) -> str:
+    if isinstance(error, openai.APIConnectionError):
+        return f"The run stopped because no model answered at {LLM_BASE_URL}. Load the models in LM Studio, then start a new run."
+    return f"The run stopped: {error}"
 
 
 def start_pipeline(
