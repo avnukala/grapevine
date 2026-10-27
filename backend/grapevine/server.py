@@ -103,7 +103,7 @@ async def websocket(socket: WebSocket) -> None:
 @app.get("/api/audio-files")
 def audio_files() -> list[str]:
     files = [*(DATA_DIR / "samples").glob("*"), *recordings_dir().glob("*")]
-    return sorted(str(f.relative_to(ROOT)) for f in files if f.suffix in AUDIO_SUFFIXES)
+    return sorted(audio_uri(f) for f in files if f.suffix in AUDIO_SUFFIXES)
 
 
 @app.get("/api/sessions")

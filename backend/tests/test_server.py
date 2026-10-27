@@ -142,3 +142,12 @@ def test_renaming_a_roster_person_renames_them_on_the_roster(client, store, conn
     assert response.json()["name"] == "Mia Rao"
     assert server.session(conn, 1)["roster"] == ["Mia Rao", "Dana Cole"]
     assert client.patch(f"/api/runs/{store.run_id}/people/{mia}", json={"name": " "}).status_code == 422
+
+
+def test_audio_files_outside_the_checkout_are_listed(client, tmp_path, monkeypatch):
+    (tmp_path / "samples").mkdir()
+    (tmp_path / "samples" / "dinner.mp3").write_bytes(b"")
+    monkeypatch.setattr(server, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(server, "recordings_dir", lambda: tmp_path / "audio")
+
+    assert client.get("/api/audio-files").json() == [str((tmp_path / "samples" / "dinner.mp3").resolve())]
