@@ -268,7 +268,8 @@
       },
       {
         "name": "Move into the Pearl Street house",
-        "year": 2023
+        "year": 2023,
+        "years": [2022, 2023]
       },
       {
         "name": "Arjun and Claire's wedding in Napa",

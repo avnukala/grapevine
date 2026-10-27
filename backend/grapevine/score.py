@@ -88,7 +88,8 @@ def facts(graph: Graph, expected: Record) -> Record:
         ):
             found_relationships.append(f"{rel['a']} - {rel['b']} {rel['category']}")
     event_years = [int(e["start_date"][:4]) for e in graph.events.values() if e["start_date"]]
-    found_events = [e["name"] for e in expected["events"] if e["year"] in event_years]
+    # A move the room never settles, such as 2022 against 2023, lists both years, since no label can pick one.
+    found_events = [e["name"] for e in expected["events"] if set(e.get("years", [e["year"]])) & set(event_years)]
     found_groups = []
     for group in expected["groups"]:
         ids = [g["id"] for g in graph.groups.values() if similar(group["name"], g["name"])]
