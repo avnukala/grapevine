@@ -65,7 +65,7 @@ export function DebugScreen({ factors }: DebugScreenProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="debug">
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-card/30 px-4 py-2">
-        <Select value={runId ? String(runId) : undefined} onValueChange={(v) => setRunId(Number(v))}>
+        <Select value={runId ? String(runId) : ""} onValueChange={(v) => setRunId(Number(v))}>
           <SelectTrigger className="w-96" aria-label="Run" data-testid="run-select">
             <SelectValue placeholder="Pick a run" />
           </SelectTrigger>

@@ -44,8 +44,15 @@ export default function App() {
     saveFactors(next);
   };
 
+  // The client renders the theme script, so it never runs. A data type keeps React from warning about it.
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem={false}
+      disableTransitionOnChange
+      scriptProps={{ type: "application/json" }}
+    >
       <TooltipProvider>
         <div className="flex h-svh flex-col">
           <header className="flex h-12 shrink-0 items-center gap-6 border-b border-border bg-card px-4">

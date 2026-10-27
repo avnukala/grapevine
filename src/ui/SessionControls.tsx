@@ -62,7 +62,7 @@ export function SessionControls(props: SessionControlsProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/30 px-4 py-2" data-testid="controls">
-      <Select value={sessionId ? String(sessionId) : undefined} onValueChange={(v) => onSession(Number(v))}>
+      <Select value={sessionId ? String(sessionId) : ""} onValueChange={(v) => onSession(Number(v))}>
         <SelectTrigger className="w-72" aria-label="Session" data-testid="session-select">
           <SelectValue placeholder="Pick a session" />
         </SelectTrigger>
@@ -75,7 +75,7 @@ export function SessionControls(props: SessionControlsProps) {
         </SelectContent>
       </Select>
       {session && (
-        <Select value={runId ? String(runId) : undefined} onValueChange={(v) => onRun(Number(v))}>
+        <Select value={runId ? String(runId) : ""} onValueChange={(v) => onRun(Number(v))}>
           <SelectTrigger className="w-56" aria-label="Run" data-testid="run-select">
             <SelectValue placeholder="No runs yet" />
           </SelectTrigger>
