@@ -173,6 +173,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
   const [width, setWidth] = useState(900);
   const [transform, setTransform] = useState(d3.zoomIdentity);
   const [hover, setHover] = useState<Hover | null>(null);
+  const [keyboardKey, setKeyboardKey] = useState<string | null>(null);
 
   const plotWidth = Math.max(width - LABEL_WIDTH - 24, 200);
   const base = useMemo(() => {
@@ -266,6 +267,8 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
     "aria-pressed": selectedKey === item.key,
     onMouseMove: (e: React.MouseEvent) => show(e, item),
     onMouseLeave: () => setHover(null),
+    onFocus: () => setKeyboardKey(item.key),
+    onBlur: () => setKeyboardKey(null),
     onClick: () => onSelect(item.key),
     onKeyDown: (e: React.KeyboardEvent) => {
       if (e.key !== "Enter" && e.key !== " ") return;
@@ -309,7 +312,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
             ))}
             {items.map((item) => {
               const on = lit(item.key);
-              const selected = selectedKey === item.key;
+              const ringed = selectedKey === item.key || keyboardKey === item.key;
               const cx = x(mid(item.range));
               switch (item.kind) {
                 case "event": {
@@ -326,8 +329,8 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
                         height={EVENT_ROW - 6}
                         rx={6}
                         fill="url(#event-fill)"
-                        strokeWidth={selected ? 2.5 : 1}
-                        className={on ? "stroke-warn" : "stroke-primary/50"}
+                        strokeWidth={ringed ? 2.5 : 1}
+                        className={ringed ? "stroke-foreground" : on ? "stroke-warn" : "stroke-primary/50"}
                       />
                       <text
                         x={label.x}
@@ -361,8 +364,8 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
                           cy={laneY(lane)}
                           r={on ? 8 : 6}
                           fill={KIND_COLORS[item.fact.kind]}
-                          stroke={item.fact.disputed ? "var(--alert)" : selected ? "var(--foreground)" : "var(--background)"}
-                          strokeWidth={item.fact.disputed || selected ? 3 : 2}
+                          stroke={ringed ? "var(--foreground)" : item.fact.disputed ? "var(--alert)" : "var(--background)"}
+                          strokeWidth={item.fact.disputed || ringed ? 3 : 2}
                           className={on ? "" : ""}
                         />
                       ))}
@@ -394,7 +397,7 @@ function SwimlaneChart({ state, lanes, items, recent, focusKey, selectedKey, onS
                           height={on ? 14 : 10}
                           transform={`rotate(45 ${cx} ${laneY(lane)})`}
                           fill={CATEGORIES[item.rel.category].color}
-                          stroke={selected ? "var(--foreground)" : "none"}
+                          stroke={ringed ? "var(--foreground)" : "none"}
                           strokeWidth={2}
                         />
                       ))}
