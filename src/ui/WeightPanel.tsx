@@ -48,6 +48,7 @@ export function WeightPanel({ factors, onChange }: WeightPanelProps) {
               <Slider
                 min={0}
                 max={1}
+                aria-label={LABELS[key]}
                 step={0.05}
                 value={[factors[key]]}
                 onValueChange={([value]) => onChange({ ...factors, [key]: value })}

@@ -107,7 +107,13 @@ export function DebugScreen({ factors }: DebugScreenProps) {
         <div className="flex items-center gap-1">
           <Gauge className="size-4 text-muted-foreground" />
           {SPEEDS.map((s) => (
-            <Button key={s} size="xs" variant={speed === s ? "default" : "ghost"} onClick={() => setSpeed(s)}>
+            <Button
+              key={s}
+              size="xs"
+              variant={speed === s ? "default" : "ghost"}
+              aria-pressed={speed === s}
+              onClick={() => setSpeed(s)}
+            >
               {s}×
             </Button>
           ))}
