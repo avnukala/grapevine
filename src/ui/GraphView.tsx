@@ -76,6 +76,7 @@ const OUTSIDE_RADIUS = 19;
 const HULL_PAD = 46;
 const CHAR_PX = 6.4;
 const GROUP_PULL = 0.08;
+const GROUP_PUSH = 0.4;
 // People with no ties feel only the charge, which pushes them far out unless the centre pulls harder.
 const LONER_PULL = 0.12;
 
@@ -98,7 +99,7 @@ function inertia(nodes: Node[], phase: "start" | "end"): d3.Force<Node, undefine
   };
 }
 
-// Pulls the members of a named group toward their center, so groups form clusters.
+// Pulls the members of a named group toward their center, so groups form clusters, and pushes other people out of it.
 function cohesion(hulls: Hull[], byId: Map<number, Node>): d3.Force<Node, undefined> {
   return (alpha) => {
     for (const hull of hulls) {
@@ -108,6 +109,16 @@ function cohesion(hulls: Hull[], byId: Map<number, Node>): d3.Force<Node, undefi
       for (const node of members) {
         node.vx = (node.vx ?? 0) + (cx - (node.x ?? 0)) * GROUP_PULL * alpha;
         node.vy = (node.vy ?? 0) + (cy - (node.y ?? 0)) * GROUP_PULL * alpha;
+      }
+      const reach = (d3.max(members, (n) => Math.hypot((n.x ?? 0) - cx, (n.y ?? 0) - cy)) ?? 0) + HULL_PAD * 2;
+      for (const node of byId.values()) {
+        if (hull.members.includes(node.id)) continue;
+        const dx = (node.x ?? 0) - cx;
+        const dy = (node.y ?? 0) - cy;
+        const distance = Math.hypot(dx, dy) || 1;
+        if (distance >= reach) continue;
+        node.vx = (node.vx ?? 0) + (dx / distance) * (reach - distance) * GROUP_PUSH * alpha;
+        node.vy = (node.vy ?? 0) + (dy / distance) * (reach - distance) * GROUP_PUSH * alpha;
       }
     }
   };
