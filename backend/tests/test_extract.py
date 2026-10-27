@@ -516,6 +516,18 @@ def test_a_removed_person_loses_their_ties_and_facts_and_stays_removed(store):
         assert graph.live_facts() == []
 
 
+def test_a_removed_person_closes_the_questions_about_them(store):
+    gao = store.create_person(name="Andrew Gao", aliases=["Andrew"], gender="male")["id"]
+    moy = store.create_person(name="Andrew Moy", aliases=["Andrew"], gender="male")["id"]
+    which = store.add_prompt(text="Which Andrew?", reason="which_person", person_ids=[gao, moy])["id"]
+    other = store.add_prompt(text="Gao, where do you work?", reason="question", person_ids=[gao])["id"]
+
+    store.remove_person(moy)
+
+    assert [p["id"] for p in store.graph.active_prompts()] == [other]
+    assert store.graph.prompts[which]["dismissed_at_ms"] is not None
+
+
 def test_a_voice_set_by_hand_moves_every_line_of_that_voice(store):
     ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
     jasper = store.create_person(name="Jasper", aliases=[], gender="male")["id"]

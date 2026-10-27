@@ -200,6 +200,8 @@ class Store:
             for segment in [s for s in self.graph.segments.values() if s["person_id"] == person_id]:
                 self.conn.execute("UPDATE segments SET person_id = NULL WHERE id = ?", (segment["id"],))
                 self.emit({"type": "segment", "segment": self.segment(segment["id"])}, segment_id=segment["id"])
+            for prompt in [p for p in self.graph.active_prompts() if person_id in p["person_ids"]]:
+                self.dismiss_prompt(prompt["id"])
             self.emit({"type": "person_removed", "id": person_id})
 
     def set_speaker(self, label: str, person_id: int | None, embedding: np.ndarray | None) -> None:
