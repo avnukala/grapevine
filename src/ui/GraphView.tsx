@@ -316,9 +316,17 @@ function GraphView({ state, inset, pulses, speakingId, factors, selectedId, onSe
         return g;
       })
       .attr("data-id", (n) => n.id)
+      .attr("tabindex", 0)
+      .attr("role", "button")
+      .attr("aria-label", (n) => names[n.id])
       .classed("in-room", (n) => n.inRoom)
       .on("click", (event, n) => {
         event.stopPropagation();
+        onSelect(n.id);
+      })
+      .on("keydown", (event: KeyboardEvent, n) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
         onSelect(n.id);
       });
     nodeGroups.selectAll<SVGCircleElement, Node>("circle.ripple, circle.halo").attr("r", (n) => radius(n) + 3);

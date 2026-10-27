@@ -114,7 +114,12 @@ svg.graph .node.mentioned .body {
   stroke-width: 3px;
 }
 
-svg.graph .node.selected .halo {
+svg.graph .node:focus {
+  outline: none;
+}
+
+svg.graph .node.selected .halo,
+svg.graph .node:focus-visible .halo {
   stroke: var(--primary);
   stroke-width: 3px;
   stroke-dasharray: none;
