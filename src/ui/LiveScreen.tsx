@@ -1,4 +1,4 @@
-import { ArrowDown, CalendarRange, Check, Maximize2, Minimize2, Network, Send } from "lucide-react";
+import { ArrowDown, CalendarRange, Check, Circle, Maximize2, Minimize2, Network, Send, UserCheck } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -237,22 +237,8 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
               </Badge>
             </div>
             {view === "graph" && <Stats state={state} />}
-            {state.phase === "intro" && runId !== null && (
-              <div className="w-72 rounded-xl border border-speak/30 bg-speak/10 p-3 text-sm" data-testid="intro">
-                <div className="font-semibold text-speak">Introductions</div>
-                <p className="mt-1 text-muted-foreground">Each person says "I'm" and their name, then a few sentences.</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {roomIds(state).map((id) => {
-                    const heard = Object.values(state.speakers).includes(id);
-                    return (
-                      <Badge key={id} variant={heard ? "default" : "outline"} className={heard ? "" : "text-muted-foreground"}>
-                        {heard && <Check />}
-                        {personName(state, id)}
-                      </Badge>
-                    );
-                  })}
-                </div>
-              </div>
+            {state.phase === "intro" && runActive && (
+              <IntroPanel state={state} onDone={() => guard(() => api.introDone(runId!))} />
             )}
           </div>
 
@@ -346,6 +332,41 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
 function knownNames(sessions: Session[]): string[] {
   const names = [...new Set([...sessions].sort((x, y) => y.id - x.id).flatMap((s) => s.roster))];
   return names.filter((n) => /^\p{Lu}/u.test(n) && !names.some((m) => m !== n && m.startsWith(`${n} `)));
+}
+
+interface IntroPanelProps {
+  state: RunState;
+  onDone: () => void;
+}
+
+// A person is heard once a voice is tied to them.
+function IntroPanel({ state, onDone }: IntroPanelProps) {
+  const heard = new Set(Object.values(state.speakers));
+  const room = roomIds(state);
+  const next = room.find((id) => !heard.has(id));
+  const everyone = room.length > 0 && next === undefined;
+  return (
+    <div className="w-80 rounded-xl border border-speak/40 bg-card p-4 text-sm shadow-lg" data-testid="intro">
+      <div className="font-semibold text-speak">Introductions</div>
+      <p className="mt-1 text-muted-foreground">
+        Go around the room. Each person says "I'm" and their full name, then a sentence or two about themselves.
+      </p>
+      {room.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {room.map((id) => (
+            <li key={id} className={cn("flex items-center gap-2", !heard.has(id) && "text-muted-foreground")}>
+              {heard.has(id) ? <Check className="size-4 text-speak" /> : <Circle className="size-4" />}
+              {personName(state, id)}
+              {id === next && <span className="ml-auto text-xs text-speak">next</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+      <Button className="mt-4 w-full" variant={everyone ? "default" : "outline"} onClick={onDone}>
+        <UserCheck /> {everyone ? "Everyone is in. Start the conversation" : "Done with introductions"}
+      </Button>
+    </div>
+  );
 }
 
 interface ScrollBackProps {

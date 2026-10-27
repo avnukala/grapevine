@@ -1,4 +1,4 @@
-import { Check, FastForward, FileAudio, Keyboard, LoaderCircle, Mic, Play, Plus, Square, Upload, UserCheck } from "lucide-react";
+import { Check, FastForward, FileAudio, Keyboard, LoaderCircle, Mic, Play, Plus, Square, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
@@ -118,6 +118,9 @@ export function SessionControls(props: SessionControlsProps) {
           <Button size="sm" variant="outline" disabled={busy} onClick={() => start("text")}>
             {icon("text-null", <Keyboard />)} Typed run
           </Button>
+          {starting && (
+            <span className="text-xs text-muted-foreground">Loading models…</span>
+          )}
           {run && run.kind !== "merge" && !run.accepted && (run.status === "done" || run.status === "stopped") && (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => act(() => api.accept(run.id))}>
               <Check /> Accept run
@@ -127,11 +130,6 @@ export function SessionControls(props: SessionControlsProps) {
       )}
       {runActive && runId !== null && (
         <>
-          {phase === "intro" && !finishing && (
-            <Button size="sm" disabled={busy} onClick={() => act(() => api.introDone(runId))}>
-              <UserCheck /> Done with introductions
-            </Button>
-          )}
           {finishing ? (
             <Button size="sm" variant="outline" disabled data-testid="finishing">
               <LoaderCircle className="animate-spin" /> Finishing: writing the review

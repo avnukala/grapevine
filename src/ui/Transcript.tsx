@@ -39,7 +39,7 @@ export function Transcript(props: TranscriptProps) {
   return (
     <ol className="space-y-1.5" data-testid="transcript">
       {segments.map((segment) => {
-        const naming = state.phase === "intro" && segment.person_id === null && segment.speaker_confidence === null;
+        const naming = state.phase === "intro" && segment.person_id === null;
         const unknown = !naming && isUnknown(segment, voiceThreshold);
         const current = currentMs != null && segment.start_ms <= currentMs && currentMs < segment.end_ms;
         const name = naming
@@ -98,7 +98,9 @@ export function Transcript(props: TranscriptProps) {
               ) : (
                 <ExtractedList items={factsOf(state, segment.id)} live={false} />
               )}
-              {unknown && onAssign && <WhoSpoke state={state} onPick={(answer) => onAssign(segment, answer)} />}
+              {(unknown || naming) && onAssign && (
+                <WhoSpoke state={state} quiet={naming} onPick={(answer) => onAssign(segment, answer)} />
+              )}
               {showTimings && Object.keys(segment.timings).length > 0 && (
                 <div className="mt-1 flex flex-wrap gap-1">
                   {Object.entries(segment.timings).map(([step, ms]) => (
@@ -271,15 +273,19 @@ function SpeakerPicker({ state, segment, onPick, children }: SpeakerPickerProps)
 
 interface WhoSpokeProps {
   state: RunState;
+  quiet: boolean;
   onPick: (answer: { person_id: number } | { new_name: string }) => void;
 }
 
-function WhoSpoke({ state, onPick }: WhoSpokeProps) {
+// During introductions a line without a speaker is normal, so it asks quietly and lists who is not heard yet first.
+function WhoSpoke({ state, quiet, onPick }: WhoSpokeProps) {
   const [name, setName] = useState("");
+  const heard = new Set(Object.values(state.speakers));
+  const room = roomIds(state).sort((a, b) => Number(heard.has(a)) - Number(heard.has(b)));
   return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-alert">
-      Who spoke?
-      {roomIds(state).map((id) => (
+    <div className={cn("mt-1.5 flex flex-wrap items-center gap-1.5 text-xs", quiet ? "text-muted-foreground" : "text-alert")}>
+      {quiet ? "Who is this?" : "Who spoke?"}
+      {room.map((id) => (
         <Button key={id} size="xs" variant="secondary" onClick={() => onPick({ person_id: id })}>
           {personName(state, id).split(" ")[0]}
         </Button>
