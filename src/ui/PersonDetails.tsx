@@ -1,7 +1,8 @@
-import { Trash2, TriangleAlert } from "lucide-react";
-import { useRef } from "react";
+import { Pencil, Trash2, TriangleAlert } from "lucide-react";
+import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -14,10 +15,12 @@ interface PersonDetailsProps {
   personId: number | null;
   onClose: () => void;
   onRemove?: (personId: number) => void;
+  onRename?: (personId: number, name: string) => void;
 }
 
-export function PersonDetails({ state, personId, onClose, onRemove }: PersonDetailsProps) {
+export function PersonDetails({ state, personId, onClose, onRemove, onRename }: PersonDetailsProps) {
   const open = personId !== null && state.people[personId] !== undefined;
+  const [draft, setDraft] = useState<string | null>(null);
   // The sheet slides out after it closes, so it keeps the last person until then.
   const last = useRef(personId);
   if (open) last.current = personId;
@@ -33,7 +36,17 @@ export function PersonDetails({ state, personId, onClose, onRemove }: PersonDeta
 
   return (
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
-      <SheetContent className="w-[420px] sm:max-w-[420px]" data-testid="person-details">
+      <SheetContent
+        className="w-[420px] sm:max-w-[420px]"
+        // Escape in the name field cancels the rename, not the sheet.
+        onEscapeKeyDown={(e) => {
+          if (draft === null) return;
+          e.preventDefault();
+          setDraft(null);
+        }}
+        onCloseAutoFocus={() => setDraft(null)}
+        data-testid="person-details"
+      >
         {person && (
           <>
             <SheetHeader>
@@ -44,10 +57,41 @@ export function PersonDetails({ state, personId, onClose, onRemove }: PersonDeta
                 >
                   {initials(person.name)}
                 </span>
-                <div>
-                  <SheetTitle className="text-xl">{person.name}</SheetTitle>
+                <div className="min-w-0 flex-1">
+                  {draft !== null && onRename ? (
+                    <form
+                      className="mr-6"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const name = draft.trim();
+                        if (name && name !== person.name) onRename(person.id, name);
+                        setDraft(null);
+                      }}
+                    >
+                      <Input
+                        autoFocus
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        className="h-8 text-base font-semibold"
+                        aria-label="Name"
+                      />
+                    </form>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <SheetTitle className="text-xl">{person.name}</SheetTitle>
+                      {onRename && (
+                        <Button size="icon-xs" variant="ghost" aria-label="Rename" onClick={() => setDraft(person.name)}>
+                          <Pencil />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                   <SheetDescription>
-                    {aliases.length > 0 ? `Also called ${aliases.join(", ")}` : "No other names"}
+                    {draft !== null
+                      ? "Enter saves. Escape cancels. The old name stays as another name."
+                      : aliases.length > 0
+                        ? `Also called ${aliases.join(", ")}`
+                        : "No other names"}
                   </SheetDescription>
                 </div>
               </div>

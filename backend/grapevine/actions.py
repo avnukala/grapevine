@@ -1,5 +1,6 @@
 """What people in the room do from the client: answer prompts and say who spoke."""
 
+import re
 from dataclasses import replace
 
 from grapevine.extract import apply_output, held_from_payload
@@ -69,6 +70,42 @@ def settle_conflict(store: Store, prompt_id: int, *, keep_fact_id: int | None) -
                     store.update_fact(fact_id, revised_by_fact_id=keep_fact_id)
             store.update_fact(keep_fact_id, disputed=0)
         store.dismiss_prompt(prompt_id)
+
+
+def rename_person(store: Store, person_id: int, name: str) -> None:
+    """Renames a person of the run, such as a name that the transcript misheard. The old name stays as an alias,
+    so the same mishearing still finds the person, and the facts about the person use the new name."""
+    person = store.graph.people.get(person_id)
+    if person is None:
+        raise ActionError(f"person {person_id} is not in this run")
+    old = person["name"]
+    if name == old:
+        return
+    if any(p["name"].lower() == name.lower() for p in store.graph.people.values() if p["id"] != person_id):
+        raise ActionError(f"{name} is already in this run")
+    with store.batch():
+        store.update_person(person_id, add_aliases=[old, name.split()[0]], gender=None, name=name)
+        for fact in list(store.graph.facts.values()):
+            about = fact["told_by_person_id"] == person_id or any(p["person_id"] == person_id for p in fact["people"])
+            text = renamed(fact["text"], old, name)
+            if about and text != fact["text"]:
+                store.update_fact(fact["id"], text=text)
+        for rel in list(store.graph.relationships.values()):
+            summary = renamed(rel["summary"] or "", old, name)
+            if person_id in (rel["a"], rel["b"]) and summary != (rel["summary"] or ""):
+                fields = {"summary": summary}
+                store.upsert_relationship(
+                    a=rel["a"], b=rel["b"], category=rel["category"], fields=fields, evidence=[], model_call_id=None
+                )
+
+
+def renamed(text: str, old: str, new: str) -> str:
+    """Writes the new name for the old full name, then the new first name for the old first name."""
+    text = re.sub(rf"\b{re.escape(old)}\b", new, text)
+    old_first, new_first = old.split()[0], new.split()[0]
+    if old_first == new_first:
+        return text
+    return re.sub(rf"\b{re.escape(old_first)}\b", new_first, text)
 
 
 def assign_speaker(

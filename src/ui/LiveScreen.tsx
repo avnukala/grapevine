@@ -165,6 +165,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const onDismiss = (prompt: Prompt) => guard(() => api.dismiss(runId!, prompt.id));
   const onAssign = (segment: Segment, answer: SpeakerPick) => guard(() => api.assignSpeaker(runId!, segment.id, answer));
   const onEdit = (segment: Segment, text: string) => guard(() => api.editLine(runId!, segment.id, text));
+  const onRename = (personId: number, name: string) => guard(() => api.renamePerson(runId!, personId, name));
   const onRemove = (personId: number) =>
     guard(() => api.removePerson(runId!, personId).then(() => setSelectedId(null)));
 
@@ -324,6 +325,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
         personId={selectedId}
         onClose={() => setSelectedId(null)}
         onRemove={runId !== null ? onRemove : undefined}
+        onRename={runId !== null ? onRename : undefined}
       />
     </div>
   );

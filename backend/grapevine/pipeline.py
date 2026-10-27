@@ -242,6 +242,10 @@ class Pipeline:
             self.edited.update(segment_ids)
         self.jobs.put_nowait(RereadJob(segment_ids))
 
+    def rename(self, old: str, new: str) -> None:
+        """Keeps the roster, which spells names in the transcript, in step with a person the room renamed."""
+        self.roster = [new if name == old else name for name in self.roster]
+
     def end_intro(self) -> None:
         """Ends introductions at the current audio time, for a live session."""
         self.intro_end_ms = self.builder.now_ms

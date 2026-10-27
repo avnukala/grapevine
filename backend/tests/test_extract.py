@@ -1,4 +1,6 @@
-from grapevine.actions import assign_speaker, pick_person, settle_conflict
+import pytest
+
+from grapevine.actions import ActionError, assign_speaker, pick_person, rename_person, settle_conflict
 from grapevine.extract import Held, Teller, apply_output, couple_of, respell_people, retell, user_message
 from grapevine.runs import open_store
 from grapevine.store import proper_group_name
@@ -633,3 +635,29 @@ def test_a_real_different_name_stays_its_own_person(store):
     apply(store, turn(store, felix, "Mary cooks."), people=people, facts=[fact("Mary cooks.", ["Mary"])])
     apply(store, turn(store, felix, "Mark sings."), facts=[fact("Mark sings.", ["Mark"])])
     assert sorted(p["name"] for p in store.graph.people.values()) == ["Felix Ward", "Mark Hale", "Mary"]
+
+
+def test_renaming_a_person_keeps_the_old_name_as_an_alias_and_fixes_their_facts(store):
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    mia = store.create_person(name="Miaely Rao", aliases=["Miaely"], gender="female")["id"]
+    told = [fact("Miaely Rao is a nurse.", ["Miaely Rao"]), fact("Miaely and Marcus climb.", ["Miaely Rao", "speaker"])]
+    apply(store, turn(store, marcus, "Miaely Rao is a nurse, and we climb."), facts=told)
+
+    tie = {"category": "friend", "label": "climbing partners", "summary": "Miaely Rao and Marcus Hale climb."}
+    store.upsert_relationship(a=marcus, b=mia, category="friend", fields=tie, evidence=[], model_call_id=None)
+
+    rename_person(store, mia, "Mia Rao")
+
+    [relationship] = store.graph.relationships.values()
+    assert relationship["summary"] == "Mia Rao and Marcus Hale climb."
+    person = store.graph.people[mia]
+    assert person["name"] == "Mia Rao" and "Miaely Rao" in person["aliases"]
+    assert sorted(f["text"] for f in store.graph.facts.values()) == ["Mia Rao is a nurse.", "Mia and Marcus climb."]
+
+
+def test_a_person_cannot_take_the_name_of_another_person_in_the_run(store):
+    store.create_person(name="Mia Rao", aliases=["Mia"], gender="female")
+    dana = store.create_person(name="Dana Cole", aliases=["Dana"], gender="female")["id"]
+
+    with pytest.raises(ActionError):
+        rename_person(store, dana, "mia rao")

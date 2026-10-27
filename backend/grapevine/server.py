@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, StringConstraints
 
 from grapevine import db
-from grapevine.actions import ActionError, assign_speaker, pick_person, pick_speaker, settle_conflict
+from grapevine.actions import ActionError, assign_speaker, pick_person, pick_speaker, rename_person, settle_conflict
 from grapevine.audio import file_chunks, mic_chunks
 from grapevine.config import DATA_DIR, DB_PATH, LLM_BASE_URL, ROOT, RunConfig, run_config
 from grapevine.extract import read_again
@@ -434,6 +434,29 @@ async def edit_segment(run_id: int, segment_id: int, body: LineEdit) -> Record:
         message = f"The text is saved, but the model at {LLM_BASE_URL} did not answer, so its facts did not change."
         raise HTTPException(503, message) from error
     return store.graph.segments[segment_id]
+
+
+class Rename(BaseModel):
+    name: Name
+
+
+@app.patch("/api/runs/{run_id}/people/{person_id}")
+async def rename(run_id: int, person_id: int, body: Rename) -> Record:
+    """Renames a person, such as a name that the transcript misheard. A name on the roster changes there too."""
+    store = store_for(run_id)
+    old = store.graph.people[person_id]["name"] if person_id in store.graph.people else None
+    try:
+        rename_person(store, person_id, body.name)
+    except ActionError as error:
+        raise HTTPException(400, str(error)) from error
+    session_id = conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()["session_id"]
+    roster = session(conn, session_id)["roster"] if session_id is not None else []
+    if old in roster:
+        new_roster = [body.name if name == old else name for name in roster]
+        conn.execute("UPDATE sessions SET roster = ? WHERE id = ?", (json.dumps(new_roster), session_id))
+    if run_id in active:
+        active[run_id].pipeline.rename(old, body.name)
+    return store.graph.people[person_id]
 
 
 class SpeakerAnswer(BaseModel):

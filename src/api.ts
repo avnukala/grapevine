@@ -53,6 +53,8 @@ export const api = {
   ) => post<Segment>(`/api/runs/${runId}/segments/${segmentId}/speaker`, body),
   editLine: (runId: number, segmentId: number, text: string) =>
     call<Segment>(`/api/runs/${runId}/segments/${segmentId}`, { method: "PATCH", body: JSON.stringify({ text }) }),
+  renamePerson: (runId: number, personId: number, name: string) =>
+    call<Person>(`/api/runs/${runId}/people/${personId}`, { method: "PATCH", body: JSON.stringify({ name }) }),
   removePerson: (runId: number, personId: number) =>
     call<null>(`/api/runs/${runId}/people/${personId}`, { method: "DELETE" }),
   people: () => call<Person[]>("/api/people"),

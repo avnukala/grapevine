@@ -47,8 +47,11 @@ export function nodeLabels(state: RunState): Record<number, string> {
   const labels: Record<number, string> = {};
   for (const person of people) {
     const unique = candidates(person).filter((n) => owners.get(n.toLowerCase()) === person.id);
-    const used = (name: string) => transcript.split(name.toLowerCase()).length - 1;
     const first = person.name.split(" ")[0];
+    // The transcript keeps the misheard spelling of a renamed person, which still counts as their first name.
+    const heard = [first, ...person.aliases.map((a) => a.split(" ")[0]).filter((w) => misheard(w, first))];
+    const count = (name: string) => transcript.split(name.toLowerCase()).length - 1;
+    const used = (name: string) => (name === first ? heard : [name]).reduce((sum, n) => sum + count(n), 0);
     const best = [...unique].sort(
       (x, y) => used(y) - used(x) || Number(x !== first) - Number(y !== first) || x.length - y.length,
     )[0];
@@ -59,7 +62,20 @@ export function nodeLabels(state: RunState): Record<number, string> {
 
 function candidates(person: Person): string[] {
   const words = person.name.split(" ");
-  return [...new Set([words[0], ...person.aliases, ...(words.length > 1 ? [words[words.length - 1]] : []), person.name])];
+  const aliases = person.aliases.filter((a) => !misheard(a.split(" ")[0], words[0]));
+  return [...new Set([words[0], ...aliases, ...(words.length > 1 ? [words[words.length - 1]] : []), person.name])];
+}
+
+// An old spelling of the first name, such as "Kiri" for Keri or "Sophiely" for Sophie, stays as an alias so the
+// same mishearing still finds the person. It is not a name people use, so it never labels them.
+function misheard(word: string, first: string): boolean {
+  const [a, b] = [word.toLowerCase(), first.toLowerCase()];
+  if (a === b) return false;
+  if (a === `${b}ly`) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && a[i] === b[i]) i++;
+  return a.slice(i + 1) === b.slice(i + 1) || a.slice(i) === b.slice(i + 1) || a.slice(i + 1) === b.slice(i);
 }
 
 export interface WeightFactors {

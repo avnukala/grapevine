@@ -130,3 +130,15 @@ def test_an_edited_line_of_a_finished_run_gets_new_facts(client, store, monkeypa
     assert response.json()["text"] == "I work in Seattle."
     fresh = server.store_for(store.run_id)
     assert [f["text"] for f in fresh.graph.live_facts()] == ["Marcus Hale works in Seattle."]
+
+
+def test_renaming_a_roster_person_renames_them_on_the_roster(client, store, conn):
+    conn.execute("UPDATE sessions SET roster = ? WHERE id = 1", ('["Miaely Rao", "Dana Cole"]',))
+    mia = store.create_person(name="Miaely Rao", aliases=["Miaely"], gender="female")["id"]
+    store.show_person(mia)
+
+    response = client.patch(f"/api/runs/{store.run_id}/people/{mia}", json={"name": "Mia Rao"})
+
+    assert response.json()["name"] == "Mia Rao"
+    assert server.session(conn, 1)["roster"] == ["Mia Rao", "Dana Cole"]
+    assert client.patch(f"/api/runs/{store.run_id}/people/{mia}", json={"name": " "}).status_code == 422
