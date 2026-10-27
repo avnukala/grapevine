@@ -568,10 +568,12 @@ class Pipeline:
         return self.store.graph.segments[segment["id"]]
 
     def _name_speaker(self, segment: dict, name: str, held: Held) -> int | None:
-        """Links a voice to the person who said their name. Asks the room when the name fits several people. A
-        full name said this way respells a known person, because people spell their own names best."""
+        """Links a voice to the person who said their name. Asks the room when the name fits several people and
+        is the exact name of none or several of them. A full name said this way respells a known person, because
+        people spell their own names best."""
         entry = next((p for p in held.output["people"] if p["name"].lower() == name.lower()), None)
         matches = self._roster_matches(name) or name_matches(self.store.conn, name)
+        matches = [m for m in matches if m["name"].lower() == name.lower()] or matches
         if len(matches) > 1:
             show_prompt(
                 self.store,

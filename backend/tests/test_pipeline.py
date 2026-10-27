@@ -212,6 +212,17 @@ def test_a_self_introduction_respells_a_known_person(conn):
     assert "Sophiely Moreau" in sophie["aliases"]
 
 
+def test_a_self_introduction_picks_the_person_with_that_exact_name(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    conn.execute("INSERT INTO people (name, aliases) VALUES ('Sophiely Moreau', '[\"Sophie Moreau\"]')")
+    conn.execute("INSERT INTO people (name, aliases) VALUES ('Sophie Moreau', '[\"Sophie\"]')")
+    store = replay(conn, FakeChat(RULES))
+
+    sophie = next(s for s in store.graph.segments.values() if "Sophie" in s["text"])
+    assert sophie["person_id"] == 2
+    assert not snapshot(store)["prompts"]
+
+
 def test_the_roster_seats_people_and_fixes_how_their_names_are_spelled(conn):
     conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
     lines = [replace(LINES[0], text="Hey, I'm Ray Patell."), replace(LINES[1], text="I'm Jasper Lind."), *LINES[2:]]
