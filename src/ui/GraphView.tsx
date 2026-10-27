@@ -438,10 +438,11 @@ function GraphView({ state, inset, pulses, speakingId, factors, selectedId, onSe
     }
     const edges = svg.select("g.edges").selectAll<SVGPathElement, Edge>("path");
     edges.classed("lit", (e) => litRelationships.has(e.rel.id) || litPairs.has(pairKey(e.source.id, e.target.id)));
+    // A fact about several people lights every pair among them. Caption it on one edge only.
     const captioned = new Map<string, Edge>();
     edges.each((e) => {
-      const key = pairKey(e.source.id, e.target.id);
-      if (litPairs.get(key) && !captioned.has(key)) captioned.set(key, e);
+      const text = litPairs.get(pairKey(e.source.id, e.target.id));
+      if (text && !captioned.has(text)) captioned.set(text, e);
     });
     const captions = svg
       .select("g.captions")
