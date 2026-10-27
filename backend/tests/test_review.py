@@ -102,3 +102,12 @@ def test_cut_off_output_is_asked_again_with_another_seed_and_temperature(store):
     result = asyncio.run(call_or_retry(store, llm, Call("reviewer", "m", "v", "s", "u", {}, seed=7)))
     assert result.output == {"members": []}
     assert [(c.seed, c.temperature) for c in llm.calls] == [(7, 0), (10, 0.3)]
+
+
+def test_a_friend_labelled_coworker_is_professional():
+    entry = {"a": "A", "b": "B", "category": "friend", "status": "current", "in_touch": True}
+    labels = ["coworker", "Co-worker", "colleague", "manager", "boss", "teammate at work", "teammate"]
+    assert [e["category"] for e in ties([{**entry, "label": label} for label in labels])] == [
+        *["professional"] * 6,
+        "friend",
+    ]

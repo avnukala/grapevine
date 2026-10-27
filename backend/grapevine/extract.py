@@ -143,6 +143,7 @@ SPEAKER_REFS = {"speaker", "the speaker", "unknown speaker", "i", "me", "myself"
 RECENT_TURNS = 4
 COUPLE_EVENTS = {"wedding": "married", "engagement": "engaged"}
 FRIEND_LABELS = ("bandmate", "roommate", "housemate", "teammate", "climbing partner", "league mate")
+WORK_LABELS = ("coworker", "co-worker", "colleague", "manager", "boss", "at work")
 
 
 @dataclass(frozen=True)
@@ -356,7 +357,9 @@ def apply_output(store: Store, held: Held) -> None:
 
 def category_of(category: str, label: str) -> str:
     """The prompts call bandmates, roommates, and teammates friends, yet the model files a band that plays
-    paid gigs as professional."""
+    paid gigs as professional. It also files a coworker as a friend at times, which splits the review votes."""
+    if category in ("friend", "other") and any(word in label.lower() for word in WORK_LABELS):
+        return "professional"
     if category == "professional" and any(word in label.lower() for word in FRIEND_LABELS):
         return "friend"
     return category
