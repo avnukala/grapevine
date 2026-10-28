@@ -37,6 +37,6 @@ def test_a_story_keeps_its_tellers_why_it_matters_and_reads_the_transcript(store
     story = next(f for f in store.graph.facts.values() if f["text"] == "The Seattle Blackout")
     assert story["told_by_person_id"] == mia["id"]
     assert story["detail"] == (
-        "The power went out in Seattle.\n\nThey became friends that night.\n\nTold by Mia Rao and Dana Cole."
+        "The power went out in Seattle.\n\nThey became friends that night.\n\nAlso told by Dana Cole."
     )
     assert dana["id"] in store.graph.people

@@ -99,7 +99,9 @@ async def summarize(store: Store, llm: LLM, *, model: str, seed: int) -> None:
             event = graph.events.get(graph.lookup("e", story["event"]))
             people = [pid for ref in story["people"] if (pid := graph.lookup("p", ref)) is not None]
             tellers = [pid for ref in story["tellers"] if (pid := graph.lookup("p", ref)) is not None]
-            told = f"Told by {' and '.join(graph.people[pid]['name'] for pid in tellers)}." if len(tellers) > 1 else ""
+            # The first teller is the teller of the fact. The others go in the text, since a fact has one teller.
+            others = " and ".join(graph.people[pid]["name"] for pid in tellers[1:])
+            told = f"Also told by {others}." if others else ""
             store.add_fact(
                 {
                     "kind": "story",
