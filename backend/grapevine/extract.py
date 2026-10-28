@@ -139,6 +139,12 @@ SCHEMA = _object(
 
 DATE_PATTERN = re.compile(r"\d{4}(-\d{2}(-\d{2})?)?")
 SEASONS = ("spring", "summer", "fall", "autumn", "winter")
+MONTHS = "january|february|march|april|may|june|july|august|september|october|november|december"
+MONTH_WORDS = re.compile(rf"\b({MONTHS}|month)\b|\d{{4}}-\d{{2}}")
+DAY_WORDS = re.compile(
+    rf"\b(today|tonight|yesterday|tomorrow|last night|this morning|days?|weeks?|weekend"
+    rf"|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\b({MONTHS}) \d{{1,2}}\b|\d{{4}}-\d{{2}}-\d{{2}}"
+)
 PERSON_NAME = re.compile(r"[A-Z][A-Za-z'.-]*(?: [A-Z][A-Za-z'.-]*){0,3}")
 SPEAKER_REFS = {"speaker", "the speaker", "unknown speaker", "i", "me", "myself"}
 RECENT_TURNS = 4
@@ -194,11 +200,27 @@ def year_in(text: str) -> str | None:
 
 
 def date_precision(date: str | None, when_text: str | None) -> str | None:
+    """How precise a date is: never more precise than the words people said, such as "winter of 2022"."""
     if date is None:
         return None
-    if when_text and len(date) < 10 and any(s in when_text.lower() for s in SEASONS):
+    precision = {4: "year", 7: "month", 10: "day"}[len(date)]
+    if not when_text:
+        return precision
+    said = when_text.lower()
+    if DAY_WORDS.search(said):
+        return precision
+    if any(s in said for s in SEASONS):
         return "season"
-    return {4: "year", 7: "month", 10: "day"}[len(date)]
+    if MONTH_WORDS.search(said):
+        return "year" if precision == "year" else "month"
+    return "year"
+
+
+def said_date(date: str | None, when_text: str | None) -> str | None:
+    """A clean date cut to the precision that people said. The model turns "fall of 2016" into 2016-09."""
+    date = clean_date(date)
+    precision = date_precision(date, when_text)
+    return date[: {"year": 4, "season": 4, "month": 7, "day": 10}[precision]] if date and precision else date
 
 
 def person_line(person: Record, room: set[int]) -> str:
@@ -552,7 +574,7 @@ def apply_events(store: Store, events: list[Record], facts: list[Record], people
                 (e["id"] for e in store.graph.events.values() if e["name"].lower() == event["name"].lower()), None
             )
         attendees = people(event["people"])
-        start = clean_date(event.get("start_date")) or year_in(event["name"])
+        start = said_date(event.get("start_date"), event.get("when_text")) or year_in(event["name"])
         record = store.upsert_event(
             event_id,
             {
@@ -579,7 +601,7 @@ def apply_events(store: Store, events: list[Record], facts: list[Record], people
         known = store.graph.lookup("e", name) or next(
             (e["id"] for e in store.graph.events.values() if e["name"].lower() == name.lower()), None
         )
-        start = clean_date(fact.get("start_date")) or year_in(name)
+        start = said_date(fact.get("start_date"), fact.get("when_text")) or year_in(name)
         fields = {
             "name": name,
             "when_text": fact.get("when_text"),
@@ -614,7 +636,7 @@ def couple_of(store: Store, event: Record, *, model_call_id: int | None) -> None
 
 
 def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, int], teller: Teller) -> int:
-    start = clean_date(fact.get("start_date"))
+    start = said_date(fact.get("start_date"), fact.get("when_text"))
     event_id = events.get(fact.get("event") or "")
     roles = [(pid, "subject") for pid in people]
     if teller.person_id is not None and teller.person_id not in people:

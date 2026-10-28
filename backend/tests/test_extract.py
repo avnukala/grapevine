@@ -839,3 +839,25 @@ def test_retelling_a_turn_keeps_a_dispute_that_its_new_facts_still_make(store):
     [conflict] = store.graph.active_prompts()
     assert conflict["payload"]["fact_ids"] == [first, new]
     assert store.graph.facts[first]["disputed"] and store.graph.facts[new]["disputed"]
+
+
+@pytest.mark.parametrize(
+    ("when_text", "start_date", "stored"),
+    [
+        ("fall of 2016", "2016-09", ("2016", "season")),
+        ("March 2019", "2019-03-14", ("2019-03", "month")),
+        ("back in 2012", "2012-06-01", ("2012", "year")),
+        ("last Tuesday", "2025-09-16", ("2025-09-16", "day")),
+        (None, "2020-05", ("2020-05", "month")),
+    ],
+)
+def test_a_date_is_never_more_precise_than_said(store, when_text, start_date, stored):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    apply(
+        store,
+        turn(store, ray, "I moved."),
+        facts=[fact("Ray Patel moved.", ["speaker"], when_text=when_text, start_date=start_date)],
+    )
+
+    [moved] = store.graph.facts.values()
+    assert (moved["start_date"], moved["date_precision"]) == stored
