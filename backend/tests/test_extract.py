@@ -238,6 +238,23 @@ def test_an_event_that_only_a_revised_fact_told_of_goes(store):
     assert all(r["met_event_id"] is None for r in store.graph.relationships.values())
 
 
+def test_an_added_detail_marked_as_a_dispute_is_only_a_fact_unless_its_date_differs(store):
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    felix = store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")["id"]
+    crash = fact("Felix Ward crashed the car on the Lisbon trip.", ["Felix Ward"], kind="story", start_date="2018")
+    apply(store, turn(store, marcus, "Felix crashed the car in 2018."), facts=[crash])
+    first = max(store.graph.facts)
+    raining = fact("It was raining when Felix Ward crashed the car on the Lisbon trip.", ["speaker"], kind="story")
+    apply(store, turn(store, felix, "It was raining!"), facts=[{**raining, "disputes": f"f{first}"}])
+
+    assert not any(f["disputed"] for f in store.graph.facts.values())
+
+    later = fact("Felix Ward crashed the car on the Lisbon trip.", ["speaker"], kind="story", start_date="2019")
+    apply(store, turn(store, felix, "That was 2019."), facts=[{**later, "disputes": f"f{first}"}])
+
+    assert store.graph.facts[first]["disputed"]
+
+
 def test_a_new_story_marked_as_a_dispute_is_only_a_fact(store):
     marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
     store.create_person(name="Tina Alvarez", aliases=["Tina"], gender="female")

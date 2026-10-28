@@ -680,7 +680,8 @@ def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, 
     own = told_by == teller.person_id if told_by is not None else not fact.get("disputes")
     if own and (fact["kind"] == "correction" or related):
         revise(store, old, record["id"], model_call_id=teller.model_call_id)
-    elif not own and related:
+    # "It was raining!" after "Felix crashed the car" is an excuse. Only a correction or another date disputes.
+    elif not own and related and (fact["kind"] == "correction" or dates_differ(store.graph.facts[old], record)):
         dispute(store, old, record["id"], model_call_id=teller.model_call_id)
     return record["id"]
 
@@ -699,10 +700,14 @@ def same_thing(a: Record, b: Record) -> bool:
     shared = len(first & second)
     if shared == 0:
         return False
-    dates = sorted([f["start_date"] or year_in(f["text"]) or "" for f in (a, b)], key=len)
-    if dates[0] and not dates[1].startswith(dates[0]):
+    if dates_differ(a, b):
         return True
     return shared >= 2 and 2 * shared >= min(len(first), len(second)) and a["text"].lower() != b["text"].lower()
+
+
+def dates_differ(a: Record, b: Record) -> bool:
+    dates = sorted([f["start_date"] or year_in(f["text"]) or "" for f in (a, b)], key=len)
+    return bool(dates[0]) and not dates[1].startswith(dates[0])
 
 
 def revise(store: Store, old: int, new: int, *, model_call_id: int) -> None:
