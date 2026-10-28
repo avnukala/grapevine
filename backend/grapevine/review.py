@@ -27,7 +27,7 @@ from grapevine.llm import LLM, Call, Result, watch_on
 from grapevine.names import misspelled
 from grapevine.store import GROUP_WORDS, Store, group_key, proper_group_name
 
-PROMPT_VERSION = "review-v27"
+PROMPT_VERSION = "review-v28"
 SAME_EVENT = 0.6
 # The prompt says that how two people met, or that they dated, is not a happening, and the model still lists it.
 NOT_HAPPENINGS = {"relationship", "meeting", "met", "dating", "friendship"}
@@ -78,7 +78,7 @@ GROUPS_SYSTEM = (
 - For each known group, list its plain phrases in "also_called", and answer for each person whether a line puts them in it under any of its names. People who say "we", "our team", or "our league" about the group are in it, and so are the people they list as going with "the whole crew". Asking about a group, or talking near it, does not put someone in it.
 - For each candidate, is_group is true only when the name is a group of people, such as a crew, a team, a band, a club, a league, or a friend group, that a line says someone in the transcript belongs to. A trivia team someone reports a result for is a group. A band people only went to see, an event, a place, or a misheard phrase is not.
 - Every other named group in your analysis that is not under "known" or "candidates" goes in "new", with one entry under its proper name, spelled as its members would write it, for example "Thursday Flyers" when the transcript says "Thursday Fliers", and everyone in it.
-- A house, a meeting, or an event is not a group."""
+- A house, a meeting, an event, or a regular activity such as "poker nights" is not a group."""
 )
 
 MEMBERS_SYSTEM = """You read the lines of a group conversation that mention one group, and list who is in it. Return JSON only.
@@ -89,6 +89,7 @@ Write "analysis" first: for each line, who it puts in the group. Some lines are 
 - Asking whether someone goes with the group, or telling who leads it, does not by itself put the speaker in it.
 - People a line names as going with the whole group are in it, for example "the whole crew is going: me, Dev, and Lena".
 - A line can answer the line before it, for example "Are you going with the Thursday Flyers crew?" "Yes, me, Dev, and Lena."
+- "You" in a line is the person who answers it, not the speaker before it. "So you signed up for the league?" puts the next speaker in it.
 - People a line calls members are in it. Speech recognition misspells group names, so "Thursday Fliers" is "Thursday Flyers".
 - Speech recognition also mishears first names. A name in a line that sounds like exactly one person under PEOPLE, such as "Erin" for "Aaron Cole", is that person."""
 
