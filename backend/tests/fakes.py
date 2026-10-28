@@ -69,10 +69,15 @@ class FakeDetector:
 
 
 class FakeEmbedder:
-    def embed(self, audio: np.ndarray) -> np.ndarray:
-        vector = np.zeros(MAX_SPEAKERS, dtype=np.float32)
-        vector[speaker_of(float(np.median(audio)))] = 1.0
-        return vector
+    def __init__(self) -> None:
+        self.calls: list[list[int]] = []
+
+    def embed(self, clips: list[np.ndarray]) -> list[np.ndarray]:
+        self.calls.append([len(clip) for clip in clips])
+        vectors = np.zeros((len(clips), MAX_SPEAKERS), dtype=np.float32)
+        for vector, clip in zip(vectors, clips, strict=True):
+            vector[speaker_of(float(np.median(clip)))] = 1.0
+        return list(vectors)
 
 
 class FakeTranscriber:

@@ -33,8 +33,8 @@ class SpeakerDetector(Protocol):
 
 
 class VoiceEmbedder(Protocol):
-    def embed(self, audio: np.ndarray) -> np.ndarray:
-        """Returns a unit-length voice embedding."""
+    def embed(self, clips: list[np.ndarray]) -> list[np.ndarray]:
+        """Returns a unit-length voice embedding for each clip."""
 
 
 @dataclass(frozen=True)
@@ -140,14 +140,17 @@ class WavLMEmbedder:
         self.extractor = AutoFeatureExtractor.from_pretrained(model_id)
         self.model = WavLMForXVector.from_pretrained(model_id).to(device).eval()
 
-    def embed(self, audio: np.ndarray) -> np.ndarray:
-        audio = audio[: SAMPLE_RATE * 10]
-        if len(audio) < MIN_EMBED_SAMPLES:
-            audio = np.pad(audio, (0, MIN_EMBED_SAMPLES - len(audio)))
-        inputs = self.extractor(audio, sampling_rate=SAMPLE_RATE, return_tensors="pt")
+    def embed(self, clips: list[np.ndarray]) -> list[np.ndarray]:
+        """Embeds each clip alone, because WavLM normalizes its first layer over the whole padded input, so a
+        short clip padded into a batch with a long one gets another voice. The clips share one hold of the GPU
+        lock and one copy back, so a turn waits for the speaker detector once."""
+        clips = [clip[: SAMPLE_RATE * 10] for clip in clips]
+        clips = [np.pad(clip, (0, max(0, MIN_EMBED_SAMPLES - len(clip)))) for clip in clips]
+        inputs = [self.extractor(clip, sampling_rate=SAMPLE_RATE, return_tensors="pt") for clip in clips]
         with TORCH_GPU, self.torch.inference_mode():
-            vector = self.model(**inputs.to(self.device)).embeddings[0].float().cpu().numpy()
-        return vector / np.linalg.norm(vector)
+            embeddings = [self.model(**i.to(self.device)).embeddings for i in inputs]
+            vectors = self.torch.cat(embeddings).float().cpu().numpy()
+        return list(vectors / np.linalg.norm(vectors, axis=1, keepdims=True))
 
 
 class WhisperTranscriber:

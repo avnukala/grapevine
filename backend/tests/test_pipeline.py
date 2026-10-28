@@ -12,6 +12,7 @@ from grapevine.llm import LLM
 from grapevine.pipeline import Pipeline, RunStopping, said_name
 from grapevine.review import RELATIONSHIPS_SYSTEM
 from grapevine.store import Store
+from grapevine.turns import Turn
 from tests.fakes import FakeChat, Line, chunks, fact, fake_models, render
 
 LINES = [
@@ -731,6 +732,26 @@ def test_an_edit_keeps_its_mark_until_a_read_of_its_new_text_answers(conn, monke
     asyncio.run(go())
 
     assert segment_id in pipeline.edited
+
+
+def pieces_of(store, lines, turn):
+    chat = FakeChat({})
+    llm = LLM(store.conn, chat, model_file_hash="t", reuse=True)
+    pipeline = Pipeline(
+        store, fake_models([], chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[], vocabulary=[]
+    )
+    pipeline.audio.append(render(lines, turn.end_ms))
+    pieces = pipeline._pieces(turn)
+    return [(start_ms, end_ms) for start_ms, end_ms, _ in pieces], pipeline.models.embedder.calls
+
+
+def test_a_turn_embeds_all_its_pieces_in_one_call(store):
+    lines = [Line(0, 0, 2500, ""), Line(1, 3000, 5500, ""), Line(2, 6000, 8500, "")]
+
+    pieces, calls = pieces_of(store, lines, Turn(0, 0, 8500, (2750, 5750)))
+
+    assert pieces == [(0, 2750), (2750, 5750), (5750, 8500)]
+    assert len(calls) == 1
 
 
 def test_hints_give_the_roster_the_room_words_learned_names_and_the_last_lines(conn):

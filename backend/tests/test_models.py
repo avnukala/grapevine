@@ -4,10 +4,13 @@ import re
 
 import numpy as np
 import pytest
+from huggingface_hub import try_to_load_from_cache
 from openai import APITimeoutError
 
 from grapevine import models
-from grapevine.models import Hints, OpenAIChat, WhisperTranscriber, echoes
+from grapevine.audio import SAMPLE_RATE
+from grapevine.config import RunConfig
+from grapevine.models import Hints, OpenAIChat, WavLMEmbedder, WhisperTranscriber, echoes
 
 
 def test_a_transcript_of_only_prompt_words_is_an_echo():
@@ -17,6 +20,19 @@ def test_a_transcript_of_only_prompt_words_is_an_echo():
     assert echoes("Glow in 2024.", prompt)
     assert not echoes("Close to 24.", prompt)
     assert not echoes("EZoo.", prompt)
+
+
+def test_wavlm_gives_each_clip_of_a_call_the_voice_it_gets_alone():
+    model_id = RunConfig().embedder
+    if not isinstance(try_to_load_from_cache(model_id, "config.json"), str):
+        pytest.skip("WavLM is not downloaded")
+    embedder = WavLMEmbedder(model_id, device="cpu")
+    noise = np.random.default_rng(0).standard_normal(SAMPLE_RATE * 3).astype(np.float32) * 0.1
+    clips = [noise[: SAMPLE_RATE // 4], noise, noise[:SAMPLE_RATE]]
+
+    together = embedder.embed(clips)
+
+    np.testing.assert_allclose(together, [embedder.embed([clip])[0] for clip in clips], atol=1e-5)
 
 
 def test_an_echo_is_heard_again_with_less_of_the_prompt():
