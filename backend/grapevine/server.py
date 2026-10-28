@@ -329,6 +329,7 @@ async def get_run(run_id: int) -> Record:
 
 @app.get("/api/runs/{run_id}/changes")
 async def changes(run_id: int) -> list[Record]:
+    run_row(run_id)
     rows = conn.execute(
         "SELECT seq, audio_ms, segment_id, model_call_id, op_json FROM changes WHERE run_id = ? ORDER BY seq", (run_id,)
     )
@@ -337,6 +338,7 @@ async def changes(run_id: int) -> list[Record]:
 
 @app.get("/api/runs/{run_id}/model_calls")
 async def model_calls(run_id: int) -> list[Record]:
+    run_row(run_id)
     rows = conn.execute(
         "SELECT * FROM model_calls JOIN model_instructions ON hash = instructions_hash WHERE run_id = ? ORDER BY id",
         (run_id,),
@@ -366,6 +368,7 @@ async def model_calls(run_id: int) -> list[Record]:
 
 
 def active_run(run_id: int) -> ActiveRun:
+    run_row(run_id)
     if run_id not in active:
         raise HTTPException(409, f"run {run_id} is not going")
     return active[run_id]
@@ -498,7 +501,9 @@ class Rename(BaseModel):
 async def rename(run_id: int, person_id: int, body: Rename) -> Record:
     """Renames a person, such as a name that the transcript misheard. A name on the roster changes there too."""
     store = store_for(run_id)
-    old = store.graph.people[person_id]["name"] if person_id in store.graph.people else None
+    if person_id not in store.graph.people:
+        raise HTTPException(404, f"person {person_id} is not in run {run_id}")
+    old = store.graph.people[person_id]["name"]
     rename_person(store, person_id, body.name)
     session_id = run_row(run_id)["session_id"]
     roster = session(conn, session_id)["roster"] if session_id is not None else []
@@ -519,6 +524,8 @@ class SpeakerAnswer(BaseModel):
 @app.post("/api/runs/{run_id}/segments/{segment_id}/speaker")
 async def set_segment_speaker(run_id: int, segment_id: int, body: SpeakerAnswer) -> Record:
     store = store_for(run_id)
+    if segment_id not in store.graph.segments:
+        raise HTTPException(404, f"segment {segment_id} is not in run {run_id}")
     changed = assign_speaker(
         store,
         segment_id,
@@ -583,5 +590,7 @@ class MergeAnswer(BaseModel):
 @app.post("/api/merge/{run_id}/prompts/{prompt_id}")
 async def answer_merge(run_id: int, prompt_id: int, body: MergeAnswer) -> Record:
     store = store_for(run_id)
+    if prompt_id not in store.graph.prompts:
+        raise HTTPException(404, f"no prompt {prompt_id} in run {run_id}")
     resolve_merge(store, prompt_id, action=body.action, fact_id=body.fact_id)
     return store.graph.prompts[prompt_id]

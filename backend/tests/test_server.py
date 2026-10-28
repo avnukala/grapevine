@@ -36,6 +36,18 @@ def test_accept_needs_a_finished_run(client, store):
     assert client.post(f"/api/runs/{store.run_id}/accept").json()["accepted"] == 1
 
 
+def test_unknown_things_are_not_found(client, store):
+    run = f"/api/runs/{store.run_id}"
+    assert client.post(f"{run}/segments/999/speaker", json={"new_name": "Felix Ward"}).status_code == 404
+    assert client.patch(f"{run}/people/999", json={"name": "Felix Ward"}).status_code == 404
+    assert client.post(f"/api/merge/{store.run_id}/prompts/999", json={"action": "keep"}).status_code == 404
+    for path in ["changes", "model_calls"]:
+        assert client.get(f"/api/runs/999/{path}").status_code == 404
+        assert client.get(f"{run}/{path}").json() == []
+    assert client.post("/api/runs/999/stop").status_code == 404
+    assert client.post(f"{run}/stop").status_code == 409
+
+
 def test_reading_a_run_does_not_replay_it(client, store):
     assert client.get(f"/api/runs/{store.run_id}").json()["session"]["name"] == "test"
     assert server.stores == {}
@@ -108,10 +120,6 @@ def test_speaker_needs_one_known_person(client, store, monkeypatch):
     for body in [{}, {"person_id": person["id"], "new_name": "Felix Ward"}, {"person_id": 999}]:
         assert client.post(url, json=body).status_code == 400
     assert client.post(url, json={"person_id": 999}).json() == {"detail": "no person 999"}
-    assert (
-        client.post(f"/api/runs/{store.run_id}/segments/999/speaker", json={"new_name": "Felix Ward"}).status_code
-        == 400
-    )
     assert store.conn.execute("SELECT count(*) FROM people").fetchone()[0] == 1
     assert client.post(url, json={"new_name": "Felix Ward"}).json()["person_id"] != person["id"]
 
