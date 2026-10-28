@@ -10,7 +10,7 @@ from grapevine.names import better_spelling, drop_ly, misspelled, near_first, pa
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
-PROMPT_VERSION = "extract-v15"
+PROMPT_VERSION = "extract-v16"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
 
@@ -20,7 +20,7 @@ The input lists today's date, the known people, events (ids like e2), groups, re
 
 PEOPLE
 - Refer to a person by the full name in KNOWN PEOPLE, for example "Marcus Hale".
-- "speaker" is the person who said the new turn. Map "I", "me", and "my" to "speaker". Map "we" to "speaker" plus the people the speaker means. "You" is the person the speaker talks to, and "you two" is that person and the one the recent turns pair them with, such as a partner just named, never someone else in the room.
+- "speaker" is the person who said the new turn. Map "I", "me", and "my" to "speaker". Map "we" to "speaker" plus the people the speaker means. "You" is the person the speaker talks to. "You two" is that person and the one the recent turns pair them with: after "Where is Greta tonight, Marcus?" and Marcus's answer, "you two" is Marcus and Greta, not another person in the room.
 - For a new person, write the name as said, for example "Imani", and add them to "people".
 - If a first name fits more than one known person and the turn does not say which one, write only that first name, for example "Felix".
 - List in "people" only new people, or known people with a new alias or gender.
@@ -45,7 +45,6 @@ FACTS
 
 RELATIONSHIPS
 - Add one entry for each pair whose relationship the turn tells about, for example coworkers, cousins, roommates, exes, or old friends. A pair has at most one entry per category, for example a past romantic one and a current friend one.
-- Tie the pair the turn names. "We met at my cousin's wedding" makes the speaker a cousin of the one getting married, not of the person they met.
 - Every fact of kind relationship needs a matching entry here. "My coworker Wren", "my manager Dana", and "I'm the ex" each need one.
 - category: romantic (dating, partners, married, engaged, exes), family (parents, siblings, cousins, in-laws), friend (friends, including roommates, bandmates, teammates, climbing partners, and league mates, unless the turn says they are not friends), professional (coworkers, bosses, managers, employees, clients, business partners), or other (only acquaintances with no other tie).
 - Exes are romantic with status past. If they stayed friends, add a second entry: friend, current.
