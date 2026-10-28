@@ -231,3 +231,20 @@ def test_ties_and_their_evidence_are_not_offered_as_small_talk(store):
     store.upsert_relationship(a=felix, b=dana, category="romantic", fields={}, evidence=[ids[1]], model_call_id=None)
     _, _, facts = small_talk_message(store)
     assert list(facts.values()) == [ids[2]]
+
+
+def test_a_second_person_with_a_members_first_name_does_not_join(store):
+    ids = {
+        n: store.create_person(name=n, aliases=[], gender="male")["id"] for n in ["Felix Ward", "Felix Hale", "Mia Rao"]
+    }
+    fact = store.add_fact({"kind": "membership", "text": "x"}, people=[], segment_ids=[], model_call_id=None)
+    group = store.group_for("Night Hawks")
+    store.add_member(group_id=group["id"], person_id=ids["Felix Ward"], since=None, until=None, fact_id=fact["id"])
+    entry = {
+        "name": "Night Hawks",
+        "members": ["Felix Hale", "Mia Rao"],
+        "named": ["Felix Ward", "Felix Hale", "Mia Rao"],
+    }
+    apply_groups(store, [entry], lambda name, _: ids[name], model_call_id=1)
+    names = {pid: name for name, pid in ids.items()}
+    assert sorted(names[m["person_id"]] for m in store.graph.members.values()) == ["Felix Ward", "Mia Rao"]

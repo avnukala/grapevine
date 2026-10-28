@@ -477,7 +477,13 @@ def apply_groups(store: Store, entries: list[Record], person, model_call_id: int
         named = {person(name, model_call_id) for name in entry["named"]}
         for pid in known - named:
             store.remove_member(group_id=group["id"], person_id=pid)
-        new = list(dict.fromkeys(pid for pid in found if pid not in known))
+        first_names = {store.person(pid)["name"].split()[0] for pid in known & named}
+        new = []
+        for pid in dict.fromkeys(found):
+            first = store.person(pid)["name"].split()[0]
+            if pid not in known and first not in first_names:
+                new.append(pid)
+            first_names.add(first)
         if not new:
             continue
         names = [store.person(pid)["name"] for pid in new]
