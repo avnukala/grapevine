@@ -525,12 +525,16 @@ class Store:
             self.emit({"type": "relationship_removed", "id": relationship_id})
 
     def remove_event(self, event_id: int, *, model_call_id: int | None) -> None:
+        """Deletes an event. Facts that a removed person dropped from the graph lose the event in the database
+        only, so they stay out of the graph."""
+        facts = [f["id"] for f in self.graph.facts.values() if f["event_id"] == event_id]
+        met = [r["id"] for r in self.graph.relationships.values() if r["met_event_id"] == event_id]
         with self.batch():
-            for (fact_id,) in self.conn.execute("SELECT id FROM facts WHERE event_id = ?", (event_id,)).fetchall():
-                self.update_fact(fact_id, event_id=None, model_call_id=model_call_id)
-            met = self.conn.execute("SELECT id FROM relationships WHERE met_event_id = ?", (event_id,)).fetchall()
+            self.conn.execute("UPDATE facts SET event_id = NULL WHERE event_id = ?", (event_id,))
+            for fact_id in facts:
+                self.emit({"type": "fact", "fact": self.fact(fact_id)}, model_call_id=model_call_id)
             self.conn.execute("UPDATE relationships SET met_event_id = NULL WHERE met_event_id = ?", (event_id,))
-            for (relationship_id,) in met:
+            for relationship_id in met:
                 relationship = self.relationship(relationship_id)
                 self.emit({"type": "relationship", "relationship": relationship}, model_call_id=model_call_id)
             self.conn.execute("DELETE FROM event_people WHERE event_id = ?", (event_id,))
