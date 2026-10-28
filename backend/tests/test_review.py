@@ -2,6 +2,8 @@ import asyncio
 
 from grapevine.llm import Call, Result
 from grapevine.review import (
+    GROUPS_SYSTEM,
+    MEMBERS_SYSTEM,
     agreed,
     apply_groups,
     apply_happenings,
@@ -10,6 +12,7 @@ from grapevine.review import (
     group_lines,
     hide_small_talk,
     quoted,
+    review,
     said_in_lines,
     small_talk_message,
     ties,
@@ -259,3 +262,43 @@ def test_a_second_person_with_a_members_first_name_does_not_join(store):
     apply_groups(store, [entry], lambda name, _: ids[name], model_call_id=1)
     names = {pid: name for name, pid in ids.items()}
     assert sorted(names[m["person_id"]] for m in store.graph.members.values()) == ["Felix Ward", "Mia Rao"]
+
+
+class Slow:
+    """Answers the groups call at once and each other review call after a short wait, and logs each step."""
+
+    def __init__(self) -> None:
+        self.log: list[str] = []
+
+    async def call(self, call: Call, **_) -> Result:
+        if call.system == MEMBERS_SYSTEM:
+            self.log.append("members")
+            return Result({"members": ["Dana Cole"]}, 2)
+        if call.system == GROUPS_SYSTEM:
+            group = {"name": "Night Hawks", "also_called": [], "members": ["Felix Ward"]}
+            return Result({"known": {}, "candidates": {}, "new": [group]}, 1)
+        await asyncio.sleep(0.05)
+        self.log.append("other")
+        return Result(None, 3)
+
+
+def test_the_members_call_starts_when_the_groups_call_is_done(store):
+    for name in ["Felix Ward", "Dana Cole"]:
+        person = store.create_person(name=name, aliases=[], gender="unknown")
+        store.add_segment(
+            start_ms=len(store.graph.segments) * 1000,
+            end_ms=len(store.graph.segments) * 1000 + 900,
+            speaker_label=name,
+            person_id=person["id"],
+            confidence=None,
+            text="We play with the Night Hawks.",
+            timings={},
+        )
+    llm = Slow()
+    asyncio.run(review(store, llm, model="m", seed=7, today="2025-10-18"))
+
+    assert llm.log.index("members") < llm.log.index("other")
+    [group] = store.graph.groups.values()
+    names = {m["person_id"]: store.graph.people[m["person_id"]]["name"] for m in store.graph.members.values()}
+    assert sorted(names.values()) == ["Dana Cole", "Felix Ward"]
+    assert group["name"] == "Night Hawks"

@@ -260,18 +260,12 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
     small_talk_call = Call(
         "reviewer", model, PROMPT_VERSION, SMALL_TALK_SYSTEM, small_talk_user, small_talk_schema, seed, 6000
     )
-    groups, events, small_talk, *voted = await asyncio.gather(
-        call_or_retry(store, llm, groups_call),
-        call_or_retry(store, llm, ask(EVENTS_SYSTEM, events_schema(list(record_events)))),
-        call_or_retry(store, llm, small_talk_call),
-        *[
-            llm.call(vote, run_id=store.run_id, audio_ms=store.audio_ms, watch=watch if i == 0 else None)
-            for i, vote in enumerate(votes)
-        ],
-    )
 
-    found_groups = []
-    if groups.output:
+    async def groups_with_members() -> tuple[Result, list[Record]]:
+        """The groups call, then a members call for each group it found, while the other calls still run."""
+        groups = await call_or_retry(store, llm, groups_call)
+        if not groups.output:
+            return groups, []
         found_groups = [
             {
                 "name": name,
@@ -284,10 +278,20 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
             ]
         ] + groups.output["new"]
         more = await asyncio.gather(*[members_of(store, llm, g, model=model, seed=seed) for g in found_groups])
-        found_groups = [
+        return groups, [
             {**g, "members": [*extra, *said_in_lines(g, texts, speakers)], "named": [*g["members"], *extra]}
             for g, extra in zip(found_groups, more)
         ]
+
+    (groups, found_groups), events, small_talk, *voted = await asyncio.gather(
+        groups_with_members(),
+        call_or_retry(store, llm, ask(EVENTS_SYSTEM, events_schema(list(record_events)))),
+        call_or_retry(store, llm, small_talk_call),
+        *[
+            llm.call(vote, run_id=store.run_id, audio_ms=store.audio_ms, watch=watch if i == 0 else None)
+            for i, vote in enumerate(votes)
+        ],
+    )
 
     def person(name: str, model_call_id: int) -> int | None:
         known = [p for p in store.graph.people.values() if misspelled(p["name"], name)]
