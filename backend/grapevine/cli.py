@@ -107,6 +107,7 @@ def judge_llm() -> LLM:
     The cache has no runs table, so it skips the foreign keys that model_calls has in the main schema."""
     cache = sqlite3.connect(DATA_DIR / "judge.db", isolation_level=None)
     cache.executescript(db.SCHEMA)
+    db.migrate(cache)
     return LLM(cache, chat(), model_file_hash=llm_file_hash(), reuse=True)
 
 

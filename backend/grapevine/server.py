@@ -325,7 +325,10 @@ async def changes(run_id: int) -> list[Record]:
 
 @app.get("/api/runs/{run_id}/model_calls")
 async def model_calls(run_id: int) -> list[Record]:
-    rows = conn.execute("SELECT * FROM model_calls WHERE run_id = ? ORDER BY id", (run_id,))
+    rows = conn.execute(
+        "SELECT * FROM model_calls JOIN model_instructions ON hash = instructions_hash WHERE run_id = ? ORDER BY id",
+        (run_id,),
+    )
     return [
         {
             **{
@@ -343,7 +346,7 @@ async def model_calls(run_id: int) -> list[Record]:
                 )
             },
             "cached": bool(r["cached"]),
-            "request": json.loads(r["request_json"]),
+            "request": db.full_request(r),
             "response": r["response_json"],
         }
         for r in rows

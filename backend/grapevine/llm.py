@@ -11,6 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
+from grapevine.db import save_request
 from grapevine.models import ChatModel
 from grapevine.store import Store
 
@@ -123,9 +124,11 @@ class LLM:
             watch(content)
             watch(None)
 
+        instructions_hash, rest = save_request(self.conn, request)
         cursor = self.conn.execute(
             "INSERT INTO model_calls (run_id, worker, model, model_file_hash, prompt_version, seed, input_hash, "
-            "request_json, response_json, latency_ms, cached, audio_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "request_json, response_json, latency_ms, cached, audio_ms, instructions_hash) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 run_id,
                 call.worker,
@@ -134,11 +137,12 @@ class LLM:
                 call.prompt_version,
                 call.seed,
                 input_hash,
-                json.dumps(request),
+                rest,
                 content,
                 latency_ms,
                 int(stored is not None),
                 audio_ms,
+                instructions_hash,
             ),
         )
         try:

@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from grapevine import server
 from grapevine.extract import Held, Teller, apply_output
+from grapevine.llm import LLM, Call
 from tests.fakes import FakeChat, empty_output, fact
 
 
@@ -238,3 +239,16 @@ def test_new_words_reach_every_run_that_is_going(client, store):
     assert response.json() == ["EZoo", "Glow"]
     assert client.get("/api/words").json() == ["EZoo", "Glow"]
     assert run.pipeline.vocabulary == ["EZoo", "Glow"]
+
+
+def test_the_debug_screen_gets_the_full_request_of_each_model_call(client, conn, store):
+    chat = FakeChat({})
+    llm = LLM(conn, chat, model_file_hash="t", reuse=False)
+    for user in ("first", "second"):
+        call = Call("merger", "m", "v1", "Merge them.", user, {"type": "object"}, 1)
+        asyncio.run(llm.call(call, run_id=store.run_id, audio_ms=0))
+
+    calls = client.get(f"/api/runs/{store.run_id}/model_calls").json()
+
+    assert [c["request"] for c in calls] == chat.requests
+    assert conn.execute("SELECT COUNT(*) FROM model_instructions").fetchone()[0] == 1

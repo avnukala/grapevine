@@ -1,5 +1,6 @@
 """SQLite schema and connection. Every write goes through `Store` in `store.py`."""
 
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -28,6 +29,12 @@ CREATE TABLE IF NOT EXISTS runs (
     status TEXT NOT NULL DEFAULT 'running',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+-- The system prompt and response format of model requests. Many calls share the same few, and each is kilobytes.
+CREATE TABLE IF NOT EXISTS model_instructions (
+    hash TEXT PRIMARY KEY,
+    system TEXT NOT NULL,
+    response_format_json TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS model_calls (
     id INTEGER PRIMARY KEY,
     run_id INTEGER NOT NULL REFERENCES runs(id),
@@ -37,11 +44,13 @@ CREATE TABLE IF NOT EXISTS model_calls (
     prompt_version TEXT NOT NULL,
     seed INTEGER NOT NULL,
     input_hash TEXT NOT NULL,
+    -- The request without its system prompt and response format, which model_instructions holds.
     request_json TEXT NOT NULL,
     response_json TEXT NOT NULL,
     latency_ms INTEGER NOT NULL,
     cached INTEGER NOT NULL DEFAULT 0,
-    audio_ms INTEGER
+    audio_ms INTEGER,
+    instructions_hash TEXT REFERENCES model_instructions(hash)
 );
 CREATE INDEX IF NOT EXISTS model_calls_input_hash ON model_calls(input_hash);
 CREATE INDEX IF NOT EXISTS model_calls_run_id ON model_calls(run_id);
@@ -175,8 +184,29 @@ CREATE TABLE IF NOT EXISTS prompts (
 """
 
 
+def save_request(conn: sqlite3.Connection, request: dict) -> tuple[str, str]:
+    """Saves the system prompt and response format of a model request once. Returns their hash and the rest of
+    the request as JSON."""
+    system, *messages = request["messages"]
+    response_format = json.dumps(request["response_format"])
+    instructions_hash = hashlib.sha256(json.dumps([system["content"], response_format]).encode()).hexdigest()
+    conn.execute(
+        "INSERT OR IGNORE INTO model_instructions (hash, system, response_format_json) VALUES (?, ?, ?)",
+        (instructions_hash, system["content"], response_format),
+    )
+    rest = {key: value for key, value in request.items() if key != "response_format"}
+    return instructions_hash, json.dumps({**rest, "messages": messages})
+
+
+def full_request(row: sqlite3.Row) -> dict:
+    """Rebuilds a model request that `save_request` split, from a model_calls row joined to model_instructions."""
+    request = json.loads(row["request_json"])
+    request["messages"].insert(0, {"role": "system", "content": row["system"]})
+    return {**request, "response_format": json.loads(row["response_format_json"])}
+
+
 def columns(conn: sqlite3.Connection, table: str) -> set[str]:
-    return {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+    return {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
 
 
 def add_session_roster(conn: sqlite3.Connection) -> None:
@@ -198,9 +228,31 @@ def add_segment_speaker_manual(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE segments ADD COLUMN speaker_manual INTEGER NOT NULL DEFAULT 0")
 
 
+def split_model_requests(conn: sqlite3.Connection) -> None:
+    if "instructions_hash" not in columns(conn, "model_calls"):
+        conn.execute("ALTER TABLE model_calls ADD COLUMN instructions_hash TEXT REFERENCES model_instructions(hash)")
+    rows = conn.execute("SELECT id, request_json FROM model_calls WHERE instructions_hash IS NULL").fetchall()
+    for model_call_id, request_json in rows:
+        instructions_hash, rest = save_request(conn, json.loads(request_json))
+        conn.execute(
+            "UPDATE model_calls SET instructions_hash = ?, request_json = ? WHERE id = ?",
+            (instructions_hash, rest, model_call_id),
+        )
+
+
 # Append new steps only. A database at user_version n has run the first n steps. Databases from before
 # user_version start at 0 with some steps done, so each step checks first.
-MIGRATIONS = (add_session_roster, move_vocabulary_to_words, add_segment_speaker_manual)
+MIGRATIONS = (add_session_roster, move_vocabulary_to_words, add_segment_speaker_manual, split_model_requests)
+
+
+def migrate(conn: sqlite3.Connection) -> None:
+    """Runs the steps of MIGRATIONS that the database has not run yet, each in its own transaction."""
+    version = conn.execute("PRAGMA user_version").fetchone()[0]
+    for number, step in enumerate(MIGRATIONS[version:], start=version + 1):
+        conn.execute("BEGIN IMMEDIATE")
+        step(conn)
+        conn.execute(f"PRAGMA user_version = {number}")
+        conn.execute("COMMIT")
 
 
 def connect(path: Path) -> sqlite3.Connection:
@@ -212,10 +264,5 @@ def connect(path: Path) -> sqlite3.Connection:
     conn.execute("PRAGMA synchronous = NORMAL")
     conn.execute("PRAGMA busy_timeout = 10000")
     conn.executescript(SCHEMA)
-    version = conn.execute("PRAGMA user_version").fetchone()[0]
-    for number, migrate in enumerate(MIGRATIONS[version:], start=version + 1):
-        conn.execute("BEGIN IMMEDIATE")
-        migrate(conn)
-        conn.execute(f"PRAGMA user_version = {number}")
-        conn.execute("COMMIT")
+    migrate(conn)
     return conn
