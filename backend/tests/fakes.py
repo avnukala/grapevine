@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from grapevine.audio import CHUNK_SAMPLES, SAMPLE_RATE
-from grapevine.models import MAX_SPEAKERS, Models
+from grapevine.models import MAX_SPEAKERS, Hints, Models
 
 SAMPLES_PER_FRAME = SAMPLE_RATE // 100
 
@@ -81,7 +81,7 @@ class FakeTranscriber:
     def __init__(self, lines: list[Line]) -> None:
         self.lines = list(lines)
 
-    def transcribe(self, audio: np.ndarray, names: list[str]) -> str:
+    def transcribe(self, audio: np.ndarray, hints: Hints) -> str:
         speaker = speaker_of(float(np.median(audio)))
         line = next(line for line in self.lines if line.speaker == speaker)
         self.lines.remove(line)

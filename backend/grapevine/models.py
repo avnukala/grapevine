@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -33,8 +34,16 @@ class VoiceEmbedder(Protocol):
         """Returns a unit-length voice embedding."""
 
 
+@dataclass(frozen=True)
+class Hints:
+    """What steers how Whisper spells a turn: names and words the group uses, and the last lines said."""
+
+    terms: list[str]
+    recent: str
+
+
 class Transcriber(Protocol):
-    def transcribe(self, audio: np.ndarray, names: list[str]) -> str: ...
+    def transcribe(self, audio: np.ndarray, hints: Hints) -> str: ...
 
 
 class ChatModel(Protocol):
@@ -148,17 +157,36 @@ class WhisperTranscriber:
         self.model_id = model_id
         self.language = language
 
-    def transcribe(self, audio: np.ndarray, names: list[str]) -> str:
-        """Transcribes a turn. The names of the people in the room steer how Whisper spells them."""
+    def transcribe(self, audio: np.ndarray, hints: Hints) -> str:
+        """Transcribes a turn. The terms steer how Whisper spells names and the group's own words, such as
+        "EZoo", and the recent lines give a short turn its context. On a short unclear clip, Whisper can repeat
+        its prompt instead of hearing the clip, so a turn that only repeats the prompt is heard again with less
+        of it: the terms alone, then nothing."""
+        terms = ", ".join(hints.terms) + "." if hints.terms else ""
+        text = ""
+        for prompt in dict.fromkeys([f"{terms} {hints.recent}".strip(), terms, ""]):
+            text = self._run(audio, prompt)
+            if not echoes(text, prompt):
+                return text
+        return text
+
+    def _run(self, audio: np.ndarray, prompt: str) -> str:
         result = self.mlx_whisper.transcribe(
             audio,
             path_or_hf_repo=self.model_id,
             language=self.language,
             temperature=0.0,
             condition_on_previous_text=False,
-            initial_prompt=", ".join(names) + "." if names else None,
+            initial_prompt=prompt or None,
         )
         return result["text"].strip()
+
+
+def echoes(text: str, prompt: str) -> bool:
+    """Whether a transcript holds only words of its prompt, such as "Glow, Josh Park, Glow, Josh Park," or the
+    last line said once more."""
+    said = re.findall(r"[a-z0-9']+", text.lower())
+    return len(said) >= 2 and set(said) <= set(re.findall(r"[a-z0-9']+", prompt.lower()))
 
 
 class OpenAIChat:

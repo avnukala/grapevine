@@ -70,6 +70,7 @@ def replay(conn, chat, merged=None, *, lines=LINES, roster=()):
         today="2025-10-18",
         intro_end_ms=INTRO_END_MS,
         roster=list(roster),
+        vocabulary=[],
     )
     asyncio.run(pipeline.run(chunks(render(lines, 24000))))
     return store
@@ -156,6 +157,7 @@ def test_a_turn_that_two_merged_voices_share_splits_by_voice(conn):
         today="2025-10-18",
         intro_end_ms=7600,
         roster=[],
+        vocabulary=[],
     )
     asyncio.run(pipeline.run(chunks(render(lines, 11000))))
 
@@ -190,6 +192,7 @@ def test_a_new_name_under_a_named_voice_gets_its_own_voice(conn):
         today="2025-10-18",
         intro_end_ms=7600,
         roster=[],
+        vocabulary=[],
     )
     asyncio.run(pipeline.run(chunks(render(lines, 11000))))
 
@@ -260,6 +263,7 @@ def test_a_short_introduction_that_sounds_unlike_its_label_gets_its_own_voice(co
         today="2025-10-18",
         intro_end_ms=8500,
         roster=[],
+        vocabulary=[],
     )
     asyncio.run(pipeline.run(chunks(render(lines, 9500))))
 
@@ -289,7 +293,14 @@ def test_a_run_at_real_time_previews_the_open_turn(conn, monkeypatch):
     models = replace(fake_models(lines, chat), transcriber=SecondsTranscriber())
     llm = LLM(conn, chat, model_file_hash="t", reuse=True)
     pipeline = Pipeline(
-        Store(conn, run_id, messages.append), models, llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[]
+        Store(conn, run_id, messages.append),
+        models,
+        llm,
+        RunConfig(),
+        today="2025-10-18",
+        intro_end_ms=0,
+        roster=[],
+        vocabulary=[],
     )
     pipeline.partials = True
     asyncio.run(pipeline.run(paced(render(lines, 6000))))
@@ -382,7 +393,14 @@ def test_a_typed_run_fails_on_its_first_turn_when_the_model_is_down(conn):
     chat = DownChat({})
     llm = LLM(conn, chat, model_file_hash="t", reuse=True)
     pipeline = Pipeline(
-        Store(conn, run_id), fake_models([], chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[]
+        Store(conn, run_id),
+        fake_models([], chat),
+        llm,
+        RunConfig(),
+        today="2025-10-18",
+        intro_end_ms=0,
+        roster=[],
+        vocabulary=[],
     )
     stop = asyncio.Event()
 
@@ -408,7 +426,14 @@ def test_a_typed_turn_after_the_run_stops_is_refused(conn):
     chat = FakeChat({})
     llm = LLM(conn, chat, model_file_hash="t", reuse=True)
     pipeline = Pipeline(
-        Store(conn, run_id), fake_models([], chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[]
+        Store(conn, run_id),
+        fake_models([], chat),
+        llm,
+        RunConfig(),
+        today="2025-10-18",
+        intro_end_ms=0,
+        roster=[],
+        vocabulary=[],
     )
 
     async def no_chunks():
@@ -447,6 +472,7 @@ def test_an_introduction_read_under_another_speaker_is_read_again(conn):
         today="2025-10-18",
         intro_end_ms=7600,
         roster=[],
+        vocabulary=[],
     )
     asyncio.run(pipeline.run(chunks(render(lines, 9000))))
 
@@ -476,6 +502,7 @@ def test_settling_moves_a_turn_only_to_a_clearly_closer_voice(conn):
         today="2025-10-18",
         intro_end_ms=0,
         roster=[],
+        vocabulary=[],
     )
     marcus, felix, kofi = (
         store.create_person(name=n, aliases=[], gender="male")["id"]
@@ -527,7 +554,9 @@ def test_an_edited_turn_is_read_again_with_its_new_text(conn):
     chat = FakeChat(rules)
     llm = LLM(conn, chat, model_file_hash="t", reuse=True)
     store = Store(conn, run_id)
-    pipeline = Pipeline(store, fake_models([], chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[])
+    pipeline = Pipeline(
+        store, fake_models([], chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[], vocabulary=[]
+    )
     stop = asyncio.Event()
 
     async def idle():
@@ -548,3 +577,39 @@ def test_an_edited_turn_is_read_again_with_its_new_text(conn):
     asyncio.run(go())
 
     assert [f["text"] for f in store.graph.live_facts()] == ["Marcus Hale works in Seattle."]
+
+
+def test_hints_give_the_roster_the_room_words_learned_names_and_the_last_lines(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    run_id = conn.execute(
+        "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'live', '{}', 'test')"
+    ).lastrowid
+    store = Store(conn, run_id)
+    chat = FakeChat({})
+    llm = LLM(conn, chat, model_file_hash="t", reuse=True)
+    pipeline = Pipeline(
+        store,
+        fake_models([], chat),
+        llm,
+        RunConfig(),
+        today="2025-10-18",
+        intro_end_ms=0,
+        roster=["Mia Rao"],
+        vocabulary=["EZoo"],
+    )
+    dana = store.create_person(name="Dana Cole", aliases=["Dana"], gender="female")["id"]
+    for i, text in enumerate(["We met at EZoo.", "In 2022.", "Then Glow in 2024."]):
+        store.add_segment(
+            start_ms=i * 1000,
+            end_ms=i * 1000 + 900,
+            speaker_label="spk0",
+            person_id=dana,
+            confidence=0.9,
+            text=text,
+            timings={},
+        )
+
+    hints = pipeline._hints()
+
+    assert hints.terms == ["Mia Rao", "EZoo", "Dana Cole"]
+    assert hints.recent == "In 2022. Then Glow in 2024."

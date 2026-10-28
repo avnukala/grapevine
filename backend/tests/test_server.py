@@ -176,3 +176,16 @@ def test_audio_files_outside_the_checkout_are_listed(client, tmp_path, monkeypat
     monkeypatch.setattr(server, "recordings_dir", lambda: tmp_path / "audio")
 
     assert client.get("/api/audio-files").json() == [str((tmp_path / "samples" / "dinner.mp3").resolve())]
+
+
+def test_new_words_reach_a_run_of_the_session_that_is_going(client, store):
+    class Running:
+        pipeline = type("Pipeline", (), {"vocabulary": []})()
+
+    run = Running()
+    server.active[store.run_id] = run
+
+    response = client.patch("/api/sessions/1", json={"vocabulary": [" EZoo ", "Glow", "EZoo"]})
+
+    assert response.json()["vocabulary"] == ["EZoo", "Glow"]
+    assert run.pipeline.vocabulary == ["EZoo", "Glow"]

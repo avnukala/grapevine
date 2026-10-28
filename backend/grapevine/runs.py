@@ -31,7 +31,7 @@ def session(conn: sqlite3.Connection, session_id: int) -> Record:
 
 
 def session_record(row: sqlite3.Row) -> Record:
-    return {**dict(row), "roster": json.loads(row["roster"])}
+    return {**dict(row), "roster": json.loads(row["roster"]), "vocabulary": json.loads(row["vocabulary"])}
 
 
 def create_session(
@@ -42,10 +42,11 @@ def create_session(
     audio_uri: str | None,
     intro_end_ms: int | None,
     roster: list[str],
+    vocabulary: list[str],
 ) -> Record:
     cursor = conn.execute(
-        "INSERT INTO sessions (name, recorded_at, audio_uri, intro_end_ms, roster) VALUES (?, ?, ?, ?, ?)",
-        (name, recorded_at, audio_uri, intro_end_ms, json.dumps(roster)),
+        "INSERT INTO sessions (name, recorded_at, audio_uri, intro_end_ms, roster, vocabulary) VALUES (?, ?, ?, ?, ?, ?)",
+        (name, recorded_at, audio_uri, intro_end_ms, json.dumps(roster), json.dumps(vocabulary)),
     )
     return session(conn, cursor.lastrowid)
 
@@ -79,6 +80,7 @@ def session_for_audio(conn: sqlite3.Connection, path: Path) -> Record:
         audio_uri=uri,
         intro_end_ms=labels.get("intro_end_ms"),
         roster=list(script.get("voices", {})),
+        vocabulary=[],
     )
 
 
@@ -191,6 +193,7 @@ def start_pipeline(
         today=session["recorded_at"][:10],
         intro_end_ms=session["intro_end_ms"],
         roster=session["roster"],
+        vocabulary=session["vocabulary"],
     )
     return ActiveRun(run_id, store, pipeline)
 

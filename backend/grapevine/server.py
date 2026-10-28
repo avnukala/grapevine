@@ -119,6 +119,7 @@ class NewSession(BaseModel):
     recorded_at: str | None = None
     intro_end_ms: int | None = None
     roster: list[Annotated[str, StringConstraints(max_length=100)]] = []
+    vocabulary: list[Annotated[str, StringConstraints(max_length=100)]] = []
 
 
 @app.post("/api/sessions")
@@ -134,7 +135,8 @@ async def new_session(body: NewSession) -> Record:
         recorded_at=body.recorded_at or date.today().isoformat(),
         audio_uri=body.audio_uri,
         intro_end_ms=body.intro_end_ms,
-        roster=clean_roster(body.roster),
+        roster=clean_terms(body.roster),
+        vocabulary=clean_terms(body.vocabulary),
     )
 
 
@@ -163,12 +165,13 @@ async def upload_session(file: UploadFile) -> Record:
         audio_uri=audio_uri(target),
         intro_end_ms=None,
         roster=[],
+        vocabulary=[],
     )
 
 
-def clean_roster(names: list[str]) -> list[str]:
-    """Typed names with spaces tidied, blanks dropped, and each name once."""
-    return list(dict.fromkeys(n for name in names if (n := " ".join(name.split()))))
+def clean_terms(terms: list[str]) -> list[str]:
+    """Typed names or words with spaces tidied, blanks dropped, and each one once."""
+    return list(dict.fromkeys(t for term in terms if (t := " ".join(term.split()))))
 
 
 class SessionUpdate(BaseModel):
@@ -176,16 +179,22 @@ class SessionUpdate(BaseModel):
     notes: str | None = None
     intro_end_ms: int | None = None
     roster: list[Annotated[str, StringConstraints(max_length=100)]] | None = None
+    vocabulary: list[Annotated[str, StringConstraints(max_length=100)]] | None = None
 
 
 @app.patch("/api/sessions/{session_id}")
 async def update_session(session_id: int, body: SessionUpdate) -> Record:
+    """Updates a session. New words reach a run of the session that is going, so the next turn spells them."""
     session_or_404(session_id)
     for key, value in body.model_dump(exclude_none=True).items():
-        if key == "roster":
-            value = json.dumps(clean_roster(value))
+        if key in ("roster", "vocabulary"):
+            value = json.dumps(clean_terms(value))
         conn.execute(f"UPDATE sessions SET {key} = ? WHERE id = ?", (value, session_id))
-    return session(conn, session_id)
+    updated = session(conn, session_id)
+    for run_id, run in active.items():
+        if conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()[0] == session_id:
+            run.pipeline.vocabulary = updated["vocabulary"]
+    return updated
 
 
 @app.get("/api/sessions/{session_id}/audio")

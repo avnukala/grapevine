@@ -20,7 +20,7 @@ from grapevine.audio import SAMPLE_RATE
 from grapevine.config import RunConfig
 from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload, read_again, respell_people
 from grapevine.llm import LLM, watch_on
-from grapevine.models import Models
+from grapevine.models import Hints, Models
 from grapevine.names import english, misspelled, proper_names, spell_names
 from grapevine.prompter import prompter_call, show_prompt, suggest
 from grapevine.review import review
@@ -45,6 +45,9 @@ SETTLE_MARGIN = 0.05
 # A turn this far from every person's voice keeps the speaker it has.
 SETTLE_FLOOR = 0.7
 MAX_VOICES = 100
+# Whisper reads at most 224 prompt tokens, so the hints keep to about 40 terms and the end of the last lines.
+MAX_TERMS = 40
+RECENT_CHARS = 200
 LEADING_NAME = re.compile(r"(?:(?:Hi|Hey|Hello|So),?\s+)?([A-Z][a-z]+ [A-Z][a-z]+)(?:[,.]|$)")
 INTRODUCES = re.compile(r"\bthis is (?:my [a-z]+)?\s*([A-Z][a-z]+)?[.!]?$")
 BARE_NAME = re.compile(r"([A-Z][a-z]+)[.!,]?(?:\s|$)")
@@ -144,6 +147,7 @@ class Pipeline:
         today: str,
         intro_end_ms: int | None,
         roster: list[str],
+        vocabulary: list[str],
     ) -> None:
         self.store = store
         self.models = models
@@ -152,6 +156,7 @@ class Pipeline:
         self.today = today
         self.intro_end_ms = intro_end_ms
         self.roster = roster
+        self.vocabulary = vocabulary
         self.builder = TurnBuilder(config.turn_rules)
         self.audio = AudioBuffer()
         self.turns: asyncio.Queue[Turn | PromptJob | None] = asyncio.Queue()
@@ -296,6 +301,16 @@ class Pipeline:
             self.paused = False
             await self.turns.put(turn)
 
+    def _hints(self) -> Hints:
+        """The roster, the words the room gave, and the names of people, groups, and events this run has
+        learned, in that order so a long list keeps the first two, with the end of the last two lines."""
+        graph = self.store.graph
+        learned = [p["name"] for p in graph.people.values() if p["merged_into_id"] is None]
+        learned += [g["name"] for g in graph.groups.values()] + [e["name"] for e in graph.events.values()]
+        terms = list(dict.fromkeys([*self.roster, *self.vocabulary, *learned]))[:MAX_TERMS]
+        last = sorted(graph.segments.values(), key=lambda s: s["start_ms"])[-2:]
+        return Hints(terms, " ".join(s["text"] for s in last)[-RECENT_CHARS:])
+
     async def _transcribe_turns(self) -> None:
         while (turn := await self.turns.get()) is not None:
             if isinstance(turn, PromptJob):
@@ -311,7 +326,7 @@ class Pipeline:
                 started = time.monotonic()
                 audio = self.audio.slice(start_ms, end_ms)
                 async with self.whisper:
-                    text = await asyncio.to_thread(self.models.transcriber.transcribe, audio, self.roster)
+                    text = await asyncio.to_thread(self.models.transcriber.transcribe, audio, self._hints())
                 text = spell_names(text, self.roster)
                 transcribe_ms = int((time.monotonic() - started) * 1000)
                 if not text:
@@ -351,7 +366,7 @@ class Pipeline:
             self.previewed_ms = end_ms
             async with self.whisper:
                 audio = self.audio.slice(start_ms, end_ms)
-                text = await asyncio.to_thread(self.models.transcriber.transcribe, audio, self.roster)
+                text = await asyncio.to_thread(self.models.transcriber.transcribe, audio, self._hints())
             if not text or self.closed_ms > start_ms:
                 continue
             label = f"spk{speaker}" if speaker is not None else None
