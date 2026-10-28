@@ -1,8 +1,11 @@
 import asyncio
 
+import pytest
+
 from grapevine.extract import Held, Teller, apply_output
 from grapevine.llm import LLM
 from grapevine.merge import merge, resolve_merge
+from grapevine.runs import open_store
 from grapevine.store import Store
 from tests.fakes import FakeChat, empty_output, fact
 
@@ -50,7 +53,7 @@ def merge_run(conn, chat):
     return store
 
 
-def test_merge_combines_sessions_and_sends_only_conflicts_to_review(conn):
+def two_years_they_met(conn):
     first = accepted_run(conn, "one")
     ray = first.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
     tell(
@@ -69,6 +72,9 @@ def test_merge_combines_sessions_and_sends_only_conflicts_to_review(conn):
         relationships=[friends("speaker", "Jasper", "2015")],
     )
 
+
+def test_merge_combines_sessions_and_sends_only_conflicts_to_review(conn):
+    two_years_they_met(conn)
     store = merge_run(conn, FakeChat({}))
 
     [rel] = store.graph.relationships.values()
@@ -79,6 +85,24 @@ def test_merge_combines_sessions_and_sends_only_conflicts_to_review(conn):
     resolve_merge(store, conflict["id"], action="remove_edge", fact_id=None)
     assert store.graph.relationships == {}
     assert store.graph.active_prompts() == []
+
+
+@pytest.mark.parametrize("action", ["keep", "keep_both"])
+def test_settling_a_merge_conflict_leaves_the_facts_of_the_sessions(conn, action):
+    two_years_they_met(conn)
+    store = merge_run(conn, FakeChat({}))
+    [conflict] = store.graph.active_prompts()
+    kept, other = conflict["payload"]["fact_ids"]
+    session_facts = [dict(row) for row in conn.execute("SELECT * FROM facts ORDER BY id")]
+
+    resolve_merge(store, conflict["id"], action=action, fact_id=kept)
+
+    assert [dict(row) for row in conn.execute("SELECT * FROM facts ORDER BY id")] == session_facts
+    assert open_store(conn, store.run_id).graph == store.graph
+    if action == "keep":
+        assert store.graph.facts[other]["revised_by_fact_id"] == kept
+    else:
+        assert store.graph.facts[other]["disputed"] and store.graph.facts[kept]["disputed"]
 
 
 def two_andrews(conn):

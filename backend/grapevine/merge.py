@@ -291,6 +291,13 @@ async def merge(store: Store, llm: LLM, *, model: str, seed: int) -> None:
             )
 
 
+def change_fact(store: Store, fact_id: int, **fields: object) -> None:
+    """Changes a fact in the merge run only. The fact keeps its id from the session, so its row in the facts
+    table belongs to the session run and must not change."""
+    if fact_id in store.graph.facts:
+        store.emit({"type": "fact", "fact": {**store.graph.facts[fact_id], **fields}})
+
+
 def resolve_merge(store: Store, prompt_id: int, *, action: MergeAction, fact_id: int | None) -> None:
     prompt = store.graph.prompts.get(prompt_id)
     if prompt is None or prompt["dismissed_at_ms"] is not None:
@@ -304,12 +311,12 @@ def resolve_merge(store: Store, prompt_id: int, *, action: MergeAction, fact_id:
                     raise ActionError(f"fact {fact_id} is not part of this conflict")
                 for other in payload["fact_ids"]:
                     if other != fact_id:
-                        store.update_fact(other, revised_by_fact_id=fact_id)
-                store.update_fact(fact_id, disputed=0)
+                        change_fact(store, other, revised_by_fact_id=fact_id)
+                change_fact(store, fact_id, disputed=False)
             case "keep_both":
                 active_prompt(store, prompt_id, "merge_conflict")
                 for fact in payload["fact_ids"]:
-                    store.update_fact(fact, disputed=1)
+                    change_fact(store, fact, disputed=True)
             case "remove_edge":
                 active_prompt(store, prompt_id, "merge_conflict")
                 if not payload["relationship_ids"]:
