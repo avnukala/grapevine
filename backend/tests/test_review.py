@@ -214,3 +214,19 @@ def test_the_whole_transcript_adds_only_members_the_group_lines_name():
     group = {"name": "Night Hawks", "also_called": [], "members": ["Mia Rao", "Dana Cole", "Greta"]}
     assert said_in_lines(group, texts) == ["Dana Cole", "Greta"]
     assert said_in_lines({**group, "name": "Harbor Club"}, texts) == ["Mia Rao", "Dana Cole", "Greta"]
+
+
+def test_ties_and_their_evidence_are_not_offered_as_small_talk(store):
+    felix = store.create_person(name="Felix Ward", aliases=[], gender="male")["id"]
+    dana = store.create_person(name="Dana Cole", aliases=[], gender="female")["id"]
+    segment = store.add_segment(
+        start_ms=0, end_ms=1, speaker_label="A", timings={}, person_id=felix, confidence=1.0, text="We married."
+    )
+    texts = [("relationship", "Felix and Dana are a couple."), ("story", "Felix and Dana married."), ("story", "Hi.")]
+    ids = [
+        store.add_fact({"kind": kind, "text": text}, people=[], segment_ids=[segment["id"]], model_call_id=None)["id"]
+        for kind, text in texts
+    ]
+    store.upsert_relationship(a=felix, b=dana, category="romantic", fields={}, evidence=[ids[1]], model_call_id=None)
+    _, _, facts = small_talk_message(store)
+    assert list(facts.values()) == [ids[2]]

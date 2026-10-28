@@ -182,10 +182,16 @@ NOTE = {"type": "string", "maxLength": 100}
 
 
 def small_talk_message(store: Store) -> tuple[str, dict, dict[str, int]]:
-    """The facts that turns recorded, other than memberships, each under its ref, then the transcript."""
+    """The personal facts and stories that turns recorded, each under its ref, then the transcript. Ties,
+    corrections, and the evidence of a relationship are history, and the model called a couple small talk."""
     graph = store.graph
     names = {pid: p["name"] for pid, p in graph.people.items()}
-    facts = {graph.ref("f", f["id"]): f for f in graph.live_facts() if f["segment_ids"] and f["kind"] != "membership"}
+    evidence = {fact_id for r in graph.relationships.values() for fact_id in r["evidence"]}
+    facts = {
+        graph.ref("f", f["id"]): f
+        for f in graph.live_facts()
+        if f["segment_ids"] and f["kind"] in ("personal", "story") and f["id"] not in evidence
+    }
     turns = sorted(graph.segments.values(), key=lambda s: s["start_ms"])
     lines = ["FACTS:", *(f"{ref} {f['text']}" for ref, f in facts.items()), "", "TRANSCRIPT:"]
     lines += [f"{names.get(s['person_id'], 'Unknown speaker')}: {s['text']}" for s in turns]
