@@ -1,0 +1,693 @@
+{
+ "sample": "pregame-4p",
+ "recorded_at": "2025-06-07",
+ "people": [
+  {
+   "id": "p1",
+   "name": "Kevin Doyle",
+   "in_room": true,
+   "key": "electrician, married to Jenna, Sunday Sends"
+  },
+  {
+   "id": "p2",
+   "name": "Hannah Kim",
+   "in_room": true,
+   "key": "lawyer, getting married spring 2026, Owen's ex"
+  },
+  {
+   "id": "p3",
+   "name": "Sam Torres",
+   "in_room": true,
+   "key": "works at REI, designated driver"
+  },
+  {
+   "id": "p4",
+   "name": "Chris Porter",
+   "in_room": true,
+   "key": "accountant, married to Megan Walsh"
+  },
+  {
+   "id": "p5",
+   "name": "Megan Walsh",
+   "in_room": false,
+   "key": "Chris's wife, at book club"
+  },
+  {
+   "id": "p6",
+   "name": "Jenna Lowe",
+   "in_room": false,
+   "key": "Kevin's wife (maiden name Lowe), head nurse at Saint Joseph's"
+  },
+  {
+   "id": "p7",
+   "name": "Matt Fisher",
+   "in_room": false,
+   "key": "electrician, Kevin's coworker, Dynasty League commissioner"
+  },
+  {
+   "id": "p8",
+   "name": "Arjun",
+   "in_room": false,
+   "key": "co-founded the Dynasty League with Chris"
+  },
+  {
+   "id": "p9",
+   "name": "Owen",
+   "in_room": false,
+   "key": "tore knee at Breckenridge, Hannah's ex, Sunday Sends"
+  },
+  {
+   "id": "p10",
+   "name": "Kate Russo",
+   "in_room": false,
+   "key": "Sam's REI coworker, runs climbing clinics"
+  },
+  {
+   "id": "p11",
+   "name": "Kate Miller",
+   "in_room": false,
+   "key": "Chris's college ex (2012-2014)"
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r1",
+   "a": "Chris Porter",
+   "b": "Megan Walsh",
+   "type": "romantic",
+   "label": "married",
+   "status": "current",
+   "since": "2014",
+   "how_met": "Bonnaroo June 2014 (the tent)"
+  },
+  {
+   "id": "r2",
+   "a": "Kevin Doyle",
+   "b": "Jenna Lowe",
+   "type": "romantic",
+   "label": "married almost seven years",
+   "status": "current",
+   "since": "2016",
+   "how_met": "Kevin's cousin's wedding in Pittsburgh, 2016; danced to Mr. Brightside",
+   "changed": {
+    "what": "married",
+    "date": "~2018"
+   }
+  },
+  {
+   "id": "r3",
+   "a": "Kevin Doyle",
+   "b": "Matt Fisher",
+   "type": "professional",
+   "label": "coworkers, wire houses together",
+   "status": "current",
+   "since": null,
+   "how_met": "work"
+  },
+  {
+   "id": "r4",
+   "a": "Chris Porter",
+   "b": "Arjun",
+   "type": "friend",
+   "label": "co-founders of the Dynasty League",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  },
+  {
+   "id": "r5",
+   "a": "Hannah Kim",
+   "b": "Owen",
+   "type": "romantic",
+   "label": "exes",
+   "status": "past",
+   "since": null,
+   "how_met": null,
+   "changed": {
+    "what": "broke up",
+    "date": null
+   }
+  },
+  {
+   "id": "r6",
+   "a": "Hannah Kim",
+   "b": "Owen",
+   "type": "friend",
+   "label": "ex helping plan her wedding; Sunday Sends",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  },
+  {
+   "id": "r7",
+   "a": "Sam Torres",
+   "b": "Kate Russo",
+   "type": "professional",
+   "label": "REI coworkers",
+   "status": "current",
+   "since": null,
+   "how_met": "REI"
+  },
+  {
+   "id": "r8",
+   "a": "Chris Porter",
+   "b": "Kate Miller",
+   "type": "romantic",
+   "label": "college exes, ended badly",
+   "status": "past",
+   "since": "2012",
+   "how_met": "college",
+   "changed": {
+    "what": "broke up badly",
+    "date": "2014"
+   }
+  },
+  {
+   "id": "r9",
+   "a": "Sam Torres",
+   "b": "Owen",
+   "type": "friend",
+   "label": "climbing partners",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  }
+ ],
+ "timeline": [
+  {
+   "id": "t1",
+   "what": "Chris dates Kate Miller in college",
+   "date": "2012 to 2014",
+   "people": [
+    "Chris Porter",
+    "Kate Miller"
+   ],
+   "disputed": false,
+   "raw": "from 2012 to 2014",
+   "precision": "year"
+  },
+  {
+   "id": "t2",
+   "what": "Chris and Megan meet at Bonnaroo",
+   "date": "2014-06",
+   "people": [
+    "Chris Porter",
+    "Megan Walsh"
+   ],
+   "disputed": false,
+   "raw": "Bonnaroo 2014, eleven years ago this month",
+   "precision": "month"
+  },
+  {
+   "id": "t3",
+   "what": "Kevin meets Jenna at his cousin's wedding in Pittsburgh",
+   "date": "2016",
+   "people": [
+    "Kevin Doyle",
+    "Jenna Lowe"
+   ],
+   "disputed": false,
+   "raw": "2015, wait, no, 2016",
+   "precision": "year"
+  },
+  {
+   "id": "t4",
+   "what": "Kevin's bachelor party in Austin; pontoon stuck on sandbar",
+   "date": "2018",
+   "people": [
+    "Kevin Doyle",
+    "Sam Torres",
+    "Matt Fisher"
+   ],
+   "disputed": false,
+   "raw": "Austin, 2018",
+   "precision": "year"
+  },
+  {
+   "id": "t5",
+   "what": "Kevin and Jenna marry",
+   "date": "~2018",
+   "people": [
+    "Kevin Doyle",
+    "Jenna Lowe"
+   ],
+   "disputed": false,
+   "raw": "almost seven years",
+   "precision": "year"
+  },
+  {
+   "id": "t6",
+   "what": "Kevin joins Sunday Sends",
+   "date": "2019-fall (Kevin) vs 2020 (Hannah)",
+   "people": [
+    "Kevin Doyle",
+    "Hannah Kim"
+   ],
+   "disputed": true,
+   "raw": "fall of 2019 / 2020",
+   "precision": "year"
+  },
+  {
+   "id": "t7",
+   "what": "Breckenridge; Owen tears his knee, Kevin carries his skis",
+   "date": "winter 2022",
+   "people": [
+    "Owen",
+    "Kevin Doyle"
+   ],
+   "disputed": false,
+   "raw": "the winter of 2022",
+   "precision": "season"
+  },
+  {
+   "id": "t8",
+   "what": "Sam and Owen attempt Bastille Crack and bail halfway",
+   "date": "2024-fall",
+   "people": [
+    "Sam Torres",
+    "Owen"
+   ],
+   "disputed": false,
+   "raw": "last fall",
+   "precision": "season"
+  },
+  {
+   "id": "t9",
+   "what": "Lumineers at Red Rocks",
+   "date": "2025-06-07",
+   "people": [
+    "Kevin Doyle",
+    "Hannah Kim",
+    "Sam Torres",
+    "Chris Porter",
+    "Kate Russo"
+   ],
+   "disputed": false,
+   "raw": "tonight",
+   "precision": "day"
+  },
+  {
+   "id": "t10",
+   "what": "Sunday Sends return to Bastille Crack",
+   "date": "2025-summer",
+   "people": [
+    "Sam Torres",
+    "Owen",
+    "Hannah Kim",
+    "Kevin Doyle"
+   ],
+   "disputed": false,
+   "raw": "this summer",
+   "precision": "season"
+  },
+  {
+   "id": "t11",
+   "what": "Hannah's wedding",
+   "date": "2026-spring",
+   "people": [
+    "Hannah Kim"
+   ],
+   "disputed": false,
+   "raw": "next spring",
+   "precision": "season"
+  },
+  {
+   "id": "t12",
+   "what": "Jenna promoted to head nurse at Saint Joseph's",
+   "date": "2025 (recent)",
+   "people": [
+    "Jenna Lowe"
+   ],
+   "disputed": false,
+   "raw": "just got promoted",
+   "precision": "month"
+  }
+ ],
+ "stories": [
+  {
+   "id": "s1",
+   "title": "The Bonnaroo tent",
+   "who": [
+    "Chris Porter",
+    "Megan Walsh"
+   ],
+   "when": "June 2014",
+   "where": "Bonnaroo",
+   "details": [
+    "eleven years ago this month",
+    "Chris still keeps the tent; Megan wants it thrown out",
+    "'the whole reason we're married'; wants to be buried in it"
+   ],
+   "why_it_matters": "how Chris and Megan met",
+   "teller": "Chris Porter",
+   "complication": null,
+   "outcome": "married; still has the tent",
+   "vivid_detail": "wants to be buried in that tent"
+  },
+  {
+   "id": "s2",
+   "title": "Kevin meets Jenna",
+   "who": [
+    "Kevin Doyle",
+    "Jenna Lowe"
+   ],
+   "when": "2016 (first said 2015)",
+   "where": "Kevin's cousin's wedding, Pittsburgh",
+   "details": [
+    "only person who would dance with him to Mr. Brightside",
+    "married almost seven years",
+    "Jenna just promoted to head nurse at Saint Joseph's"
+   ],
+   "why_it_matters": "Kevin's marriage",
+   "teller": "Kevin Doyle",
+   "complication": "Kevin first misremembered the year",
+   "outcome": "married almost seven years",
+   "vivid_detail": "Mister Brightside"
+  },
+  {
+   "id": "s3",
+   "title": "Kevin's bachelor party pontoon",
+   "who": [
+    "Kevin Doyle",
+    "Sam Torres",
+    "Matt Fisher"
+   ],
+   "when": "2018",
+   "where": "Austin",
+   "details": [
+    "five guys, rented pontoon boat",
+    "Kevin drove without reading instructions",
+    "stuck on a sandbar three hours",
+    "strangers on jet skis towed them back",
+    "Kevin tipped $40 and a cooler of beer"
+   ],
+   "why_it_matters": "group legend",
+   "teller": "Sam Torres",
+   "complication": "stuck on a sandbar for three hours",
+   "outcome": "towed by strangers on jet skis",
+   "vivid_detail": "$40 tip and a cooler of beer"
+  },
+  {
+   "id": "s4",
+   "title": "Owen's knee at Breckenridge",
+   "who": [
+    "Owen",
+    "Kevin Doyle"
+   ],
+   "when": "winter 2022",
+   "where": "Breckenridge",
+   "details": [
+    "Owen tore his knee",
+    "Kevin carried his skis all the way down",
+    "Owen still avoids green runs"
+   ],
+   "why_it_matters": "shared crew trip",
+   "teller": "Kevin Doyle",
+   "complication": "Owen tore his knee",
+   "outcome": "Kevin carried his skis down",
+   "vivid_detail": "still won't go near a green run"
+  },
+  {
+   "id": "s5",
+   "title": "Kate Miller at Red Rocks",
+   "who": [
+    "Chris Porter",
+    "Kate Miller",
+    "Sam Torres",
+    "Kate Russo",
+    "Megan Walsh"
+   ],
+   "when": "2025-06-07",
+   "where": "Red Rocks",
+   "details": [
+    "Sam's coworker Kate Russo is meeting them",
+    "Chris's ex Kate Miller texted she'd be there",
+    "they dated 2012-2014, ended badly, not seen since",
+    "Chris texted Megan, who said have fun and don't be weird"
+   ],
+   "why_it_matters": "name confusion and live drama",
+   "teller": "Chris Porter",
+   "complication": "his ex Kate Miller will be at the show",
+   "outcome": "Chris texts Megan; she says don't be weird",
+   "vivid_detail": "Kate Russo vs Kate Miller mix-up"
+  },
+  {
+   "id": "s6",
+   "title": "Bastille Crack rematch",
+   "who": [
+    "Sam Torres",
+    "Owen",
+    "Hannah Kim",
+    "Kevin Doyle"
+   ],
+   "when": "failed fall 2024; return summer 2025",
+   "where": "Eldorado Canyon",
+   "details": [
+    "Sam and Owen bailed halfway",
+    "the whole crew is going back and won't leave until everyone tops out"
+   ],
+   "why_it_matters": "upcoming crew goal",
+   "teller": "Sam Torres",
+   "complication": "bailed halfway last fall",
+   "outcome": "returning this summer",
+   "vivid_detail": "even if Kevin cries"
+  },
+  {
+   "id": "s7",
+   "title": "Kevin's Sunday Sends start date",
+   "who": [
+    "Kevin Doyle",
+    "Hannah Kim"
+   ],
+   "when": "fall 2019 or 2020",
+   "where": "climbing gym",
+   "details": [
+    "Sam teases Kevin as slowest to finish the blue wall",
+    "Hannah says he came right after gyms reopened"
+   ],
+   "why_it_matters": "dispute",
+   "teller": "Hannah Kim",
+   "complication": "they disagree on join year",
+   "outcome": "unresolved",
+   "vivid_detail": "right after the gyms reopened"
+  }
+ ],
+ "facts": [
+  {
+   "id": "f1",
+   "text": "Kevin Doyle is an electrician",
+   "about": [
+    "Kevin Doyle"
+   ]
+  },
+  {
+   "id": "f2",
+   "text": "Hannah Kim is a lawyer",
+   "about": [
+    "Hannah Kim"
+   ]
+  },
+  {
+   "id": "f3",
+   "text": "Hannah Kim is getting married in spring 2026",
+   "about": [
+    "Hannah Kim"
+   ]
+  },
+  {
+   "id": "f4",
+   "text": "Sam Torres works at REI",
+   "about": [
+    "Sam Torres"
+   ]
+  },
+  {
+   "id": "f5",
+   "text": "Chris Porter is an accountant",
+   "about": [
+    "Chris Porter"
+   ]
+  },
+  {
+   "id": "f6",
+   "text": "Chris Porter is married to Megan Walsh",
+   "about": [
+    "Chris Porter",
+    "Megan Walsh"
+   ]
+  },
+  {
+   "id": "f7",
+   "text": "Megan is in a book club",
+   "about": [
+    "Megan Walsh"
+   ]
+  },
+  {
+   "id": "f8",
+   "text": "Jenna (n\u00e9e Lowe) is head nurse at Saint Joseph's, recently promoted",
+   "about": [
+    "Jenna Lowe"
+   ]
+  },
+  {
+   "id": "f9",
+   "text": "Kevin and Jenna have been married almost seven years",
+   "about": [
+    "Kevin Doyle",
+    "Jenna Lowe"
+   ]
+  },
+  {
+   "id": "f10",
+   "text": "Matt Fisher is an electrician and Kevin's coworker",
+   "about": [
+    "Matt Fisher"
+   ]
+  },
+  {
+   "id": "f11",
+   "text": "Matt Fisher is commissioner of the Dynasty League",
+   "about": [
+    "Matt Fisher"
+   ]
+  },
+  {
+   "id": "f12",
+   "text": "Chris and Arjun founded the Dynasty League",
+   "about": [
+    "Chris Porter",
+    "Arjun"
+   ]
+  },
+  {
+   "id": "f13",
+   "text": "Kate Russo runs the climbing clinics at REI",
+   "about": [
+    "Kate Russo"
+   ]
+  },
+  {
+   "id": "f14",
+   "text": "Owen is helping Hannah plan her wedding",
+   "about": [
+    "Owen",
+    "Hannah Kim"
+   ]
+  },
+  {
+   "id": "f15",
+   "text": "Chris still keeps the Bonnaroo tent",
+   "about": [
+    "Chris Porter"
+   ]
+  }
+ ],
+ "groups": [
+  {
+   "id": "g1",
+   "name": "Sunday Sends",
+   "members": [
+    "Kevin Doyle",
+    "Sam Torres",
+    "Hannah Kim",
+    "Owen"
+   ]
+  },
+  {
+   "id": "g2",
+   "name": "The Dynasty League",
+   "members": [
+    "Matt Fisher",
+    "Chris Porter",
+    "Arjun",
+    "Sam Torres"
+   ]
+  }
+ ],
+ "disputes": [
+  {
+   "id": "d1",
+   "about": "when Kevin joined Sunday Sends",
+   "claims": [
+    {
+     "by": "Kevin Doyle",
+     "value": "fall 2019"
+    },
+    {
+     "by": "Hannah Kim",
+     "value": "2020"
+    }
+   ],
+   "resolved": null
+  },
+  {
+   "id": "d2",
+   "about": "year Kevin met Jenna",
+   "claims": [
+    {
+     "by": "Kevin Doyle",
+     "value": "2015, self-corrected to 2016"
+    }
+   ],
+   "resolved": "2016"
+  }
+ ],
+ "inside_jokes": [
+  {
+   "id": "j1",
+   "phrase": "historical artifact (the tent)",
+   "origin": "Bonnaroo 2014",
+   "people": [
+    "Chris Porter",
+    "Megan Walsh"
+   ]
+  },
+  {
+   "id": "j2",
+   "phrase": "slowest to finish the blue wall",
+   "origin": "Kevin at Sunday Sends",
+   "people": [
+    "Kevin Doyle",
+    "Sam Torres"
+   ]
+  }
+ ],
+ "traditions": [
+  {
+   "id": "tr1",
+   "what": "Sunday Sends climbing",
+   "cadence": "weekly (Sundays)",
+   "since": null,
+   "people": [
+    "Kevin Doyle",
+    "Sam Torres",
+    "Hannah Kim",
+    "Owen"
+   ]
+  },
+  {
+   "id": "tr2",
+   "what": "Dynasty League fantasy football",
+   "cadence": "yearly season",
+   "since": null,
+   "people": [
+    "Matt Fisher",
+    "Chris Porter",
+    "Arjun",
+    "Sam Torres"
+   ]
+  }
+ ],
+ "eras": [],
+ "not_facts": [
+  "Kevin brought snacks",
+  "Sam is the designated driver tonight",
+  "Chris must text Megan every hour",
+  "Megan's book has a dead husband",
+  "Kevin is slowest to finish the blue wall",
+  "Matt runs the league like a dictator",
+  "Megan said have fun and don't be weird",
+  "Kate Miller is coming with Sam (name confusion)"
+ ]
+}

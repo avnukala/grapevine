@@ -1,0 +1,1066 @@
+{
+ "sample": "birthday-dinner-8p",
+ "recorded_at": "2025-03-15",
+ "people": [
+  {
+   "id": "p1",
+   "name": "Nina Shah",
+   "in_room": true,
+   "key": "birthday (turns 34), teaches chemistry at East High, Denver since 2019"
+  },
+  {
+   "id": "p2",
+   "name": "Laura Bennett",
+   "in_room": true,
+   "key": "graphic designer in Chicago, Nina's college friend"
+  },
+  {
+   "id": "p3",
+   "name": "Megan Walsh",
+   "in_room": true,
+   "key": "nurse at Children's Hospital, Chris's wife, Second Chapter book club"
+  },
+  {
+   "id": "p4",
+   "name": "Chris Porter",
+   "in_room": true,
+   "key": "accountant, Megan's husband, Arjun's college roommate"
+  },
+  {
+   "id": "p5",
+   "name": "Emily Hart",
+   "in_room": true,
+   "key": "veterinarian in Boulder, picks depressing books"
+  },
+  {
+   "id": "p6",
+   "name": "Sam Torres",
+   "in_room": true,
+   "key": "works at REI, climbs with Owen Sundays, Dynasty League"
+  },
+  {
+   "id": "p7",
+   "name": "Owen Brooks",
+   "in_room": true,
+   "key": "physical therapist, tore ACL at Breckenridge, Know It Alls"
+  },
+  {
+   "id": "p8",
+   "name": "Arjun Mehta",
+   "in_room": true,
+   "key": "data scientist, marrying Claire Dunn Sept 2025 in Napa"
+  },
+  {
+   "id": "p9",
+   "name": "Kevin Doyle",
+   "in_room": false,
+   "key": "Dynasty League member"
+  },
+  {
+   "id": "p10",
+   "name": "Matt Fisher",
+   "in_room": false,
+   "key": "Dynasty League member"
+  },
+  {
+   "id": "p11",
+   "name": "Claire Dunn",
+   "in_room": false,
+   "key": "pediatric dentist, Arjun's fiancee"
+  },
+  {
+   "id": "p12",
+   "name": "Sam Reyes",
+   "in_room": false,
+   "key": "Laura's ex (2014-2017), now best friend; distinct from Sam Torres"
+  },
+  {
+   "id": "p13",
+   "name": "Hannah",
+   "in_room": false,
+   "key": "Owen's ex, planning a wedding"
+  },
+  {
+   "id": "p14",
+   "name": "Paige Wilson",
+   "in_room": false,
+   "key": "Emily's college roommate, married 2021, joined Second Chapter fall 2024"
+  },
+  {
+   "id": "p15",
+   "name": "Lucy Ford",
+   "in_room": false,
+   "key": "Owen's roommate, Know It Alls"
+  },
+  {
+   "id": "p16",
+   "name": "Ravi Kapoor",
+   "in_room": false,
+   "key": "Owen's roommate, Arjun's cousin, Know It Alls"
+  },
+  {
+   "id": "p17",
+   "name": "Ben Carter",
+   "in_room": false,
+   "key": "Megan's cousin, Know It Alls"
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r1",
+   "a": "Laura Bennett",
+   "b": "Nina Shah",
+   "type": "friend",
+   "label": "college friends from Michigan, former roommates in Chicago",
+   "status": "current",
+   "since": "2008",
+   "how_met": "same campus tour group at Michigan freshman orientation, August 2008; same dorm floor"
+  },
+  {
+   "id": "r2",
+   "a": "Megan Walsh",
+   "b": "Chris Porter",
+   "type": "romantic",
+   "label": "married",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  },
+  {
+   "id": "r3",
+   "a": "Chris Porter",
+   "b": "Arjun Mehta",
+   "type": "friend",
+   "label": "college roommates at Colorado State",
+   "status": "current",
+   "since": "2011",
+   "how_met": "randomly assigned dorm roommates, fall 2011"
+  },
+  {
+   "id": "r4",
+   "a": "Arjun Mehta",
+   "b": "Claire Dunn",
+   "type": "romantic",
+   "label": "engaged, wedding Sept 2025",
+   "status": "current",
+   "since": "2021",
+   "how_met": "hiking app, 2021"
+  },
+  {
+   "id": "r5",
+   "a": "Laura Bennett",
+   "b": "Sam Reyes",
+   "type": "romantic",
+   "label": "exes, dated 2014-2017 in Chicago",
+   "status": "past",
+   "since": "2014",
+   "how_met": "Sam Reyes rear-ended Laura's car on Lake Shore Drive; got coffee",
+   "changed": {
+    "what": "broke up, stayed best friends",
+    "date": "2017"
+   }
+  },
+  {
+   "id": "r6",
+   "a": "Laura Bennett",
+   "b": "Sam Reyes",
+   "type": "friend",
+   "label": "one of her best friends",
+   "status": "current",
+   "since": "2014",
+   "how_met": "car accident on Lake Shore Drive"
+  },
+  {
+   "id": "r7",
+   "a": "Owen Brooks",
+   "b": "Hannah",
+   "type": "romantic",
+   "label": "exes",
+   "status": "past",
+   "since": null,
+   "how_met": null,
+   "changed": {
+    "what": "broke up",
+    "date": null
+   }
+  },
+  {
+   "id": "r8",
+   "a": "Owen Brooks",
+   "b": "Hannah",
+   "type": "friend",
+   "label": "exes still close; he helps plan her wedding",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  },
+  {
+   "id": "r9",
+   "a": "Owen Brooks",
+   "b": "Sam Torres",
+   "type": "friend",
+   "label": "climbing partners (most Sundays)",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  },
+  {
+   "id": "r10",
+   "a": "Emily Hart",
+   "b": "Paige Wilson",
+   "type": "friend",
+   "label": "college roommates, Iceland travel partners",
+   "status": "current",
+   "since": null,
+   "how_met": "college roommates"
+  },
+  {
+   "id": "r11",
+   "a": "Owen Brooks",
+   "b": "Lucy Ford",
+   "type": "friend",
+   "label": "roommates",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  },
+  {
+   "id": "r12",
+   "a": "Owen Brooks",
+   "b": "Ravi Kapoor",
+   "type": "friend",
+   "label": "roommates",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  },
+  {
+   "id": "r13",
+   "a": "Arjun Mehta",
+   "b": "Ravi Kapoor",
+   "type": "family",
+   "label": "cousins (moms are sisters)",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r14",
+   "a": "Megan Walsh",
+   "b": "Ben Carter",
+   "type": "family",
+   "label": "cousins",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r15",
+   "a": "Megan Walsh",
+   "b": "Nina Shah",
+   "type": "friend",
+   "label": "book club (Second Chapter)",
+   "status": "current",
+   "since": null,
+   "how_met": "book club"
+  },
+  {
+   "id": "r16",
+   "a": "Megan Walsh",
+   "b": "Owen Brooks",
+   "type": "friend",
+   "label": "Megan helped Owen through ACL rehab",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  }
+ ],
+ "timeline": [
+  {
+   "id": "t1",
+   "what": "Laura and Nina meet at Michigan freshman orientation",
+   "date": "2008-08",
+   "people": [
+    "Laura Bennett",
+    "Nina Shah"
+   ],
+   "disputed": false,
+   "raw": "Freshman orientation at Michigan, August 2008",
+   "precision": "month"
+  },
+  {
+   "id": "t2",
+   "what": "Chris and Arjun become dorm roommates at Colorado State; kettle smoke alarm",
+   "date": "2011-fall",
+   "people": [
+    "Chris Porter",
+    "Arjun Mehta"
+   ],
+   "disputed": false,
+   "raw": "Fall of 2011",
+   "precision": "season"
+  },
+  {
+   "id": "t3",
+   "what": "Nina's 21st birthday surprise party in Ann Arbor",
+   "date": "2012",
+   "people": [
+    "Nina Shah",
+    "Laura Bennett"
+   ],
+   "disputed": false,
+   "raw": "my twenty first, in 2012",
+   "precision": "year"
+  },
+  {
+   "id": "t4",
+   "what": "Laura and Nina graduate from Michigan",
+   "date": "2012",
+   "people": [
+    "Laura Bennett",
+    "Nina Shah"
+   ],
+   "disputed": false,
+   "raw": "We graduated in 2012",
+   "precision": "year"
+  },
+  {
+   "id": "t5",
+   "what": "Dynasty League founded by Chris and Arjun",
+   "date": "2013 (Arjun) vs 2014 (Chris)",
+   "people": [
+    "Chris Porter",
+    "Arjun Mehta"
+   ],
+   "disputed": true,
+   "raw": "2013 / 2014",
+   "precision": "year"
+  },
+  {
+   "id": "t6",
+   "what": "Laura and Sam Reyes date in Chicago",
+   "date": "2014 to 2017",
+   "people": [
+    "Laura Bennett",
+    "Sam Reyes"
+   ],
+   "disputed": false,
+   "raw": "from 2014 to 2017",
+   "precision": "year"
+  },
+  {
+   "id": "t7",
+   "what": "Sam Torres joins the Dynasty League",
+   "date": "2017",
+   "people": [
+    "Sam Torres"
+   ],
+   "disputed": false,
+   "raw": "I joined in 2017",
+   "precision": "year"
+  },
+  {
+   "id": "t8",
+   "what": "Nina moves from Chicago to Denver",
+   "date": "2019",
+   "people": [
+    "Nina Shah"
+   ],
+   "disputed": false,
+   "raw": "In 2019",
+   "precision": "year"
+  },
+  {
+   "id": "t9",
+   "what": "Arjun and Claire meet on a hiking app",
+   "date": "2021",
+   "people": [
+    "Arjun Mehta",
+    "Claire Dunn"
+   ],
+   "disputed": false,
+   "raw": "in 2021",
+   "precision": "year"
+  },
+  {
+   "id": "t10",
+   "what": "Paige Wilson gets married",
+   "date": "2021",
+   "people": [
+    "Paige Wilson"
+   ],
+   "disputed": false,
+   "raw": "Paige got married in 2021",
+   "precision": "year"
+  },
+  {
+   "id": "t11",
+   "what": "Emily and Paige's Iceland ring road trip",
+   "date": "2022 (Emily) vs 2021 (Laura)",
+   "people": [
+    "Emily Hart",
+    "Paige Wilson"
+   ],
+   "disputed": true,
+   "raw": "in 2022 / wasn't that 2021",
+   "precision": "year"
+  },
+  {
+   "id": "t12",
+   "what": "Breckenridge ski weekend; Owen tears his ACL",
+   "date": "2023-01",
+   "people": [
+    "Owen Brooks",
+    "Sam Torres"
+   ],
+   "disputed": false,
+   "raw": "January 2023",
+   "precision": "month"
+  },
+  {
+   "id": "t13",
+   "what": "Owen's eight-month ACL rehab with Megan's help",
+   "date": "2023",
+   "people": [
+    "Owen Brooks",
+    "Megan Walsh"
+   ],
+   "disputed": false,
+   "raw": "eight months",
+   "precision": "year"
+  },
+  {
+   "id": "t14",
+   "what": "Paige joins Second Chapter book club",
+   "date": "2024-fall",
+   "people": [
+    "Paige Wilson"
+   ],
+   "disputed": false,
+   "raw": "last fall",
+   "precision": "season"
+  },
+  {
+   "id": "t15",
+   "what": "Nina's 34th birthday dinner",
+   "date": "2025-03-15",
+   "people": [
+    "Nina Shah"
+   ],
+   "disputed": false,
+   "raw": "today",
+   "precision": "day"
+  },
+  {
+   "id": "t16",
+   "what": "Sam Reyes visits Laura",
+   "date": "2025-04",
+   "people": [
+    "Laura Bennett",
+    "Sam Reyes"
+   ],
+   "disputed": false,
+   "raw": "in April",
+   "precision": "month"
+  },
+  {
+   "id": "t17",
+   "what": "Arjun and Claire's wedding at a Napa vineyard (Chris groomsman)",
+   "date": "2025-09",
+   "people": [
+    "Arjun Mehta",
+    "Claire Dunn",
+    "Chris Porter",
+    "Megan Walsh",
+    "Ravi Kapoor"
+   ],
+   "disputed": false,
+   "raw": "In September",
+   "precision": "month"
+  }
+ ],
+ "stories": [
+  {
+   "id": "s1",
+   "title": "Laura and Nina meet at Michigan orientation",
+   "who": [
+    "Laura Bennett",
+    "Nina Shah"
+   ],
+   "when": "August 2008",
+   "where": "University of Michigan",
+   "details": [
+    "same campus tour group",
+    "Nina's chemistry questions put the group twenty minutes behind",
+    "Laura thought she was the most annoying person",
+    "same dorm floor, inseparable by October",
+    "Nina said 2009 but conceded 2008",
+    "later lived together in Chicago six years until Nina left for Denver in 2019; Laura visits every summer"
+   ],
+   "why_it_matters": "origin of the oldest friendship at the table",
+   "teller": "Laura Bennett",
+   "complication": "Nina held up the tour with chemistry questions",
+   "outcome": "inseparable by October",
+   "vivid_detail": "group fell twenty minutes behind"
+  },
+  {
+   "id": "s2",
+   "title": "The kettle ramen smoke alarm",
+   "who": [
+    "Chris Porter",
+    "Arjun Mehta"
+   ],
+   "when": "fall 2011, first night",
+   "where": "Colorado State dorm",
+   "details": [
+    "randomly assigned roommates",
+    "Chris made ramen in an electric kettle and set off the smoke alarm",
+    "whole building outside in the rain at 2 a.m.",
+    "Arjun decided Chris needed a friend",
+    "Chris will mention the kettle in his groomsman speech"
+   ],
+   "why_it_matters": "origin of Chris and Arjun's friendship; running joke",
+   "teller": "Arjun Mehta",
+   "complication": "Chris set off the smoke alarm the first night",
+   "outcome": "Arjun befriended him",
+   "vivid_detail": "building outside in the rain at 2 a.m."
+  },
+  {
+   "id": "s3",
+   "title": "Founding the Dynasty League",
+   "who": [
+    "Arjun Mehta",
+    "Chris Porter",
+    "Sam Torres"
+   ],
+   "when": "2013 or 2014 (disputed)",
+   "where": null,
+   "details": [
+    "Chris says 2014, year of his first real job",
+    "Arjun says 2013 and claims to have the email",
+    "Sam joined 2017 and won twice"
+   ],
+   "why_it_matters": "the group's fantasy league",
+   "teller": "Arjun Mehta",
+   "complication": "founders disagree on year",
+   "outcome": "unresolved; Sam won twice",
+   "vivid_detail": "'I still have the email'"
+  },
+  {
+   "id": "s4",
+   "title": "Laura and Sam Reyes",
+   "who": [
+    "Laura Bennett",
+    "Sam Reyes"
+   ],
+   "when": "2014-2017",
+   "where": "Chicago, Lake Shore Drive",
+   "details": [
+    "Sam Reyes rear-ended Laura at a stoplight",
+    "they got coffee instead of exchanging insurance",
+    "dated three years, calm breakup",
+    "now one of her best friends, visiting in April"
+   ],
+   "why_it_matters": "Laura's ex turned best friend",
+   "teller": "Laura Bennett",
+   "complication": "Sam Reyes rear-ended Laura's car",
+   "outcome": "dated three years, now best friends",
+   "vivid_detail": "coffee instead of exchanging insurance"
+  },
+  {
+   "id": "s5",
+   "title": "Emily and Paige's Iceland ring road trip",
+   "who": [
+    "Emily Hart",
+    "Paige Wilson"
+   ],
+   "when": "2022 (Laura says 2021)",
+   "where": "Iceland ring road",
+   "details": [
+    "tiny rental car, ten days",
+    "flat tire on day four, no cell service",
+    "old farmer on a tractor changed it, refused money",
+    "invited them in for lamb soup, best meal of Emily's life"
+   ],
+   "why_it_matters": "Emily's signature travel story; disputed year",
+   "teller": "Emily Hart",
+   "complication": "flat tire with no cell service",
+   "outcome": "farmer fixed it and fed them",
+   "vivid_detail": "lamb soup, best meal of her life"
+  },
+  {
+   "id": "s6",
+   "title": "Owen's ACL at Breckenridge",
+   "who": [
+    "Owen Brooks",
+    "Sam Torres",
+    "Megan Walsh"
+   ],
+   "when": "January 2023",
+   "where": "Breckenridge",
+   "details": [
+    "climbing crew ski weekend",
+    "Owen, a physical therapist, went off a tiny jump and landed flat",
+    "tore his ACL on a green run (he claimed blue, conceded)",
+    "eight months of rehab, terrible patient",
+    "Megan came twice a week to make him do exercises; he cried at the leg press"
+   ],
+   "why_it_matters": "the group's favorite tease of Owen",
+   "teller": "Sam Torres",
+   "complication": "a PT tore his ACL on a green run",
+   "outcome": "eight months rehab, Megan coached him",
+   "vivid_detail": "six-year-olds on the run; cried at the leg press"
+  },
+  {
+   "id": "s7",
+   "title": "Nina's 21st birthday party",
+   "who": [
+    "Nina Shah",
+    "Laura Bennett"
+   ],
+   "when": "2012",
+   "where": "Ann Arbor apartment",
+   "details": [
+    "Laura threw a surprise party for about forty",
+    "the landlord showed up and danced until 2 a.m. instead of shutting it down"
+   ],
+   "why_it_matters": "Nina's favorite birthday",
+   "teller": "Nina Shah",
+   "complication": "the landlord showed up",
+   "outcome": "landlord stayed and danced",
+   "vivid_detail": "danced until two in the morning"
+  },
+  {
+   "id": "s8",
+   "title": "Arjun and Claire's engagement and upcoming wedding",
+   "who": [
+    "Arjun Mehta",
+    "Claire Dunn"
+   ],
+   "when": "met 2021; wedding September 2025",
+   "where": "Napa vineyard",
+   "details": [
+    "met on a hiking app",
+    "Claire is a pediatric dentist",
+    "Chris is a groomsman giving a speech",
+    "Megan and Chris booked flights, first trip without the dog",
+    "Ravi is coming"
+   ],
+   "why_it_matters": "big upcoming group event",
+   "teller": "Arjun Mehta",
+   "complication": null,
+   "outcome": "wedding in Napa in September",
+   "vivid_detail": "met on a hiking app"
+  },
+  {
+   "id": "s9",
+   "title": "Ravi turns out to be Arjun's cousin",
+   "who": [
+    "Arjun Mehta",
+    "Owen Brooks",
+    "Ravi Kapoor"
+   ],
+   "when": "2025-03-15",
+   "where": "the dinner",
+   "details": [
+    "Owen listed his trivia team",
+    "Arjun realized Ravi Kapoor is his cousin (moms are sisters)",
+    "Ravi never told Owen"
+   ],
+   "why_it_matters": "a new connection discovered between friend circles",
+   "teller": "Arjun Mehta",
+   "complication": "Ravi never told Owen",
+   "outcome": "new family link discovered",
+   "vivid_detail": "our moms are sisters"
+  }
+ ],
+ "facts": [
+  {
+   "id": "f1",
+   "text": "Nina Shah teaches chemistry at East High",
+   "about": [
+    "Nina Shah"
+   ]
+  },
+  {
+   "id": "f2",
+   "text": "Nina Shah turned 34 on 2025-03-15",
+   "about": [
+    "Nina Shah"
+   ]
+  },
+  {
+   "id": "f3",
+   "text": "Laura Bennett is a graphic designer in Chicago",
+   "about": [
+    "Laura Bennett"
+   ]
+  },
+  {
+   "id": "f4",
+   "text": "Megan Walsh is a nurse at Children's Hospital",
+   "about": [
+    "Megan Walsh"
+   ]
+  },
+  {
+   "id": "f5",
+   "text": "Chris Porter is an accountant",
+   "about": [
+    "Chris Porter"
+   ]
+  },
+  {
+   "id": "f6",
+   "text": "Chris Porter is married to Megan Walsh",
+   "about": [
+    "Chris Porter",
+    "Megan Walsh"
+   ]
+  },
+  {
+   "id": "f7",
+   "text": "Emily Hart is a veterinarian in Boulder",
+   "about": [
+    "Emily Hart"
+   ]
+  },
+  {
+   "id": "f8",
+   "text": "Sam Torres works at REI",
+   "about": [
+    "Sam Torres"
+   ]
+  },
+  {
+   "id": "f9",
+   "text": "Owen Brooks is a physical therapist",
+   "about": [
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "f10",
+   "text": "Arjun Mehta is a data scientist",
+   "about": [
+    "Arjun Mehta"
+   ]
+  },
+  {
+   "id": "f11",
+   "text": "Laura and Nina went to the University of Michigan and graduated in 2012",
+   "about": [
+    "Laura Bennett",
+    "Nina Shah"
+   ]
+  },
+  {
+   "id": "f12",
+   "text": "Laura and Nina lived together in Chicago for six years",
+   "about": [
+    "Laura Bennett",
+    "Nina Shah"
+   ]
+  },
+  {
+   "id": "f13",
+   "text": "Laura visits Nina every summer",
+   "about": [
+    "Laura Bennett",
+    "Nina Shah"
+   ]
+  },
+  {
+   "id": "f14",
+   "text": "Claire Dunn is a pediatric dentist",
+   "about": [
+    "Claire Dunn"
+   ]
+  },
+  {
+   "id": "f15",
+   "text": "Arjun and Claire are getting married in Napa at a vineyard in September 2025",
+   "about": [
+    "Arjun Mehta",
+    "Claire Dunn"
+   ]
+  },
+  {
+   "id": "f16",
+   "text": "Chris is a groomsman at Arjun's wedding",
+   "about": [
+    "Chris Porter",
+    "Arjun Mehta"
+   ]
+  },
+  {
+   "id": "f17",
+   "text": "Sam Torres has won the Dynasty League twice",
+   "about": [
+    "Sam Torres"
+   ]
+  },
+  {
+   "id": "f18",
+   "text": "Hannah (Owen's ex) is planning a wedding and sends Owen spreadsheets",
+   "about": [
+    "Hannah",
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "f19",
+   "text": "Paige Wilson got married in 2021",
+   "about": [
+    "Paige Wilson"
+   ]
+  },
+  {
+   "id": "f20",
+   "text": "Megan and Chris have a dog",
+   "about": [
+    "Megan Walsh",
+    "Chris Porter"
+   ]
+  },
+  {
+   "id": "f21",
+   "text": "Chris can't cook; Megan does all the cooking",
+   "about": [
+    "Chris Porter",
+    "Megan Walsh"
+   ]
+  },
+  {
+   "id": "f22",
+   "text": "Emily picks the depressing books for book club",
+   "about": [
+    "Emily Hart"
+   ]
+  },
+  {
+   "id": "f23",
+   "text": "Ravi Kapoor is coming to Arjun's wedding",
+   "about": [
+    "Ravi Kapoor"
+   ]
+  }
+ ],
+ "groups": [
+  {
+   "id": "g1",
+   "name": "The Dynasty League",
+   "members": [
+    "Arjun Mehta",
+    "Chris Porter",
+    "Sam Torres",
+    "Kevin Doyle",
+    "Matt Fisher"
+   ]
+  },
+  {
+   "id": "g2",
+   "name": "Second Chapter",
+   "members": [
+    "Megan Walsh",
+    "Nina Shah",
+    "Laura Bennett",
+    "Emily Hart",
+    "Paige Wilson"
+   ]
+  },
+  {
+   "id": "g3",
+   "name": "The Know It Alls",
+   "members": [
+    "Owen Brooks",
+    "Lucy Ford",
+    "Ravi Kapoor",
+    "Ben Carter"
+   ]
+  },
+  {
+   "id": "g4",
+   "name": "climbing crew",
+   "members": [
+    "Owen Brooks",
+    "Sam Torres"
+   ]
+  }
+ ],
+ "disputes": [
+  {
+   "id": "d1",
+   "about": "year the Dynasty League was founded",
+   "claims": [
+    {
+     "by": "Arjun Mehta",
+     "value": "2013"
+    },
+    {
+     "by": "Chris Porter",
+     "value": "2014"
+    }
+   ],
+   "resolved": null
+  },
+  {
+   "id": "d2",
+   "about": "year of the Iceland trip",
+   "claims": [
+    {
+     "by": "Emily Hart",
+     "value": "2022"
+    },
+    {
+     "by": "Laura Bennett",
+     "value": "2021"
+    }
+   ],
+   "resolved": null
+  },
+  {
+   "id": "d3",
+   "about": "year Laura and Nina met",
+   "claims": [
+    {
+     "by": "Nina Shah",
+     "value": "2009"
+    },
+    {
+     "by": "Laura Bennett",
+     "value": "2008"
+    }
+   ],
+   "resolved": "2008 (Nina conceded)"
+  },
+  {
+   "id": "d4",
+   "about": "difficulty of the run where Owen tore his ACL",
+   "claims": [
+    {
+     "by": "Owen Brooks",
+     "value": "blue"
+    },
+    {
+     "by": "Sam Torres",
+     "value": "green"
+    }
+   ],
+   "resolved": "green (Owen conceded)"
+  }
+ ],
+ "inside_jokes": [
+  {
+   "id": "j1",
+   "phrase": "the kettle / One time! One kettle!",
+   "origin": "Chris's ramen smoke alarm, 2011",
+   "people": [
+    "Chris Porter",
+    "Arjun Mehta"
+   ]
+  },
+  {
+   "id": "j2",
+   "phrase": "two Sams",
+   "origin": "Sam Torres vs Sam Reyes",
+   "people": [
+    "Sam Torres",
+    "Laura Bennett"
+   ]
+  },
+  {
+   "id": "j3",
+   "phrase": "green run",
+   "origin": "Owen's ACL tear",
+   "people": [
+    "Owen Brooks",
+    "Sam Torres"
+   ]
+  }
+ ],
+ "traditions": [
+  {
+   "id": "tr1",
+   "what": "Laura visits Nina",
+   "cadence": "every summer",
+   "since": "2019",
+   "people": [
+    "Laura Bennett",
+    "Nina Shah"
+   ]
+  },
+  {
+   "id": "tr2",
+   "what": "Second Chapter book club",
+   "cadence": "regular",
+   "since": null,
+   "people": [
+    "Megan Walsh",
+    "Nina Shah",
+    "Laura Bennett",
+    "Emily Hart",
+    "Paige Wilson"
+   ]
+  },
+  {
+   "id": "tr3",
+   "what": "Owen and Sam climb",
+   "cadence": "most Sundays",
+   "since": null,
+   "people": [
+    "Owen Brooks",
+    "Sam Torres"
+   ]
+  },
+  {
+   "id": "tr4",
+   "what": "Nina's birthday dinner",
+   "cadence": "yearly (wished)",
+   "since": null,
+   "people": [
+    "Nina Shah"
+   ]
+  }
+ ],
+ "eras": [
+  {
+   "id": "e1",
+   "name": "Michigan years",
+   "span": "2008-2012",
+   "people": [
+    "Laura Bennett",
+    "Nina Shah"
+   ]
+  },
+  {
+   "id": "e2",
+   "name": "Chicago roommate years",
+   "span": "~2013-2019",
+   "people": [
+    "Laura Bennett",
+    "Nina Shah"
+   ]
+  },
+  {
+   "id": "e3",
+   "name": "Nina's Denver years",
+   "span": "2019-present",
+   "people": [
+    "Nina Shah"
+   ]
+  }
+ ],
+ "not_facts": [
+  "Nina is 35",
+  "Sam Torres dated Laura",
+  "Sam Torres owes Laura money for concert tickets (which Sam is ambiguous)",
+  "Chris made the reservation tonight",
+  "Sam Torres's car is dead",
+  "Owen drove Sam to dinner",
+  "Know It Alls came in second last week",
+  "Nina wishes to do this again next year",
+  "Owen is not seeing anyone",
+  "the stuffing/cake/toasts"
+ ]
+}

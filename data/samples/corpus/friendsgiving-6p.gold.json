@@ -1,0 +1,914 @@
+{
+ "sample": "friendsgiving-6p",
+ "recorded_at": "2024-11-23",
+ "people": [
+  {
+   "id": "p1",
+   "name": "Megan Walsh",
+   "in_room": true,
+   "key": "pediatric nurse at Children's Hospital, host, Chris's wife"
+  },
+  {
+   "id": "p2",
+   "name": "Chris Porter",
+   "in_room": true,
+   "key": "accountant at Deloitte, keyboard in The Late Shift"
+  },
+  {
+   "id": "p3",
+   "name": "Nina Shah",
+   "in_room": true,
+   "key": "high school chemistry teacher in Denver, moved from Chicago 2019"
+  },
+  {
+   "id": "p4",
+   "name": "Owen Brooks",
+   "in_room": true,
+   "key": "physical therapist at Children's Hospital since 2019, climber"
+  },
+  {
+   "id": "p5",
+   "name": "Hannah Kim",
+   "in_room": true,
+   "key": "lawyer at a small downtown firm, engaged to Tyler Grant"
+  },
+  {
+   "id": "p6",
+   "name": "Ben Carter",
+   "in_room": true,
+   "key": "high school music teacher, vocals/guitar in The Late Shift, Megan's cousin"
+  },
+  {
+   "id": "p7",
+   "name": "Tyler Grant",
+   "in_room": false,
+   "key": "Hannah's fiance, watches golf, doesn't climb"
+  },
+  {
+   "id": "p8",
+   "name": "Sam Torres",
+   "in_room": false,
+   "key": "Sunday Sends member"
+  },
+  {
+   "id": "p9",
+   "name": "Kevin Doyle",
+   "in_room": false,
+   "key": "Sunday Sends member"
+  },
+  {
+   "id": "p10",
+   "name": "Rob Hayes",
+   "in_room": false,
+   "key": "bass in The Late Shift, co-founder with Ben"
+  },
+  {
+   "id": "p11",
+   "name": "Danny Cruz",
+   "in_room": false,
+   "key": "drums in The Late Shift"
+  },
+  {
+   "id": "p12",
+   "name": "Laura Bennett",
+   "in_room": false,
+   "key": "Second Chapter member, Nina's college friend"
+  },
+  {
+   "id": "p13",
+   "name": "Emily Hart",
+   "in_room": false,
+   "key": "Second Chapter member, picks sad books"
+  },
+  {
+   "id": "p14",
+   "name": "Andrew Walsh",
+   "in_room": false,
+   "key": "Megan's younger brother, Fort Collins, always late"
+  },
+  {
+   "id": "p15",
+   "name": "Andrew Collins",
+   "in_room": false,
+   "key": "Chris's Deloitte coworker, just moved from Boston"
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r1",
+   "a": "Megan Walsh",
+   "b": "Chris Porter",
+   "type": "romantic",
+   "label": "married (Oct 2019, Asheville)",
+   "status": "current",
+   "since": "2015",
+   "how_met": "Bonnaroo June 2015: Megan rebuilt Chris's collapsed tent",
+   "changed": {
+    "what": "married in Asheville",
+    "date": "2019-10"
+   }
+  },
+  {
+   "id": "r2",
+   "a": "Hannah Kim",
+   "b": "Tyler Grant",
+   "type": "romantic",
+   "label": "engaged",
+   "status": "current",
+   "since": null,
+   "how_met": null,
+   "changed": {
+    "what": "engaged",
+    "date": "2024-10"
+   }
+  },
+  {
+   "id": "r3",
+   "a": "Owen Brooks",
+   "b": "Hannah Kim",
+   "type": "romantic",
+   "label": "exes, dated almost five years",
+   "status": "past",
+   "since": "2016",
+   "how_met": "climbing gym 2016; she fell on him",
+   "changed": {
+    "what": "broke up",
+    "date": "2021"
+   }
+  },
+  {
+   "id": "r4",
+   "a": "Owen Brooks",
+   "b": "Hannah Kim",
+   "type": "friend",
+   "label": "exes now friends, Sunday Sends climbing partners",
+   "status": "current",
+   "since": "2016",
+   "how_met": "climbing gym"
+  },
+  {
+   "id": "r5",
+   "a": "Megan Walsh",
+   "b": "Ben Carter",
+   "type": "family",
+   "label": "cousins (moms are sisters), grew up two streets apart in Ohio",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r6",
+   "a": "Ben Carter",
+   "b": "Chris Porter",
+   "type": "friend",
+   "label": "bandmates in The Late Shift; Ben officiated Chris's wedding",
+   "status": "current",
+   "since": null,
+   "how_met": "Ben brought Chris into the band"
+  },
+  {
+   "id": "r7",
+   "a": "Ben Carter",
+   "b": "Rob Hayes",
+   "type": "friend",
+   "label": "band co-founders, met in college jazz ensemble",
+   "status": "current",
+   "since": "2010",
+   "how_met": "college jazz ensemble, 2010"
+  },
+  {
+   "id": "r8",
+   "a": "Nina Shah",
+   "b": "Megan Walsh",
+   "type": "friend",
+   "label": "book club friends (Second Chapter)",
+   "status": "current",
+   "since": "2020",
+   "how_met": "Second Chapter video call during lockdown, 2020",
+   "introduced_by": "Laura Bennett (brought Nina into the book club)"
+  },
+  {
+   "id": "r9",
+   "a": "Nina Shah",
+   "b": "Laura Bennett",
+   "type": "friend",
+   "label": "college friends; Laura got her into the book club",
+   "status": "current",
+   "since": null,
+   "how_met": "college"
+  },
+  {
+   "id": "r10",
+   "a": "Megan Walsh",
+   "b": "Andrew Walsh",
+   "type": "family",
+   "label": "siblings (younger brother)",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r11",
+   "a": "Chris Porter",
+   "b": "Andrew Collins",
+   "type": "professional",
+   "label": "Deloitte coworkers, sit next to each other",
+   "status": "current",
+   "since": null,
+   "how_met": "Deloitte"
+  },
+  {
+   "id": "r12",
+   "a": "Megan Walsh",
+   "b": "Owen Brooks",
+   "type": "professional",
+   "label": "coworkers at Children's Hospital",
+   "status": "current",
+   "since": "2019",
+   "how_met": "Owen started at Children's Hospital in 2019"
+  },
+  {
+   "id": "r13",
+   "a": "Ben Carter",
+   "b": "Danny Cruz",
+   "type": "friend",
+   "label": "bandmates",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  }
+ ],
+ "timeline": [
+  {
+   "id": "t1",
+   "what": "Ben and Rob Hayes meet in college jazz ensemble; later start The Late Shift",
+   "date": "2010",
+   "people": [
+    "Ben Carter",
+    "Rob Hayes"
+   ],
+   "disputed": false,
+   "raw": "in 2010",
+   "precision": "year"
+  },
+  {
+   "id": "t2",
+   "what": "Ben's car accident driving back from a Boulder gig",
+   "date": "2012 (Ben) vs 2013 (Megan)",
+   "people": [
+    "Ben Carter",
+    "Megan Walsh"
+   ],
+   "disputed": true,
+   "raw": "2012 / 2013",
+   "precision": "year"
+  },
+  {
+   "id": "t3",
+   "what": "Megan and Chris meet at Bonnaroo in Tennessee",
+   "date": "2015-06",
+   "people": [
+    "Megan Walsh",
+    "Chris Porter"
+   ],
+   "disputed": false,
+   "raw": "June 2015",
+   "precision": "month"
+  },
+  {
+   "id": "t4",
+   "what": "Owen and Hannah meet at the climbing gym",
+   "date": "2016",
+   "people": [
+    "Owen Brooks",
+    "Hannah Kim"
+   ],
+   "disputed": false,
+   "raw": "in 2016",
+   "precision": "year"
+  },
+  {
+   "id": "t5",
+   "what": "Megan moves to Denver for Chris",
+   "date": "2016",
+   "people": [
+    "Megan Walsh",
+    "Chris Porter"
+   ],
+   "disputed": false,
+   "raw": "in 2016",
+   "precision": "year"
+  },
+  {
+   "id": "t6",
+   "what": "Nina moves from Chicago to Denver",
+   "date": "2019-summer",
+   "people": [
+    "Nina Shah"
+   ],
+   "disputed": false,
+   "raw": "2018, no wait, 2019, that summer",
+   "precision": "season"
+  },
+  {
+   "id": "t7",
+   "what": "Owen starts at Children's Hospital",
+   "date": "2019",
+   "people": [
+    "Owen Brooks"
+   ],
+   "disputed": false,
+   "raw": "in 2019",
+   "precision": "year"
+  },
+  {
+   "id": "t8",
+   "what": "Megan and Chris marry in Asheville in the rain; Ben officiates",
+   "date": "2019-10",
+   "people": [
+    "Megan Walsh",
+    "Chris Porter",
+    "Ben Carter"
+   ],
+   "disputed": false,
+   "raw": "October 2019",
+   "precision": "month"
+  },
+  {
+   "id": "t9",
+   "what": "Nina and Megan meet in Second Chapter on a lockdown video call",
+   "date": "2020",
+   "people": [
+    "Nina Shah",
+    "Megan Walsh"
+   ],
+   "disputed": false,
+   "raw": "in 2020, during lockdown",
+   "precision": "year"
+  },
+  {
+   "id": "t10",
+   "what": "Owen and Hannah break up",
+   "date": "2021",
+   "people": [
+    "Owen Brooks",
+    "Hannah Kim"
+   ],
+   "disputed": false,
+   "raw": "ended in 2021",
+   "precision": "year"
+  },
+  {
+   "id": "t11",
+   "what": "Andrew Collins teaches Chris to snowboard",
+   "date": "winter 2023-24",
+   "people": [
+    "Chris Porter",
+    "Andrew Collins"
+   ],
+   "disputed": false,
+   "raw": "last winter",
+   "precision": "season"
+  },
+  {
+   "id": "t12",
+   "what": "Owen's wheelchair race with a twelve-year-old patient",
+   "date": "2024-spring",
+   "people": [
+    "Owen Brooks",
+    "Megan Walsh"
+   ],
+   "disputed": false,
+   "raw": "Last spring",
+   "precision": "season"
+  },
+  {
+   "id": "t13",
+   "what": "Tyler proposes to Hannah at sunrise in Sedona",
+   "date": "2024-10",
+   "people": [
+    "Hannah Kim",
+    "Tyler Grant"
+   ],
+   "disputed": false,
+   "raw": "last month",
+   "precision": "month"
+  },
+  {
+   "id": "t14",
+   "what": "Friendsgiving at Megan and Chris's",
+   "date": "2024-11-23",
+   "people": [
+    "Megan Walsh",
+    "Chris Porter",
+    "Nina Shah",
+    "Owen Brooks",
+    "Hannah Kim",
+    "Ben Carter"
+   ],
+   "disputed": false,
+   "raw": "today",
+   "precision": "day"
+  },
+  {
+   "id": "t15",
+   "what": "The Late Shift gig at the Bluebird",
+   "date": "2025-01",
+   "people": [
+    "Ben Carter",
+    "Chris Porter",
+    "Rob Hayes",
+    "Danny Cruz"
+   ],
+   "disputed": false,
+   "raw": "in January",
+   "precision": "month"
+  }
+ ],
+ "stories": [
+  {
+   "id": "s1",
+   "title": "Hannah's engagement in Sedona",
+   "who": [
+    "Hannah Kim",
+    "Tyler Grant"
+   ],
+   "when": "October 2024",
+   "where": "top of a red rock trail in Sedona, at sunrise",
+   "details": [
+    "she was sweaty with no makeup",
+    "Owen congratulated her first"
+   ],
+   "why_it_matters": "Hannah is engaged",
+   "teller": "Hannah Kim",
+   "complication": null,
+   "outcome": "engaged to Tyler",
+   "vivid_detail": "sunrise on a red rock trail, sweaty, no makeup"
+  },
+  {
+   "id": "s2",
+   "title": "Owen and Hannah's meet-cute",
+   "who": [
+    "Owen Brooks",
+    "Hannah Kim"
+   ],
+   "when": "2016",
+   "where": "climbing gym",
+   "details": [
+    "she fell off an easy route and landed on him ('slipped')",
+    "dated almost five years, ended 2021",
+    "better as friends; still climb together in Sunday Sends"
+   ],
+   "why_it_matters": "exes who stayed friends",
+   "teller": "Owen Brooks",
+   "complication": "she fell off an easy route onto him",
+   "outcome": "dated ~5 years, now friends",
+   "vivid_detail": "'I slipped. There is a difference.'"
+  },
+  {
+   "id": "s3",
+   "title": "The Bonnaroo tent",
+   "who": [
+    "Chris Porter",
+    "Megan Walsh"
+   ],
+   "when": "June 2015",
+   "where": "Bonnaroo, Tennessee",
+   "details": [
+    "about 100 degrees",
+    "Chris's tent collapsed the first night because he pitched it on a slope",
+    "Megan walked over with a mallet and stakes and rebuilt it in ten minutes without a word; he held instructions upside down",
+    "met again at a show that night, spent the weekend together",
+    "long distance Denver-Nashville about a year, Megan moved out in 2016",
+    "married October 2019 in Asheville in pouring rain; Ben officiated, ordained online for $20"
+   ],
+   "why_it_matters": "how the hosts met and married",
+   "teller": "Chris Porter",
+   "complication": "tent collapsed on a slope the first night",
+   "outcome": "long distance a year, married 2019",
+   "vivid_detail": "instructions upside down; mallet and stakes"
+  },
+  {
+   "id": "s4",
+   "title": "Ben's car accident",
+   "who": [
+    "Ben Carter",
+    "Megan Walsh"
+   ],
+   "when": "2012 (Ben) or 2013 (Megan)",
+   "where": "driving back from a gig in Boulder",
+   "details": [
+    "snowing; a pickup slid through a red light and hit his passenger side",
+    "broke his arm in two places, couldn't play guitar for six months",
+    "Megan remembers visiting between nursing school exams and has a cast photo",
+    "Ben says winter before he graduated"
+   ],
+   "why_it_matters": "Ben's scar; unresolved dispute",
+   "teller": "Ben Carter",
+   "complication": "pickup slid through a red light in snow",
+   "outcome": "broken arm, six months no guitar; year disputed",
+   "vivid_detail": "Megan's photo of the cast"
+  },
+  {
+   "id": "s5",
+   "title": "The Late Shift",
+   "who": [
+    "Ben Carter",
+    "Rob Hayes",
+    "Danny Cruz",
+    "Chris Porter"
+   ],
+   "when": "since college (Ben and Rob met 2010)",
+   "where": "bars around Denver",
+   "details": [
+    "Ben vocals and guitar, Rob bass, Danny drums, Chris keyboard",
+    "Ben got Chris into the band",
+    "gig at the Bluebird in January 2025"
+   ],
+   "why_it_matters": "the group's band",
+   "teller": "Ben Carter",
+   "complication": null,
+   "outcome": "still playing Denver bars; Bluebird gig in January",
+   "vivid_detail": "met in jazz ensemble"
+  },
+  {
+   "id": "s6",
+   "title": "Owen's wheelchair race",
+   "who": [
+    "Owen Brooks",
+    "Megan Walsh"
+   ],
+   "when": "spring 2024",
+   "where": "third floor hallway, Children's Hospital",
+   "details": [
+    "quiet twelve-year-old recovering from knee surgery wouldn't do exercises",
+    "Owen promised a race if he did all reps for a week",
+    "kid did every rep, won by a mile",
+    "a surgeon nearly got run over",
+    "Megan wrote the incident report"
+   ],
+   "why_it_matters": "why kids like Owen",
+   "teller": "Owen Brooks",
+   "complication": "quiet kid refused exercises",
+   "outcome": "kid did every rep and won the race",
+   "vivid_detail": "surgeon nearly run over; Megan wrote the incident report"
+  },
+  {
+   "id": "s7",
+   "title": "Nina joins Denver life and Second Chapter",
+   "who": [
+    "Nina Shah",
+    "Megan Walsh",
+    "Laura Bennett"
+   ],
+   "when": "2019-2020",
+   "where": "Denver",
+   "details": [
+    "moved summer 2019 after the school year (first said 2018)",
+    "Laura got her into the book club",
+    "met Megan on a lockdown video call in 2020"
+   ],
+   "why_it_matters": "how Nina joined the group",
+   "teller": "Nina Shah",
+   "complication": "moved knowing few people",
+   "outcome": "joined book club, met Megan",
+   "vivid_detail": "met on a lockdown video call"
+  },
+  {
+   "id": "s8",
+   "title": "Megan's gratitude",
+   "who": [
+    "Megan Walsh"
+   ],
+   "when": "2016 to now",
+   "where": "Denver",
+   "details": [
+    "moved for Chris in 2016 knowing nobody else",
+    "now has book club, band nights, climbing with Hannah and Owen",
+    "this table is her family out here"
+   ],
+   "why_it_matters": "why the group matters",
+   "teller": "Megan Walsh",
+   "complication": "knew only Chris in Denver",
+   "outcome": "this table is her family",
+   "vivid_detail": "dragged to the climbing gym though she hates it"
+  }
+ ],
+ "facts": [
+  {
+   "id": "f1",
+   "text": "Megan Walsh is a pediatric nurse at Children's Hospital",
+   "about": [
+    "Megan Walsh"
+   ]
+  },
+  {
+   "id": "f2",
+   "text": "Chris Porter is an accountant at Deloitte",
+   "about": [
+    "Chris Porter"
+   ]
+  },
+  {
+   "id": "f3",
+   "text": "Chris plays keyboard in The Late Shift",
+   "about": [
+    "Chris Porter"
+   ]
+  },
+  {
+   "id": "f4",
+   "text": "Nina Shah teaches high school chemistry in Denver",
+   "about": [
+    "Nina Shah"
+   ]
+  },
+  {
+   "id": "f5",
+   "text": "Nina moved to Denver from Chicago in 2019",
+   "about": [
+    "Nina Shah"
+   ]
+  },
+  {
+   "id": "f6",
+   "text": "Owen Brooks is a physical therapist at Children's Hospital since 2019",
+   "about": [
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "f7",
+   "text": "Owen spends most free time climbing",
+   "about": [
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "f8",
+   "text": "Hannah Kim is a lawyer at a small downtown firm",
+   "about": [
+    "Hannah Kim"
+   ]
+  },
+  {
+   "id": "f9",
+   "text": "Hannah Kim is engaged to Tyler Grant",
+   "about": [
+    "Hannah Kim",
+    "Tyler Grant"
+   ]
+  },
+  {
+   "id": "f10",
+   "text": "Ben Carter teaches music at a high school",
+   "about": [
+    "Ben Carter"
+   ]
+  },
+  {
+   "id": "f11",
+   "text": "Ben sings and plays guitar in The Late Shift",
+   "about": [
+    "Ben Carter"
+   ]
+  },
+  {
+   "id": "f12",
+   "text": "Tyler Grant doesn't climb and watches golf",
+   "about": [
+    "Tyler Grant"
+   ]
+  },
+  {
+   "id": "f13",
+   "text": "Megan and Chris married October 2019 in Asheville; Ben officiated",
+   "about": [
+    "Megan Walsh",
+    "Chris Porter",
+    "Ben Carter"
+   ]
+  },
+  {
+   "id": "f14",
+   "text": "Megan and Ben grew up two streets apart in Ohio",
+   "about": [
+    "Megan Walsh",
+    "Ben Carter"
+   ]
+  },
+  {
+   "id": "f15",
+   "text": "Megan moved to Denver in 2016",
+   "about": [
+    "Megan Walsh"
+   ]
+  },
+  {
+   "id": "f16",
+   "text": "Andrew Walsh lives in Fort Collins",
+   "about": [
+    "Andrew Walsh"
+   ]
+  },
+  {
+   "id": "f17",
+   "text": "Andrew Collins just moved to Denver from Boston",
+   "about": [
+    "Andrew Collins"
+   ]
+  },
+  {
+   "id": "f18",
+   "text": "Sunday Sends climbs Sunday mornings at the gym in Golden, then breakfast burritos",
+   "about": [
+    "Owen Brooks",
+    "Hannah Kim",
+    "Sam Torres",
+    "Kevin Doyle"
+   ]
+  },
+  {
+   "id": "f19",
+   "text": "Second Chapter reads one book a month",
+   "about": [
+    "Megan Walsh",
+    "Nina Shah",
+    "Laura Bennett",
+    "Emily Hart"
+   ]
+  },
+  {
+   "id": "f20",
+   "text": "Megan was in nursing school around 2013",
+   "about": [
+    "Megan Walsh"
+   ]
+  }
+ ],
+ "groups": [
+  {
+   "id": "g1",
+   "name": "Sunday Sends",
+   "members": [
+    "Owen Brooks",
+    "Hannah Kim",
+    "Sam Torres",
+    "Kevin Doyle"
+   ]
+  },
+  {
+   "id": "g2",
+   "name": "The Late Shift",
+   "members": [
+    "Ben Carter",
+    "Rob Hayes",
+    "Danny Cruz",
+    "Chris Porter"
+   ]
+  },
+  {
+   "id": "g3",
+   "name": "Second Chapter",
+   "members": [
+    "Megan Walsh",
+    "Nina Shah",
+    "Laura Bennett",
+    "Emily Hart"
+   ]
+  }
+ ],
+ "disputes": [
+  {
+   "id": "d1",
+   "about": "year of Ben's car accident",
+   "claims": [
+    {
+     "by": "Ben Carter",
+     "value": "2012"
+    },
+    {
+     "by": "Megan Walsh",
+     "value": "2013"
+    }
+   ],
+   "resolved": null
+  },
+  {
+   "id": "d2",
+   "about": "year Nina moved to Denver",
+   "claims": [
+    {
+     "by": "Nina Shah",
+     "value": "2018, self-corrected to 2019"
+    }
+   ],
+   "resolved": "2019"
+  }
+ ],
+ "inside_jokes": [
+  {
+   "id": "j1",
+   "phrase": "Megan knows how to pitch a tent",
+   "origin": "Bonnaroo 2015",
+   "people": [
+    "Chris Porter",
+    "Megan Walsh"
+   ]
+  },
+  {
+   "id": "j2",
+   "phrase": "Borrow. I borrowed it.",
+   "origin": "Ben taking Megan's bike every summer",
+   "people": [
+    "Ben Carter",
+    "Megan Walsh"
+   ]
+  },
+  {
+   "id": "j3",
+   "phrase": "Two Andrews",
+   "origin": "Andrew Walsh vs Andrew Collins",
+   "people": [
+    "Owen Brooks"
+   ]
+  }
+ ],
+ "traditions": [
+  {
+   "id": "tr1",
+   "what": "Sunday Sends climb at the gym in Golden then breakfast burritos",
+   "cadence": "every Sunday morning",
+   "since": null,
+   "people": [
+    "Owen Brooks",
+    "Hannah Kim",
+    "Sam Torres",
+    "Kevin Doyle"
+   ]
+  },
+  {
+   "id": "tr2",
+   "what": "Second Chapter book club",
+   "cadence": "one book a month",
+   "since": "by 2020",
+   "people": [
+    "Megan Walsh",
+    "Nina Shah",
+    "Laura Bennett",
+    "Emily Hart"
+   ]
+  },
+  {
+   "id": "tr3",
+   "what": "Friendsgiving at Megan and Chris's",
+   "cadence": "yearly",
+   "since": null,
+   "people": [
+    "Megan Walsh",
+    "Chris Porter"
+   ]
+  },
+  {
+   "id": "tr4",
+   "what": "The Late Shift plays Denver bars",
+   "cadence": "weekends",
+   "since": "college",
+   "people": [
+    "Ben Carter",
+    "Rob Hayes",
+    "Danny Cruz",
+    "Chris Porter"
+   ]
+  }
+ ],
+ "eras": [
+  {
+   "id": "e1",
+   "name": "Megan and Chris long distance",
+   "span": "2015-2016",
+   "people": [
+    "Megan Walsh",
+    "Chris Porter"
+   ]
+  },
+  {
+   "id": "e2",
+   "name": "Owen and Hannah together",
+   "span": "2016-2021",
+   "people": [
+    "Owen Brooks",
+    "Hannah Kim"
+   ]
+  }
+ ],
+ "not_facts": [
+  "Nina passed her car inspection",
+  "Owen made the stuffing from his grandma's recipe",
+  "Hannah owes Andrew twenty dollars (which Andrew is ambiguous)",
+  "Owen is grateful nobody fell on him",
+  "the turkey rested an hour",
+  "Ben stole Megan's bike (joke)",
+  "Andrew Walsh is always starving"
+ ]
+}

@@ -1,0 +1,711 @@
+{
+ "sample": "roommates-3p",
+ "recorded_at": "2025-09-20",
+ "people": [
+  {
+   "id": "p1",
+   "name": "Lucy Ford",
+   "in_room": true,
+   "key": "pastry chef at a bakery on Tennyson Street, from Manchester, England"
+  },
+  {
+   "id": "p2",
+   "name": "Ravi Kapoor",
+   "in_room": true,
+   "key": "software engineer, caused the kitchen fire, Arjun's cousin"
+  },
+  {
+   "id": "p3",
+   "name": "Owen Brooks",
+   "in_room": true,
+   "key": "physical therapist, Sunday Sends, Hannah's ex"
+  },
+  {
+   "id": "p4",
+   "name": "Neil",
+   "in_room": false,
+   "key": "Ravi's brother in London"
+  },
+  {
+   "id": "p5",
+   "name": "Ben Carter",
+   "in_room": false,
+   "key": "Know It Alls music person, Lucy's ex"
+  },
+  {
+   "id": "p6",
+   "name": "Hannah Kim",
+   "in_room": false,
+   "key": "Owen's ex, getting married"
+  },
+  {
+   "id": "p7",
+   "name": "Arjun Mehta",
+   "in_room": false,
+   "key": "Ravi's cousin, married Claire Dunn in Napa"
+  },
+  {
+   "id": "p8",
+   "name": "Claire Dunn",
+   "in_room": false,
+   "key": "married Arjun in Napa"
+  },
+  {
+   "id": "p9",
+   "name": "Chris",
+   "in_room": false,
+   "key": "Arjun's college roommate, gave the kettle speech"
+  },
+  {
+   "id": "p10",
+   "name": "Jessica Brooks",
+   "in_room": false,
+   "key": "Owen's sister from Portland"
+  },
+  {
+   "id": "p11",
+   "name": "Jessica Long",
+   "in_room": false,
+   "key": "Lucy's manager at the bakery"
+  },
+  {
+   "id": "p12",
+   "name": "Sam",
+   "in_room": false,
+   "key": "Sunday Sends, Bastille Crack partner"
+  },
+  {
+   "id": "p13",
+   "name": "Kevin",
+   "in_room": false,
+   "key": "Sunday Sends"
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r1",
+   "a": "Ravi Kapoor",
+   "b": "Neil",
+   "type": "family",
+   "label": "brothers",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r2",
+   "a": "Lucy Ford",
+   "b": "Ben Carter",
+   "type": "romantic",
+   "label": "exes, dated 2020-2022",
+   "status": "past",
+   "since": "2020",
+   "how_met": null,
+   "changed": {
+    "what": "broke up, now teammates",
+    "date": "2022"
+   }
+  },
+  {
+   "id": "r3",
+   "a": "Lucy Ford",
+   "b": "Ben Carter",
+   "type": "friend",
+   "label": "trivia teammates",
+   "status": "current",
+   "since": "2020",
+   "how_met": null
+  },
+  {
+   "id": "r4",
+   "a": "Owen Brooks",
+   "b": "Hannah Kim",
+   "type": "romantic",
+   "label": "exes, dated for years",
+   "status": "past",
+   "since": "2017",
+   "how_met": "climbing gym, 2017",
+   "changed": {
+    "what": "broke up",
+    "date": null
+   }
+  },
+  {
+   "id": "r5",
+   "a": "Owen Brooks",
+   "b": "Hannah Kim",
+   "type": "friend",
+   "label": "ex; Owen helps plan her wedding",
+   "status": "current",
+   "since": "2017",
+   "how_met": "climbing gym"
+  },
+  {
+   "id": "r6",
+   "a": "Ravi Kapoor",
+   "b": "Arjun Mehta",
+   "type": "family",
+   "label": "cousins",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r7",
+   "a": "Arjun Mehta",
+   "b": "Claire Dunn",
+   "type": "romantic",
+   "label": "married (Napa, Sept 2025)",
+   "status": "current",
+   "since": null,
+   "how_met": null,
+   "changed": {
+    "what": "married in Napa",
+    "date": "2025-09"
+   }
+  },
+  {
+   "id": "r8",
+   "a": "Arjun Mehta",
+   "b": "Chris",
+   "type": "friend",
+   "label": "college roommates",
+   "status": "current",
+   "since": null,
+   "how_met": "college roommates"
+  },
+  {
+   "id": "r9",
+   "a": "Owen Brooks",
+   "b": "Jessica Brooks",
+   "type": "family",
+   "label": "siblings",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r10",
+   "a": "Lucy Ford",
+   "b": "Jessica Long",
+   "type": "professional",
+   "label": "her manager at the bakery",
+   "status": "current",
+   "since": null,
+   "how_met": "work"
+  },
+  {
+   "id": "r11",
+   "a": "Owen Brooks",
+   "b": "Lucy Ford",
+   "type": "friend",
+   "label": "housemates on Pearl Street",
+   "status": "current",
+   "since": "2022 or 2023",
+   "how_met": "moved into the house"
+  },
+  {
+   "id": "r12",
+   "a": "Owen Brooks",
+   "b": "Ravi Kapoor",
+   "type": "friend",
+   "label": "housemates on Pearl Street",
+   "status": "current",
+   "since": "2022 or 2023",
+   "how_met": "moved into the house"
+  },
+  {
+   "id": "r13",
+   "a": "Lucy Ford",
+   "b": "Ravi Kapoor",
+   "type": "friend",
+   "label": "housemates on Pearl Street",
+   "status": "current",
+   "since": "2022 or 2023",
+   "how_met": "moved in together"
+  },
+  {
+   "id": "r14",
+   "a": "Owen Brooks",
+   "b": "Sam",
+   "type": "friend",
+   "label": "climbing partners (Sunday Sends)",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  }
+ ],
+ "timeline": [
+  {
+   "id": "t1",
+   "what": "Owen and Hannah meet at the climbing gym",
+   "date": "2017",
+   "people": [
+    "Owen Brooks",
+    "Hannah Kim"
+   ],
+   "disputed": false,
+   "raw": "in 2017",
+   "precision": "year"
+  },
+  {
+   "id": "t2",
+   "what": "Lucy and Ben Carter date",
+   "date": "2020 to 2022",
+   "people": [
+    "Lucy Ford",
+    "Ben Carter"
+   ],
+   "disputed": false,
+   "raw": "From 2020 to 2022",
+   "precision": "year"
+  },
+  {
+   "id": "t3",
+   "what": "Lucy and Ravi move into the Pearl Street house (Owen a month later)",
+   "date": "2022-08 (Ravi) vs 2023 (Lucy)",
+   "people": [
+    "Lucy Ford",
+    "Ravi Kapoor",
+    "Owen Brooks"
+   ],
+   "disputed": true,
+   "raw": "2022, August / 2023",
+   "precision": "year"
+  },
+  {
+   "id": "t4",
+   "what": "Ravi's pakora kitchen fire",
+   "date": "2024-02",
+   "people": [
+    "Ravi Kapoor",
+    "Lucy Ford",
+    "Neil"
+   ],
+   "disputed": false,
+   "raw": "February 2024",
+   "precision": "month"
+  },
+  {
+   "id": "t5",
+   "what": "Sam and Owen fail on the Bastille Crack",
+   "date": "2024",
+   "people": [
+    "Sam",
+    "Owen Brooks"
+   ],
+   "disputed": false,
+   "raw": "last year",
+   "precision": "year"
+  },
+  {
+   "id": "t6",
+   "what": "Arjun and Claire's wedding in a Napa vineyard",
+   "date": "2025-09-13 (last weekend)",
+   "people": [
+    "Arjun Mehta",
+    "Claire Dunn",
+    "Ravi Kapoor",
+    "Neil",
+    "Chris"
+   ],
+   "disputed": false,
+   "raw": "last weekend",
+   "precision": "day"
+  },
+  {
+   "id": "t7",
+   "what": "Know It Alls place fourth at trivia without Ben",
+   "date": "2025-09-16",
+   "people": [
+    "Lucy Ford",
+    "Ravi Kapoor",
+    "Owen Brooks",
+    "Ben Carter"
+   ],
+   "disputed": false,
+   "raw": "on Tuesday",
+   "precision": "day"
+  },
+  {
+   "id": "t8",
+   "what": "Jessica Long drops off bakery van keys",
+   "date": "2025-09-27 (Saturday)",
+   "people": [
+    "Jessica Long",
+    "Lucy Ford"
+   ],
+   "disputed": false,
+   "raw": "Saturday",
+   "precision": "day"
+  },
+  {
+   "id": "t9",
+   "what": "Jessica Brooks visits from Portland, stays on the couch",
+   "date": "~2025-09-27 (next weekend)",
+   "people": [
+    "Jessica Brooks",
+    "Owen Brooks"
+   ],
+   "disputed": false,
+   "raw": "next weekend",
+   "precision": "day"
+  },
+  {
+   "id": "t10",
+   "what": "Sunday Sends Eldorado trip back to the Bastille Crack",
+   "date": "~2025-10-04 (in two weeks)",
+   "people": [
+    "Owen Brooks",
+    "Sam",
+    "Hannah Kim",
+    "Kevin"
+   ],
+   "disputed": false,
+   "raw": "in two weeks",
+   "precision": "month"
+  }
+ ],
+ "stories": [
+  {
+   "id": "s1",
+   "title": "Ravi's pakora fire",
+   "who": [
+    "Ravi Kapoor",
+    "Lucy Ford",
+    "Neil"
+   ],
+   "when": "February 2024",
+   "where": "Pearl Street house kitchen",
+   "details": [
+    "making his mom's pakora recipe, oil too hot",
+    "turned to answer a call from brother Neil in London",
+    "pan caught fire; he threw a wet towel on it (wrong)",
+    "Lucy came down to screaming smoke alarm, Ravi holding a burning towel like a torch",
+    "Lucy slammed the soup pot lid on the pan",
+    "ceiling still brown; landlord doesn't know",
+    "now a no-frying house rule; Ravi is why there's an extinguisher"
+   ],
+   "why_it_matters": "house legend and why Ravi's banned from the stove",
+   "teller": "Ravi Kapoor",
+   "complication": "he threw a wet towel on a grease fire",
+   "outcome": "Lucy smothered it with a pot lid; no-frying rule",
+   "vivid_detail": "holding a burning towel like a torch"
+  },
+  {
+   "id": "s2",
+   "title": "Arjun and Claire's Napa wedding",
+   "who": [
+    "Ravi Kapoor",
+    "Arjun Mehta",
+    "Claire Dunn",
+    "Chris",
+    "Neil"
+   ],
+   "when": "~2025-09-13",
+   "where": "vineyard in Napa",
+   "details": [
+    "Chris (Arjun's college roommate) gave a speech about a kettle",
+    "Neil flew in from London as a surprise",
+    "Ravi's aunt cried so hard she sat down",
+    "Ravi danced five hours; knees hurt"
+   ],
+   "why_it_matters": "family milestone",
+   "teller": "Ravi Kapoor",
+   "complication": "Neil flew in from London as a surprise",
+   "outcome": "aunt cried; Ravi danced five hours",
+   "vivid_detail": "speech about a kettle"
+  },
+  {
+   "id": "s3",
+   "title": "When they moved into Pearl Street",
+   "who": [
+    "Lucy Ford",
+    "Ravi Kapoor",
+    "Owen Brooks"
+   ],
+   "when": "2022 or 2023 (disputed)",
+   "where": "Pearl Street",
+   "details": [
+    "Ravi says August 2022 in a heat wave",
+    "Lucy says 2023 because she was at the old bakery in 2022",
+    "Owen moved in a month after"
+   ],
+   "why_it_matters": "the household's origin; unresolved",
+   "teller": "Ravi Kapoor",
+   "complication": "they disagree on the year",
+   "outcome": "unresolved",
+   "vivid_detail": "that awful heat wave"
+  },
+  {
+   "id": "s4",
+   "title": "Bastille Crack rematch",
+   "who": [
+    "Owen Brooks",
+    "Sam",
+    "Hannah Kim",
+    "Kevin"
+   ],
+   "when": "failed 2024; return in two weeks",
+   "where": "Eldorado Canyon",
+   "details": [
+    "Owen trains on a hangboard every night; thumping at 11pm"
+   ],
+   "why_it_matters": "crew goal",
+   "teller": "Owen Brooks",
+   "complication": "failed last year",
+   "outcome": "trip in two weeks",
+   "vivid_detail": "hangboard thumping at eleven"
+  },
+  {
+   "id": "s5",
+   "title": "Everyone has dated everyone",
+   "who": [
+    "Lucy Ford",
+    "Ben Carter",
+    "Owen Brooks",
+    "Hannah Kim"
+   ],
+   "when": "2017-2022",
+   "where": null,
+   "details": [
+    "Lucy and Ben dated 2020-2022, better as teammates",
+    "Owen and Hannah met 2017 at climbing gym, dated years, Owen now helps plan her wedding"
+   ],
+   "why_it_matters": "ex relationships within the friend group",
+   "teller": "Ravi Kapoor",
+   "complication": null,
+   "outcome": "exes now friends",
+   "vivid_detail": "'Everyone in this friend group has dated everyone'"
+  }
+ ],
+ "facts": [
+  {
+   "id": "f1",
+   "text": "Lucy Ford is a pastry chef at a bakery on Tennyson Street",
+   "about": [
+    "Lucy Ford"
+   ]
+  },
+  {
+   "id": "f2",
+   "text": "Lucy Ford grew up in Manchester, England",
+   "about": [
+    "Lucy Ford"
+   ]
+  },
+  {
+   "id": "f3",
+   "text": "Ravi Kapoor is a software engineer",
+   "about": [
+    "Ravi Kapoor"
+   ]
+  },
+  {
+   "id": "f4",
+   "text": "Owen Brooks is a physical therapist",
+   "about": [
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "f5",
+   "text": "Lucy, Ravi, and Owen live together in a house on Pearl Street",
+   "about": [
+    "Lucy Ford",
+    "Ravi Kapoor",
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "f6",
+   "text": "Neil, Ravi's brother, lives in London",
+   "about": [
+    "Neil"
+   ]
+  },
+  {
+   "id": "f7",
+   "text": "Ben Carter is the Know It Alls' music person",
+   "about": [
+    "Ben Carter"
+   ]
+  },
+  {
+   "id": "f8",
+   "text": "Owen tore his ACL on a green run",
+   "about": [
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "f9",
+   "text": "Owen is helping plan Hannah's wedding",
+   "about": [
+    "Owen Brooks",
+    "Hannah Kim"
+   ]
+  },
+  {
+   "id": "f10",
+   "text": "Jessica Brooks lives in Portland",
+   "about": [
+    "Jessica Brooks"
+   ]
+  },
+  {
+   "id": "f11",
+   "text": "Jessica Long is Lucy's bakery manager",
+   "about": [
+    "Jessica Long"
+   ]
+  },
+  {
+   "id": "f12",
+   "text": "Lucy worked at a different (old) bakery in 2022",
+   "about": [
+    "Lucy Ford"
+   ]
+  },
+  {
+   "id": "f13",
+   "text": "No frying is a house rule",
+   "about": [
+    "Ravi Kapoor",
+    "Lucy Ford",
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "f14",
+   "text": "Owen trains on a hangboard nightly",
+   "about": [
+    "Owen Brooks"
+   ]
+  }
+ ],
+ "groups": [
+  {
+   "id": "g1",
+   "name": "The Know It Alls",
+   "members": [
+    "Lucy Ford",
+    "Ravi Kapoor",
+    "Owen Brooks",
+    "Ben Carter"
+   ]
+  },
+  {
+   "id": "g2",
+   "name": "Sunday Sends",
+   "members": [
+    "Owen Brooks",
+    "Sam",
+    "Hannah Kim",
+    "Kevin"
+   ]
+  },
+  {
+   "id": "g3",
+   "name": "Pearl Street household",
+   "members": [
+    "Lucy Ford",
+    "Ravi Kapoor",
+    "Owen Brooks"
+   ]
+  }
+ ],
+ "disputes": [
+  {
+   "id": "d1",
+   "about": "year they moved into the Pearl Street house",
+   "claims": [
+    {
+     "by": "Ravi Kapoor",
+     "value": "August 2022"
+    },
+    {
+     "by": "Lucy Ford",
+     "value": "2023"
+    }
+   ],
+   "resolved": null
+  }
+ ],
+ "inside_jokes": [
+  {
+   "id": "j1",
+   "phrase": "One fire. One time.",
+   "origin": "Ravi's pakora fire",
+   "people": [
+    "Ravi Kapoor",
+    "Lucy Ford",
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "j2",
+   "phrase": "two Jessicas",
+   "origin": "Jessica Brooks and Jessica Long both visiting",
+   "people": [
+    "Ravi Kapoor"
+   ]
+  }
+ ],
+ "traditions": [
+  {
+   "id": "tr1",
+   "what": "house meetings with numbered items",
+   "cadence": "recurring",
+   "since": null,
+   "people": [
+    "Lucy Ford",
+    "Ravi Kapoor",
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "tr2",
+   "what": "Know It Alls trivia",
+   "cadence": "Tuesdays",
+   "since": null,
+   "people": [
+    "Lucy Ford",
+    "Ravi Kapoor",
+    "Owen Brooks",
+    "Ben Carter"
+   ]
+  }
+ ],
+ "eras": [
+  {
+   "id": "e1",
+   "name": "Pearl Street house",
+   "span": "2022/2023-present",
+   "people": [
+    "Lucy Ford",
+    "Ravi Kapoor",
+    "Owen Brooks"
+   ]
+  },
+  {
+   "id": "e2",
+   "name": "Lucy and Ben dating",
+   "span": "2020-2022",
+   "people": [
+    "Lucy Ford",
+    "Ben Carter"
+   ]
+  }
+ ],
+ "not_facts": [
+  "Ravi wants sympathy",
+  "Ravi is making dinner Saturday",
+  "Owen does all the dishes",
+  "the landlord will never know",
+  "Ravi's knees hurt",
+  "who wants tea",
+  "Know It Alls came fourth is a lasting fact",
+  "Jessica (unqualified) likes spicy food"
+ ]
+}

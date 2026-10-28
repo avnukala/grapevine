@@ -1,0 +1,587 @@
+{
+ "sample": "game-night-5p",
+ "recorded_at": "2025-11-14",
+ "people": [
+  {
+   "id": "p1",
+   "name": "Lena Ortiz",
+   "in_room": true,
+   "key": "host, works at the library with Jonah, Tessa's roommate"
+  },
+  {
+   "id": "p2",
+   "name": "Jonah Pierce",
+   "in_room": true,
+   "key": "works at the library with Lena, Eli's older brother"
+  },
+  {
+   "id": "p3",
+   "name": "Eli Pierce",
+   "in_room": true,
+   "key": "Jonah's younger brother, line cook at a downtown diner, night shifts"
+  },
+  {
+   "id": "p4",
+   "name": "Tessa Quinn",
+   "in_room": true,
+   "key": "Lena's roommate, third-grade teacher"
+  },
+  {
+   "id": "p5",
+   "name": "Kofi Mensah",
+   "in_room": true,
+   "key": "works at Nate Kim's bike shop, engaged to Nora"
+  },
+  {
+   "id": "p6",
+   "name": "Nate Ross",
+   "in_room": false,
+   "key": "Thursday Quizzards member"
+  },
+  {
+   "id": "p7",
+   "name": "Nate Kim",
+   "in_room": false,
+   "key": "owns the bike shop, Kofi's boss"
+  },
+  {
+   "id": "p8",
+   "name": "Nora",
+   "in_room": false,
+   "key": "Kofi's fiancee"
+  },
+  {
+   "id": "p9",
+   "name": "Gwen",
+   "in_room": false,
+   "key": "Jonah's ex, runs a bakery"
+  },
+  {
+   "id": "p10",
+   "name": "Walt",
+   "in_room": false,
+   "key": "Jonah and Eli's cousin, works at Gwen's bakery"
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r1",
+   "a": "Jonah Pierce",
+   "b": "Eli Pierce",
+   "type": "family",
+   "label": "brothers (Eli younger)",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r2",
+   "a": "Jonah Pierce",
+   "b": "Lena Ortiz",
+   "type": "professional",
+   "label": "coworkers at the library",
+   "status": "current",
+   "since": null,
+   "how_met": "work at the library"
+  },
+  {
+   "id": "r3",
+   "a": "Lena Ortiz",
+   "b": "Tessa Quinn",
+   "type": "friend",
+   "label": "roommates for three years; met in Ohio State dorm",
+   "status": "current",
+   "since": "2018",
+   "how_met": "same dorm at Ohio State, 2018"
+  },
+  {
+   "id": "r4",
+   "a": "Jonah Pierce",
+   "b": "Kofi Mensah",
+   "type": "friend",
+   "label": "friends since band camp",
+   "status": "current",
+   "since": "2014",
+   "how_met": "band camp, 2014 (Kofi) or summer 2015 (Jonah)"
+  },
+  {
+   "id": "r5",
+   "a": "Kofi Mensah",
+   "b": "Nate Kim",
+   "type": "professional",
+   "label": "boss (owns the bike shop)",
+   "status": "current",
+   "since": null,
+   "how_met": "bike shop"
+  },
+  {
+   "id": "r6",
+   "a": "Kofi Mensah",
+   "b": "Nora",
+   "type": "romantic",
+   "label": "engaged",
+   "status": "current",
+   "since": null,
+   "how_met": null,
+   "changed": {
+    "what": "engaged",
+    "date": "2025-08"
+   }
+  },
+  {
+   "id": "r7",
+   "a": "Jonah Pierce",
+   "b": "Gwen",
+   "type": "romantic",
+   "label": "exes, dated two years in college",
+   "status": "past",
+   "since": null,
+   "how_met": "college",
+   "changed": {
+    "what": "broke up, stayed close friends",
+    "date": "2019"
+   }
+  },
+  {
+   "id": "r8",
+   "a": "Jonah Pierce",
+   "b": "Gwen",
+   "type": "friend",
+   "label": "still close friends",
+   "status": "current",
+   "since": null,
+   "how_met": "college"
+  },
+  {
+   "id": "r9",
+   "a": "Eli Pierce",
+   "b": "Walt",
+   "type": "family",
+   "label": "cousins",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r10",
+   "a": "Jonah Pierce",
+   "b": "Walt",
+   "type": "family",
+   "label": "cousins",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r11",
+   "a": "Gwen",
+   "b": "Walt",
+   "type": "professional",
+   "label": "Walt works for Gwen at her bakery",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  }
+ ],
+ "timeline": [
+  {
+   "id": "t1",
+   "what": "Jonah and Kofi meet at band camp",
+   "date": "2014 (Kofi) vs 2015-summer (Jonah)",
+   "people": [
+    "Jonah Pierce",
+    "Kofi Mensah"
+   ],
+   "disputed": true,
+   "raw": "2014 / summer of 2015",
+   "precision": "year"
+  },
+  {
+   "id": "t2",
+   "what": "Lena and Tessa meet in the same dorm at Ohio State",
+   "date": "2018",
+   "people": [
+    "Lena Ortiz",
+    "Tessa Quinn"
+   ],
+   "disputed": false,
+   "raw": "in 2018",
+   "precision": "year"
+  },
+  {
+   "id": "t3",
+   "what": "Jonah and Gwen break up after two years",
+   "date": "2019",
+   "people": [
+    "Jonah Pierce",
+    "Gwen"
+   ],
+   "disputed": false,
+   "raw": "in 2019",
+   "precision": "year"
+  },
+  {
+   "id": "t4",
+   "what": "Lena and Tessa start living together",
+   "date": "~2022",
+   "people": [
+    "Lena Ortiz",
+    "Tessa Quinn"
+   ],
+   "disputed": false,
+   "raw": "three years",
+   "precision": "year"
+  },
+  {
+   "id": "t5",
+   "what": "Thursday Quizzards win the spring trivia league",
+   "date": "2023-spring",
+   "people": [
+    "Kofi Mensah",
+    "Jonah Pierce",
+    "Lena Ortiz",
+    "Nate Ross"
+   ],
+   "disputed": false,
+   "raw": "the spring league in 2023",
+   "precision": "season"
+  },
+  {
+   "id": "t6",
+   "what": "Kofi proposes to Nora on the Crater Lake camping trip; Jonah present",
+   "date": "2025-08",
+   "people": [
+    "Kofi Mensah",
+    "Nora",
+    "Jonah Pierce"
+   ],
+   "disputed": false,
+   "raw": "in August",
+   "precision": "month"
+  },
+  {
+   "id": "t7",
+   "what": "Lena and Tessa host Friendsgiving",
+   "date": "2025-11-22",
+   "people": [
+    "Lena Ortiz",
+    "Tessa Quinn",
+    "Jonah Pierce",
+    "Eli Pierce",
+    "Kofi Mensah",
+    "Nora"
+   ],
+   "disputed": false,
+   "raw": "next week, on the twenty second",
+   "precision": "day"
+  }
+ ],
+ "stories": [
+  {
+   "id": "s1",
+   "title": "Kofi and Nora's Crater Lake engagement",
+   "who": [
+    "Kofi Mensah",
+    "Nora",
+    "Jonah Pierce"
+   ],
+   "when": "August 2025",
+   "where": "camping trip at Crater Lake",
+   "details": [
+    "Jonah was there",
+    "Kofi dropped the ring in the tent in the dark",
+    "Nora shows the ring to everyone at work"
+   ],
+   "why_it_matters": "Kofi is engaged",
+   "teller": "Kofi Mensah",
+   "complication": "Kofi dropped the ring in the dark tent",
+   "outcome": "Nora said yes; engaged",
+   "vivid_detail": "dropped the ring in the tent"
+  },
+  {
+   "id": "s2",
+   "title": "Jonah and Kofi at band camp",
+   "who": [
+    "Jonah Pierce",
+    "Kofi Mensah"
+   ],
+   "when": "2014 or 2015 (disputed)",
+   "where": "band camp",
+   "details": [
+    "Kofi says 2014 because he had braces",
+    "Jonah says summer 2015"
+   ],
+   "why_it_matters": "origin of their friendship",
+   "teller": "Kofi Mensah",
+   "complication": "they disagree on the year",
+   "outcome": "unresolved",
+   "vivid_detail": "Kofi had braces"
+  },
+  {
+   "id": "s3",
+   "title": "Lena and Tessa at Ohio State",
+   "who": [
+    "Lena Ortiz",
+    "Tessa Quinn"
+   ],
+   "when": "2018",
+   "where": "Ohio State dorm",
+   "details": [
+    "Lena says Tessa stole her parking spot the first week; Tessa denies",
+    "roommates for three years now"
+   ],
+   "why_it_matters": "origin of the roommates' friendship",
+   "teller": "Tessa Quinn",
+   "complication": "parking spot dispute",
+   "outcome": "roommates three years",
+   "vivid_detail": "stole my parking spot the first week"
+  },
+  {
+   "id": "s4",
+   "title": "Thursday Quizzards",
+   "who": [
+    "Kofi Mensah",
+    "Jonah Pierce",
+    "Lena Ortiz",
+    "Nate Ross"
+   ],
+   "when": "every Thursday; won spring league 2023",
+   "where": "pub on Elm Street",
+   "details": [
+    "name is a pun on wizards"
+   ],
+   "why_it_matters": "the group's weekly ritual",
+   "teller": "Kofi Mensah",
+   "complication": null,
+   "outcome": "won spring league 2023",
+   "vivid_detail": "Quizzards, like wizards"
+  },
+  {
+   "id": "s5",
+   "title": "Jonah and Gwen",
+   "who": [
+    "Jonah Pierce",
+    "Gwen",
+    "Walt"
+   ],
+   "when": "college, broke up 2019",
+   "where": null,
+   "details": [
+    "dated two years",
+    "still close friends",
+    "Gwen runs a bakery where cousin Walt now works"
+   ],
+   "why_it_matters": "ex turned friend; small-world link",
+   "teller": "Jonah Pierce",
+   "complication": "breakup",
+   "outcome": "still close; cousin Walt works for Gwen",
+   "vivid_detail": "she runs the bakery"
+  },
+  {
+   "id": "s6",
+   "title": "Friendsgiving plans",
+   "who": [
+    "Lena Ortiz",
+    "Tessa Quinn",
+    "Jonah Pierce",
+    "Eli Pierce",
+    "Kofi Mensah",
+    "Nora"
+   ],
+   "when": "2025-11-22",
+   "where": "Lena and Tessa's place",
+   "details": [
+    "Jonah brings pie",
+    "Eli brings diner stuffing if Jonah drives him",
+    "Kofi brings Nora so Tessa can see the ring"
+   ],
+   "why_it_matters": "upcoming group event",
+   "teller": "Lena Ortiz",
+   "complication": null,
+   "outcome": "everyone is coming",
+   "vivid_detail": "stuffing from the diner"
+  }
+ ],
+ "facts": [
+  {
+   "id": "f1",
+   "text": "Lena Ortiz and Jonah Pierce work at the library",
+   "about": [
+    "Lena Ortiz",
+    "Jonah Pierce"
+   ]
+  },
+  {
+   "id": "f2",
+   "text": "Eli Pierce is Jonah's younger brother",
+   "about": [
+    "Eli Pierce",
+    "Jonah Pierce"
+   ]
+  },
+  {
+   "id": "f3",
+   "text": "Eli Pierce is a line cook at a downtown diner, mostly night shifts",
+   "about": [
+    "Eli Pierce"
+   ]
+  },
+  {
+   "id": "f4",
+   "text": "Tessa Quinn teaches third grade",
+   "about": [
+    "Tessa Quinn"
+   ]
+  },
+  {
+   "id": "f5",
+   "text": "Tessa and Lena are roommates (three years)",
+   "about": [
+    "Tessa Quinn",
+    "Lena Ortiz"
+   ]
+  },
+  {
+   "id": "f6",
+   "text": "Lena and Tessa went to Ohio State",
+   "about": [
+    "Lena Ortiz",
+    "Tessa Quinn"
+   ]
+  },
+  {
+   "id": "f7",
+   "text": "Kofi works at a bike shop owned by Nate Kim",
+   "about": [
+    "Kofi Mensah",
+    "Nate Kim"
+   ]
+  },
+  {
+   "id": "f8",
+   "text": "Kofi is engaged to Nora",
+   "about": [
+    "Kofi Mensah",
+    "Nora"
+   ]
+  },
+  {
+   "id": "f9",
+   "text": "Gwen runs a bakery",
+   "about": [
+    "Gwen"
+   ]
+  },
+  {
+   "id": "f10",
+   "text": "Walt works at Gwen's bakery",
+   "about": [
+    "Walt"
+   ]
+  },
+  {
+   "id": "f11",
+   "text": "Thursday Quizzards do trivia every Thursday at the pub on Elm Street",
+   "about": [
+    "Kofi Mensah",
+    "Jonah Pierce",
+    "Lena Ortiz",
+    "Nate Ross"
+   ]
+  },
+  {
+   "id": "f12",
+   "text": "Jonah bakes decent pie",
+   "about": [
+    "Jonah Pierce"
+   ]
+  }
+ ],
+ "groups": [
+  {
+   "id": "g1",
+   "name": "Thursday Quizzards",
+   "members": [
+    "Kofi Mensah",
+    "Jonah Pierce",
+    "Lena Ortiz",
+    "Nate Ross"
+   ]
+  }
+ ],
+ "disputes": [
+  {
+   "id": "d1",
+   "about": "year Jonah and Kofi met at band camp",
+   "claims": [
+    {
+     "by": "Kofi Mensah",
+     "value": "2014"
+    },
+    {
+     "by": "Jonah Pierce",
+     "value": "summer 2015"
+    }
+   ],
+   "resolved": null
+  }
+ ],
+ "inside_jokes": [
+  {
+   "id": "j1",
+   "phrase": "Not Kofi (dealing) / the one who keeps winning",
+   "origin": "Kofi's game-night bragging",
+   "people": [
+    "Kofi Mensah"
+   ]
+  }
+ ],
+ "traditions": [
+  {
+   "id": "tr1",
+   "what": "Thursday Quizzards trivia at the pub on Elm Street",
+   "cadence": "every Thursday",
+   "since": null,
+   "people": [
+    "Kofi Mensah",
+    "Jonah Pierce",
+    "Lena Ortiz",
+    "Nate Ross"
+   ]
+  },
+  {
+   "id": "tr2",
+   "what": "game night at Lena's",
+   "cadence": "recurring",
+   "since": null,
+   "people": [
+    "Lena Ortiz",
+    "Jonah Pierce",
+    "Eli Pierce",
+    "Tessa Quinn",
+    "Kofi Mensah"
+   ]
+  }
+ ],
+ "eras": [
+  {
+   "id": "e1",
+   "name": "Jonah and Gwen dating",
+   "span": "~2017-2019",
+   "people": [
+    "Jonah Pierce",
+    "Gwen"
+   ]
+  }
+ ],
+ "not_facts": [
+  "Kofi keeps winning / won twice",
+  "Eli is better looking",
+  "Tessa played the red seven",
+  "Kofi said Uno",
+  "Kofi should not deal",
+  "backchannel 'Mm-hm', 'Yeah', 'Right', 'Classic'",
+  "Tessa stole Lena's parking spot (disputed joke)",
+  "Nate Ross is Kofi's boss (confusion with Nate Kim)"
+ ]
+}

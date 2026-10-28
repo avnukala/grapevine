@@ -1,0 +1,589 @@
+{
+ "sample": "kickback-3p",
+ "recorded_at": "2025-10-18",
+ "people": [
+  {
+   "id": "p1",
+   "name": "Ray Patel",
+   "in_room": true,
+   "key": "software engineer at Stripe, lives in Brooklyn with dog Biscuit, engaged to Priya"
+  },
+  {
+   "id": "p2",
+   "name": "Jasper Lin",
+   "in_room": true,
+   "key": "nurse at Mount Sinai, plays bass in the Night Owls"
+  },
+  {
+   "id": "p3",
+   "name": "Sophie Moreau",
+   "in_room": true,
+   "key": "architecture grad student at Columbia, just moved from Montreal"
+  },
+  {
+   "id": "p4",
+   "name": "Andrew Gao",
+   "in_room": false,
+   "key": "ER doctor at Mount Sinai, Jasper's coworker"
+  },
+  {
+   "id": "p5",
+   "name": "Andrew Moy",
+   "in_room": false,
+   "key": "Sophie's cousin, introduced Sophie to Ray in 2024"
+  },
+  {
+   "id": "p6",
+   "name": "Maya",
+   "in_room": false,
+   "key": "Tuesday climbing crew member"
+  },
+  {
+   "id": "p7",
+   "name": "Theo",
+   "in_room": false,
+   "key": "Tuesday climbing crew member"
+  },
+  {
+   "id": "p8",
+   "name": "Priya",
+   "in_room": false,
+   "key": "Ray's fiancee; went to high school in New Jersey with Jasper"
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r1",
+   "a": "Ray Patel",
+   "b": "Jasper Lin",
+   "type": "friend",
+   "label": "college roommates at Cornell, climbing partners",
+   "status": "current",
+   "since": "2016",
+   "how_met": "freshman roommates at Cornell, fall 2016"
+  },
+  {
+   "id": "r2",
+   "a": "Jasper Lin",
+   "b": "Sophie Moreau",
+   "type": "romantic",
+   "label": "ex-partners, dated about a year",
+   "status": "past",
+   "since": "2018",
+   "how_met": "met at Electric Zoo 2018 on Randall's Island; broke up 2019",
+   "changed": {
+    "what": "broke up",
+    "date": "2019"
+   }
+  },
+  {
+   "id": "r3",
+   "a": "Jasper Lin",
+   "b": "Sophie Moreau",
+   "type": "friend",
+   "label": "still good friends after breakup",
+   "status": "current",
+   "since": "2018",
+   "how_met": "Electric Zoo 2018"
+  },
+  {
+   "id": "r4",
+   "a": "Jasper Lin",
+   "b": "Andrew Gao",
+   "type": "professional",
+   "label": "coworkers at Mount Sinai",
+   "status": "current",
+   "since": null,
+   "how_met": "work at Mount Sinai"
+  },
+  {
+   "id": "r5",
+   "a": "Sophie Moreau",
+   "b": "Andrew Moy",
+   "type": "family",
+   "label": "cousins",
+   "status": "current",
+   "since": null,
+   "how_met": "family"
+  },
+  {
+   "id": "r6",
+   "a": "Ray Patel",
+   "b": "Priya",
+   "type": "romantic",
+   "label": "engaged (fiancee)",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  },
+  {
+   "id": "r7",
+   "a": "Jasper Lin",
+   "b": "Priya",
+   "type": "friend",
+   "label": "high school classmates in New Jersey",
+   "status": "current",
+   "since": "2012",
+   "how_met": "same high school in New Jersey"
+  },
+  {
+   "id": "r8",
+   "a": "Ray Patel",
+   "b": "Sophie Moreau",
+   "type": "friend",
+   "label": "friends, introduced by Andrew Moy",
+   "status": "current",
+   "since": "2024",
+   "how_met": "introduced by Sophie's cousin Andrew Moy last year",
+   "introduced_by": "Andrew Moy"
+  },
+  {
+   "id": "r9",
+   "a": "Ray Patel",
+   "b": "Maya",
+   "type": "friend",
+   "label": "Tuesday climbing crew",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  },
+  {
+   "id": "r10",
+   "a": "Ray Patel",
+   "b": "Theo",
+   "type": "friend",
+   "label": "Tuesday climbing crew",
+   "status": "current",
+   "since": null,
+   "how_met": null
+  }
+ ],
+ "timeline": [
+  {
+   "id": "t1",
+   "what": "Jasper and Priya start high school together in New Jersey",
+   "date": "2012",
+   "people": [
+    "Jasper Lin",
+    "Priya"
+   ],
+   "disputed": false,
+   "raw": "since 2012",
+   "precision": "year"
+  },
+  {
+   "id": "t2",
+   "what": "Ray and Jasper are freshman roommates at Cornell",
+   "date": "2016-fall",
+   "people": [
+    "Ray Patel",
+    "Jasper Lin"
+   ],
+   "disputed": false,
+   "raw": "fall of 2016",
+   "precision": "season"
+  },
+  {
+   "id": "t3",
+   "what": "Ray breaks his arm skiing; Jasper drives him to hospital",
+   "date": "2017 (Jasper) vs 2018 (Ray)",
+   "people": [
+    "Ray Patel",
+    "Jasper Lin"
+   ],
+   "disputed": true,
+   "raw": "2017 / 2018, junior year",
+   "precision": "year"
+  },
+  {
+   "id": "t4",
+   "what": "Jasper and Sophie meet at Electric Zoo on Randall's Island and start dating",
+   "date": "2018",
+   "people": [
+    "Jasper Lin",
+    "Sophie Moreau"
+   ],
+   "disputed": false,
+   "raw": "Electric Zoo 2018",
+   "precision": "year"
+  },
+  {
+   "id": "t5",
+   "what": "Jasper and Sophie break up",
+   "date": "2019",
+   "people": [
+    "Jasper Lin",
+    "Sophie Moreau"
+   ],
+   "disputed": false,
+   "raw": "2019",
+   "precision": "year"
+  },
+  {
+   "id": "t6",
+   "what": "Ray and Jasper graduate and move to New York",
+   "date": "2020",
+   "people": [
+    "Ray Patel",
+    "Jasper Lin"
+   ],
+   "disputed": false,
+   "raw": "after graduation in 2020",
+   "precision": "year"
+  },
+  {
+   "id": "t7",
+   "what": "Group goes to Electric Zoo again with Andrew, who gets backstage passes",
+   "date": "2022",
+   "people": [
+    "Ray Patel",
+    "Jasper Lin",
+    "Sophie Moreau",
+    "Andrew"
+   ],
+   "disputed": false,
+   "raw": "in 2022",
+   "precision": "year"
+  },
+  {
+   "id": "t8",
+   "what": "Andrew Moy introduces Sophie to Ray",
+   "date": "2024",
+   "people": [
+    "Andrew Moy",
+    "Sophie Moreau",
+    "Ray Patel"
+   ],
+   "disputed": false,
+   "raw": "last year",
+   "precision": "year"
+  },
+  {
+   "id": "t9",
+   "what": "Ray proposes to Priya in Lisbon; she says yes",
+   "date": "2025-09",
+   "people": [
+    "Ray Patel",
+    "Priya"
+   ],
+   "disputed": false,
+   "raw": "September 2025",
+   "precision": "month"
+  }
+ ],
+ "stories": [
+  {
+   "id": "s1",
+   "title": "Cornell roommates and the cereal",
+   "who": [
+    "Ray Patel",
+    "Jasper Lin"
+   ],
+   "when": "fall 2016",
+   "where": "Cornell",
+   "details": [
+    "freshman-year roommates",
+    "Jasper kept stealing Ray's cereal"
+   ],
+   "why_it_matters": "origin of Ray and Jasper's friendship",
+   "teller": "Ray Patel",
+   "complication": "Jasper kept stealing Ray's cereal",
+   "outcome": "lifelong friendship",
+   "vivid_detail": "stolen cereal"
+  },
+  {
+   "id": "s2",
+   "title": "Ray's skiing accident",
+   "who": [
+    "Ray Patel",
+    "Jasper Lin"
+   ],
+   "when": "2017 or 2018 (disputed)",
+   "where": null,
+   "details": [
+    "Ray broke his arm skiing",
+    "Jasper drove him to the hospital",
+    "Jasper says 2017 right before spring break; Ray says 2018 junior year"
+   ],
+   "why_it_matters": "Jasper's 'making up' for the cereal; disputed date",
+   "teller": "Jasper Lin",
+   "complication": "Ray broke his arm; year disputed",
+   "outcome": "Jasper drove him to hospital",
+   "vivid_detail": "right before spring break"
+  },
+  {
+   "id": "s3",
+   "title": "Jasper and Sophie meet at Electric Zoo 2018",
+   "who": [
+    "Jasper Lin",
+    "Sophie Moreau"
+   ],
+   "when": "2018",
+   "where": "Electric Zoo, Randall's Island",
+   "details": [
+    "Sophie first said 2019, conceded 2018",
+    "Sophie lost her phone in the mud",
+    "dated about a year, broke up 2019, still good friends"
+   ],
+   "why_it_matters": "start of their past romance and current friendship",
+   "teller": "Sophie Moreau",
+   "complication": "Sophie misremembered the year",
+   "outcome": "dated a year, broke up 2019, still friends",
+   "vivid_detail": "Sophie lost her phone in the mud"
+  },
+  {
+   "id": "s4",
+   "title": "Electric Zoo 2022 with backstage passes",
+   "who": [
+    "Ray Patel",
+    "Jasper Lin",
+    "Sophie Moreau",
+    "Andrew"
+   ],
+   "when": "2022",
+   "where": "Electric Zoo",
+   "details": [
+    "the group went again",
+    "Andrew came and got them backstage passes",
+    "which Andrew is ambiguous (Gao or Moy)"
+   ],
+   "why_it_matters": "shared group outing",
+   "teller": "Ray Patel",
+   "complication": "Andrew came along",
+   "outcome": "got backstage passes",
+   "vivid_detail": "backstage passes"
+  },
+  {
+   "id": "s5",
+   "title": "Ray proposes to Priya in Lisbon",
+   "who": [
+    "Ray Patel",
+    "Priya"
+   ],
+   "when": "September 2025",
+   "where": "Lisbon",
+   "details": [
+    "she said yes on the first try"
+   ],
+   "why_it_matters": "Ray is engaged",
+   "teller": "Ray Patel",
+   "complication": null,
+   "outcome": "Priya said yes",
+   "vivid_detail": "she said yes on the first try"
+  },
+  {
+   "id": "s6",
+   "title": "Tuesday climbing crew",
+   "who": [
+    "Ray Patel",
+    "Jasper Lin",
+    "Maya",
+    "Theo"
+   ],
+   "when": "ongoing since ~2020",
+   "where": "Brooklyn Boulders",
+   "details": [
+    "climb every Tuesday",
+    "named themselves the Tuesday climbing crew"
+   ],
+   "why_it_matters": "the recurring ritual of the friend group",
+   "teller": "Ray Patel",
+   "complication": null,
+   "outcome": "ongoing weekly ritual",
+   "vivid_detail": "Brooklyn Boulders every Tuesday"
+  }
+ ],
+ "facts": [
+  {
+   "id": "f1",
+   "text": "Ray Patel is a software engineer at Stripe",
+   "about": [
+    "Ray Patel"
+   ]
+  },
+  {
+   "id": "f2",
+   "text": "Ray Patel lives in Brooklyn",
+   "about": [
+    "Ray Patel"
+   ]
+  },
+  {
+   "id": "f3",
+   "text": "Ray Patel has a dog named Biscuit",
+   "about": [
+    "Ray Patel"
+   ]
+  },
+  {
+   "id": "f4",
+   "text": "Jasper Lin is a nurse at Mount Sinai",
+   "about": [
+    "Jasper Lin"
+   ]
+  },
+  {
+   "id": "f5",
+   "text": "Jasper Lin plays bass in a band called the Night Owls",
+   "about": [
+    "Jasper Lin"
+   ]
+  },
+  {
+   "id": "f6",
+   "text": "Sophie Moreau is a grad student at Columbia studying architecture",
+   "about": [
+    "Sophie Moreau"
+   ]
+  },
+  {
+   "id": "f7",
+   "text": "Sophie Moreau just moved from Montreal",
+   "about": [
+    "Sophie Moreau"
+   ]
+  },
+  {
+   "id": "f8",
+   "text": "Ray and Jasper went to Cornell",
+   "about": [
+    "Ray Patel",
+    "Jasper Lin"
+   ]
+  },
+  {
+   "id": "f9",
+   "text": "Ray and Jasper moved to New York after graduating in 2020",
+   "about": [
+    "Ray Patel",
+    "Jasper Lin"
+   ]
+  },
+  {
+   "id": "f10",
+   "text": "Andrew Gao is an emergency room doctor at Mount Sinai",
+   "about": [
+    "Andrew Gao"
+   ]
+  },
+  {
+   "id": "f11",
+   "text": "Ray Patel is engaged to Priya",
+   "about": [
+    "Ray Patel",
+    "Priya"
+   ]
+  },
+  {
+   "id": "f12",
+   "text": "Jasper and Priya went to the same high school in New Jersey",
+   "about": [
+    "Jasper Lin",
+    "Priya"
+   ]
+  }
+ ],
+ "groups": [
+  {
+   "id": "g1",
+   "name": "Tuesday climbing crew",
+   "members": [
+    "Ray Patel",
+    "Jasper Lin",
+    "Maya",
+    "Theo"
+   ]
+  },
+  {
+   "id": "g2",
+   "name": "Night Owls (band)",
+   "members": [
+    "Jasper Lin"
+   ]
+  }
+ ],
+ "disputes": [
+  {
+   "id": "d1",
+   "about": "year of Ray's skiing accident",
+   "claims": [
+    {
+     "by": "Ray Patel",
+     "value": "2018, junior year"
+    },
+    {
+     "by": "Jasper Lin",
+     "value": "2017, before spring break"
+    }
+   ],
+   "resolved": null
+  },
+  {
+   "id": "d2",
+   "about": "year Jasper and Sophie met at Electric Zoo",
+   "claims": [
+    {
+     "by": "Sophie Moreau",
+     "value": "2019"
+    },
+    {
+     "by": "Jasper Lin",
+     "value": "2018"
+    }
+   ],
+   "resolved": "2018 (Sophie conceded)"
+  }
+ ],
+ "inside_jokes": [
+  {
+   "id": "j1",
+   "phrase": "stealing my cereal",
+   "origin": "Jasper stole Ray's cereal as freshman roommates",
+   "people": [
+    "Ray Patel",
+    "Jasper Lin"
+   ]
+  }
+ ],
+ "traditions": [
+  {
+   "id": "tr1",
+   "what": "climbing at Brooklyn Boulders",
+   "cadence": "every Tuesday",
+   "since": "~2020",
+   "people": [
+    "Ray Patel",
+    "Jasper Lin",
+    "Maya",
+    "Theo"
+   ]
+  }
+ ],
+ "eras": [
+  {
+   "id": "e1",
+   "name": "Cornell years",
+   "span": "2016-2020",
+   "people": [
+    "Ray Patel",
+    "Jasper Lin"
+   ]
+  },
+  {
+   "id": "e2",
+   "name": "Jasper and Sophie dating",
+   "span": "2018-2019",
+   "people": [
+    "Jasper Lin",
+    "Sophie Moreau"
+   ]
+  }
+ ],
+ "not_facts": [
+  "Sophie asked how Ray and Jasper met",
+  "Priya said yes on the first try (as a standalone fact)",
+  "Priya is great",
+  "Jasper made up for stealing cereal",
+  "Andrew (unqualified) got backstage passes attributed confidently to Gao or Moy"
+ ]
+}

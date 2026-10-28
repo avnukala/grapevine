@@ -63,6 +63,7 @@ A run with a new setting is a new run on the same session. If a clip has a `.lab
 
 - `data/samples/kickback-3p` is a 2-minute clip with 3 speakers.
 - `data/samples/corpus/` has 4 sessions of one friend group. They are 4 to 9 minutes long, with 3 to 8 speakers and 29 people in total.
+- `data/samples/corpus/game-night-5p` is a harder session, with crosstalk, short replies, two voices that sound alike, and room noise.
 
 Each sample has a `.script.json` file with the lines and the expected facts. The generator reads the script with macOS voices and writes the hand labels:
 
@@ -71,6 +72,14 @@ cd backend && uv run python -m grapevine.sample ../data/samples/corpus/pregame-4
 ```
 
 `data/grapevine.db` holds runs of the samples, so the views have data on the first start.
+
+Each sample also has a `.gold.json` checklist of what a perfect run captures: people, relationships, timeline, stories, facts, groups, disputes, and small talk that is not a fact. The judge asks the local model whether a run captures each item, checks each recorded fact against the transcript, and scores 7 rubric dimensions from 1 to 5:
+
+```sh
+cd backend && uv run grapevine judge <run_id> --gold ../data/samples/kickback-3p.gold.json
+```
+
+A change of 0.03 or less in recall, or of one precision item, is noise.
 
 ## Tests
 
