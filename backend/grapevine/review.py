@@ -271,7 +271,7 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
         ] + groups.output["new"]
         more = await asyncio.gather(*[members_of(store, llm, g, model=model, seed=seed) for g in found_groups])
         found_groups = [
-            {**g, "members": extra or g["members"], "named": [*g["members"], *extra]}
+            {**g, "members": [*extra, *said_in_lines(g, texts)], "named": [*g["members"], *extra]}
             for g, extra in zip(found_groups, more)
         ]
 
@@ -375,6 +375,15 @@ def group_lines(texts: list[str], group_names: list[str]) -> list[int]:
     }
     plain = [i for i, text in enumerate(texts) if nouns & set(words(text))]
     return sorted(near | {j for i in plain for j in range(i, min(i + 2, len(texts)))})
+
+
+def said_in_lines(group: Record, texts: list[str]) -> list[str]:
+    """The members the whole-transcript call gives that the lines about the group name, or all of them when
+    no line is about it. That call puts the speaker of a line about a league in it, such as "Arjun, you're
+    in the league", while it also finds members that the members call misses."""
+    picked = group_lines(texts, [group["name"], *group["also_called"]])
+    said = {w for i in picked for w in re.findall(r"[a-z']+", texts[i].lower())}
+    return [name for name in group["members"] if not picked or name.split()[0].lower() in said]
 
 
 def agreed(lists: list[list[Record]], person, model_call_id: int, *, needed: int) -> list[Record]:

@@ -10,6 +10,7 @@ from grapevine.review import (
     group_lines,
     hide_small_talk,
     quoted,
+    said_in_lines,
     small_talk_message,
     ties,
 )
@@ -206,3 +207,10 @@ def test_small_talk_is_hidden_and_lasting_facts_stay(store):
     answers = {"f1": {"note": "job", "lasting": True}, "f2": {"note": "tonight", "lasting": False}}
     hide_small_talk(store, answers, facts, model_call_id=1)
     assert [f["text"] for f in store.graph.live_facts()] == ["Felix Ward teaches in Lisbon.", "x"]
+
+
+def test_the_whole_transcript_adds_only_members_the_group_lines_name():
+    texts = ["Felix, you are in the Night Hawks.", "Yes, me, Dana, and Greta.", "Nice."]
+    group = {"name": "Night Hawks", "also_called": [], "members": ["Mia Rao", "Dana Cole", "Greta"]}
+    assert said_in_lines(group, texts) == ["Dana Cole", "Greta"]
+    assert said_in_lines({**group, "name": "Harbor Club"}, texts) == ["Mia Rao", "Dana Cole", "Greta"]
