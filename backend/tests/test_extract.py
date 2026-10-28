@@ -748,3 +748,56 @@ def test_a_respelling_never_takes_the_name_of_another_person(store):
     assert person["name"] == "Mira Rao" and "Mia Rao" in person["aliases"]
     with pytest.raises(ActionError):
         rename_person(store, heard, "Mia Rao")
+
+
+def test_a_retelling_that_shares_one_word_is_not_a_dispute(store):
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    tina = store.create_person(name="Tina Alvarez", aliases=["Tina"], gender="female")["id"]
+    apply(
+        store,
+        turn(store, marcus, "Tina's kitchen caught fire."),
+        facts=[fact("Tina Alvarez's kitchen caught fire in 2021.", ["Tina Alvarez"])],
+    )
+    first = max(store.graph.facts)
+    said = "Tina Alvarez put a burning towel in the sink during the fire."
+    apply(
+        store, turn(store, tina, "I put the towel in the sink."), facts=[fact(said, ["speaker"], disputes=f"f{first}")]
+    )
+    apply(
+        store,
+        turn(store, tina, "It caught fire."),
+        facts=[fact("Tina Alvarez's kitchen caught fire in 2021.", ["speaker"], disputes=f"f{first}")],
+    )
+
+    assert not any(f["disputed"] for f in store.graph.facts.values())
+    assert store.graph.active_prompts() == []
+
+
+def test_a_dispute_of_a_fact_with_no_teller_stays_a_dispute(store):
+    ray = store.create_person(name="Ray Patel", aliases=["Ray"], gender="male")["id"]
+    apply(
+        store,
+        turn(store, None, "Ray moved to Lisbon in 2017."),
+        facts=[fact("Ray Patel moved to Lisbon in 2017.", ["Ray Patel"])],
+    )
+    first = max(store.graph.facts)
+    apply(
+        store,
+        turn(store, ray, "No, 2018."),
+        facts=[fact("Ray Patel moved to Lisbon in 2018.", ["speaker"], start_date="2018", disputes=f"f{first}")],
+    )
+
+    assert store.graph.facts[first]["revised_by_fact_id"] is None
+    assert store.graph.facts[first]["disputed"] and store.graph.facts[max(store.graph.facts)]["disputed"]
+
+
+def test_two_stories_at_one_place_are_not_a_dispute(store):
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    tina = store.create_person(name="Tina Alvarez", aliases=["Tina"], gender="female")["id"]
+    dorm = "Marcus Hale and Tina Alvarez were in the same dorm at the University of Lisbon."
+    apply(store, turn(store, marcus, "Same dorm."), facts=[fact(dorm, ["speaker", "Tina Alvarez"], start_date="2018")])
+    first = max(store.graph.facts)
+    spot = "Tina Alvarez stole Marcus Hale's parking spot during their first week at the University of Lisbon."
+    apply(store, turn(store, tina, "I stole his spot."), facts=[fact(spot, ["speaker"], disputes=f"f{first}")])
+
+    assert store.graph.active_prompts() == []

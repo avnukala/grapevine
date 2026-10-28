@@ -653,24 +653,34 @@ def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, 
     if old is None:
         return record["id"]
     told_by = store.graph.facts[old]["told_by_person_id"]
-    related = same_thing(store, store.graph.facts[old], store.graph.facts[record["id"]])
+    related = same_thing(store.graph.facts[old], store.graph.facts[record["id"]])
     # The model also sets "revises" on news, such as a planned move against where someone lives.
-    if (told_by is None or told_by == teller.person_id) and (fact["kind"] == "correction" or related):
+    own = told_by == teller.person_id if told_by is not None else not fact.get("disputes")
+    if own and (fact["kind"] == "correction" or related):
         revise(store, old, record["id"], model_call_id=teller.model_call_id)
-    elif told_by != teller.person_id and related:
+    elif not own and related:
         dispute(store, old, record["id"], model_call_id=teller.model_call_id)
     return record["id"]
 
 
-def same_thing(store: Store, a: Record, b: Record) -> bool:
-    """Whether two facts can disagree: they share an event or a word other than a name. The model marks a
-    new story as a dispute at times, such as "drove Felix to the hospital" against "ate Felix's lunch"."""
-    names = {w for p in store.graph.people.values() for w in re.findall(r"[a-z]+", p["name"].lower())}
+def same_thing(a: Record, b: Record) -> bool:
+    """Whether two facts can disagree: they share a common word, not a name or a place, and either their dates
+    differ or half the common words of the shorter one are in both and some word differs. The model marks a
+    new story or a retelling as a dispute at times, such as "drove Felix to the hospital" against "ate Felix's
+    lunch", or "shared a dorm in Lisbon" against "stole a parking spot in Lisbon"."""
+    ignored = FUNCTION_WORDS | {"speaker"}
 
-    def words(text: str) -> set[str]:
-        return set(re.findall(r"[a-z]+", text.lower())) - names - FUNCTION_WORDS
+    def common(text: str) -> set[str]:
+        return set(re.findall(r"\b[a-z0-9]+\b", text)) - ignored
 
-    return (a["event_id"] is not None and a["event_id"] == b["event_id"]) or bool(words(a["text"]) & words(b["text"]))
+    first, second = common(a["text"]), common(b["text"])
+    shared = len(first & second)
+    if shared == 0:
+        return False
+    dates = sorted([a["start_date"] or "", b["start_date"] or ""], key=len)
+    if dates[0] and not dates[1].startswith(dates[0]):
+        return True
+    return 2 * shared >= min(len(first), len(second)) and a["text"].lower() != b["text"].lower()
 
 
 def revise(store: Store, old: int, new: int, *, model_call_id: int) -> None:
