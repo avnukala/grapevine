@@ -125,3 +125,12 @@ def test_a_tie_needs_a_quote_from_the_transcript():
     assert not quoted("Ray and I were freshman roommates... They are friends within the group.", texts)
     assert not quoted("They are friends within the group.", texts)
     assert not quoted("...", texts)
+
+
+def test_a_second_fact_about_a_member_does_not_list_them_twice(store):
+    felix = store.create_person(name="Felix Ward", aliases=[], gender="male")["id"]
+    group = store.group_for("Night Hawks")
+    for text in ["Felix Ward is in the Night Hawks.", "Felix Ward runs the Night Hawks."]:
+        fact = store.add_fact({"kind": "membership", "text": text}, people=[], segment_ids=[], model_call_id=None)
+        store.add_member(group_id=group["id"], person_id=felix, since=None, until=None, fact_id=fact["id"])
+    assert [m["person_id"] for m in store.graph.members.values()] == [felix]

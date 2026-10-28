@@ -420,6 +420,9 @@ class Store:
         return group
 
     def add_member(self, *, group_id: int, person_id: int, since: str | None, until: str | None, fact_id: int) -> None:
+        """Adds a person to a group once. A second fact that names the same member adds nothing."""
+        if any(key[:2] == (group_id, person_id) for key in self.graph.members):
+            return
         member = {
             "group_id": group_id,
             "person_id": person_id,
