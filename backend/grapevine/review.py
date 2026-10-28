@@ -356,9 +356,9 @@ async def call_or_retry(store: Store, llm: LLM, call: Call) -> Result:
 
 def group_lines(texts: list[str], group_names: list[str]) -> list[int]:
     """The indexes of the lines about a group: lines that name it under any spelling close to one of its
-    names, the two lines after each, which often answer it, and lines that use its plain noun, such as "the
-    whole crew", with the line after each. Each word of a name must be close to the word said, so "now it's
-    five" does not name "Know It Alls"."""
+    names, the line before each, which tells who "you" is, the two lines after each, which often answer it,
+    and lines that use its plain noun, such as "the whole crew", with the line after each. Each word of a name
+    must be close to the word said, so "now it's five" does not name "Know It Alls"."""
 
     def words(text: str) -> list[str]:
         return re.findall(r"[a-z]+", text.lower())
@@ -375,7 +375,7 @@ def group_lines(texts: list[str], group_names: list[str]) -> list[int]:
         return any(close(said[i : i + len(key)], key) for key in keys for i in range(len(said) - len(key) + 1))
 
     named = [i for i, text in enumerate(texts) if names_it(text)]
-    near = {j for i in named for j in range(i, min(i + 3, len(texts)))}
+    near = {j for i in named for j in range(max(i - 1, 0), min(i + 3, len(texts)))}
     nouns = {w for i in near for w in words(texts[i]) if w in GROUP_WORDS} | {
         w for name in group_names for w in words(name) if w in GROUP_WORDS
     }
