@@ -109,7 +109,7 @@ SMALL_TALK_SYSTEM = """You read the facts recorded from a group conversation bes
 
 For each fact, write a short note, then "lasting".
 - lasting is false for small talk: a remark about tonight or this gathering (the food, the game being played, who drives, who is late, a reservation), an errand or chore (a car inspection, who does the dishes, cooking on Saturday), a mood or wish of the moment, a joke or tease, a question, or a request to hear a story.
-- lasting is true for history: jobs, homes, house rules, moves, school, family, pets, hobbies, groups, relationships, how people met, life events such as an engagement, a wedding, an injury, or a trip, a story from the past, and plans to host or go to a party, a holiday, a trip, or a wedding.
+- lasting is true for history: jobs, homes (also a town someone drives in from), house rules, traditions (also ones people plan to start), moves, school, family, pets, hobbies, groups, relationships, how people met, life events such as an engagement, a wedding, an injury, or a trip, a story from the past, and plans to host or go to a party, a holiday, a trip, or a wedding.
 - When unsure, lasting is true."""
 
 NULLABLE = {"type": ["string", "null"]}
