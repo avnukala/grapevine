@@ -124,9 +124,18 @@ class Store:
         self._outbox: list[Record] = []
         self._depth = 0
 
+    def replay(self) -> None:
+        """Rebuilds the graph and the last seq from the changes of this run in the database."""
+        self.graph = Graph()
+        self.seq = 0
+        for row in self.conn.execute("SELECT seq, op_json FROM changes WHERE run_id = ? ORDER BY seq", (self.run_id,)):
+            self.graph.apply(json.loads(row["op_json"]))
+            self.seq = row["seq"]
+
     @contextmanager
     def batch(self) -> Iterator[None]:
-        """Groups writes in one transaction. Nested batches join the outer one."""
+        """Groups writes in one transaction. Nested batches join the outer one. A rollback also drops the ops
+        of the batch from the graph."""
         self._depth += 1
         if self._depth == 1:
             self.conn.execute("BEGIN IMMEDIATE")
@@ -137,6 +146,7 @@ class Store:
             if self._depth == 0:
                 self.conn.execute("ROLLBACK")
                 self._outbox.clear()
+                self.replay()
             raise
         self._depth -= 1
         if self._depth == 0:

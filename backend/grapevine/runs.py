@@ -115,9 +115,9 @@ def set_status(conn: sqlite3.Connection, run_id: int, status: str) -> None:
 def open_store(conn: sqlite3.Connection, run_id: int, broadcast: Broadcast | None = None) -> Store:
     """A store for a run that already has changes, with its graph rebuilt from them."""
     store = Store(conn, run_id, broadcast)
-    for row in conn.execute("SELECT op_json, audio_ms FROM changes WHERE run_id = ? ORDER BY seq", (run_id,)):
-        store.graph.apply(json.loads(row[0]))
-        store.audio_ms = row[1]
+    store.replay()
+    last = conn.execute("SELECT audio_ms FROM changes WHERE run_id = ? ORDER BY seq DESC LIMIT 1", (run_id,)).fetchone()
+    store.audio_ms = last[0] if last else 0
     return store
 
 
