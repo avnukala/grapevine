@@ -654,7 +654,7 @@ function FactDetails({ state, fact }: FactDetailsProps) {
         </SheetDescription>
       </SheetHeader>
       <ScrollArea className="min-h-0 flex-1 px-4 pb-6">
-        {fact.detail && <p className="mb-4 text-sm">{fact.detail}</p>}
+        {fact.detail && <p className="mb-4 whitespace-pre-line text-sm">{fact.detail}</p>}
         <Heading>People</Heading>
         <PeopleList state={state} people={fact.people} />
         {event && (
@@ -725,7 +725,7 @@ function EventDetails({ state, event }: EventDetailsProps) {
               <div>
                 <span className={f.disputed ? "text-alert" : ""}>{f.text}</span>
                 {f.disputed && <TriangleAlert className="ml-1 inline size-3.5 text-alert" />}
-                {f.detail && <p className="mt-1 text-xs text-muted-foreground">{f.detail}</p>}
+                {f.detail && <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground">{f.detail}</p>}
                 <div className="text-xs text-muted-foreground">told by {personName(state, f.told_by_person_id)}</div>
               </div>
             </li>
@@ -810,7 +810,17 @@ function StoryFeed({ state, items, recent, focusKey, onFocus }: StoryFeedProps) 
                         {item.event.place}
                       </div>
                     )}
-                    {story && <p className="mt-2 text-sm text-muted-foreground">{story.detail}</p>}
+                    {story && (
+                      <div className="mt-2 text-sm" data-testid="story-text">
+                        <div className="font-medium">
+                          {story.text}
+                          {story.told_by_person_id && (
+                            <span className="text-xs font-normal text-muted-foreground"> · told by {personName(state, story.told_by_person_id)}</span>
+                          )}
+                        </div>
+                        <p className="mt-1 whitespace-pre-line text-muted-foreground">{story.detail}</p>
+                      </div>
+                    )}
                     <ul className="mt-2 space-y-1">
                       {own.map((f) => (
                         <li key={f.id} className="flex gap-2 text-xs">

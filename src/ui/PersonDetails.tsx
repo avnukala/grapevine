@@ -136,7 +136,7 @@ export function PersonDetails({ state, personId, onClose, onRemove, onRename }: 
                       {(f.when_text || f.start_date) && (
                         <div className="text-xs text-muted-foreground">{f.when_text ?? f.start_date}</div>
                       )}
-                      {f.detail && <p className="mt-1 text-xs text-muted-foreground">{f.detail}</p>}
+                      {f.detail && <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground">{f.detail}</p>}
                     </div>
                   </li>
                 ))}
