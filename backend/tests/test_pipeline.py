@@ -754,6 +754,15 @@ def test_a_turn_embeds_all_its_pieces_in_one_call(store):
     assert len(calls) == 1
 
 
+def test_a_short_piece_after_the_first_is_not_embedded(store):
+    lines = [Line(0, 0, 2500, ""), Line(0, 2700, 3500, ""), Line(1, 4000, 6500, "")]
+
+    pieces, calls = pieces_of(store, lines, Turn(0, 0, 6500, (2600, 3750)))
+
+    assert pieces == [(0, 3750), (3750, 6500)]
+    assert calls == [[2600 * SAMPLE_RATE // 1000, 2750 * SAMPLE_RATE // 1000]]
+
+
 def test_hints_give_the_roster_the_room_words_learned_names_and_the_last_lines(conn):
     conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
     run_id = conn.execute(

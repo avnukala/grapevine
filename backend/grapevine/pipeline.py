@@ -402,21 +402,21 @@ class Pipeline:
         similar voices one label. Each piece comes with its voice. A piece shorter than MIN_VOICE_MS joins
         the piece before it, because the voice of a short piece is not reliable."""
         bounds = list(pairwise([turn.start_ms, *turn.pauses, turn.end_ms]))
-        voices = self.models.embedder.embed([self.audio.slice(start_ms, end_ms) for start_ms, end_ms in bounds])
+        voiced = [bound for i, bound in enumerate(bounds) if i == 0 or bound[1] - bound[0] >= MIN_VOICE_MS]
+        clips = [self.audio.slice(start_ms, end_ms) for start_ms, end_ms in voiced]
+        voices = dict(zip(voiced, self.models.embedder.embed(clips), strict=True))
         pieces: list[tuple[int, int, np.ndarray]] = []
-        for (start_ms, end_ms), voice in zip(bounds, voices, strict=True):
+        for start_ms, end_ms in bounds:
             if pieces:
                 last_start, _, last_voice = pieces[-1]
-                short = end_ms - start_ms < MIN_VOICE_MS
-                if short or float(voice @ last_voice) >= self.config.new_voice_threshold:
-                    joined = (
-                        self.models.embedder.embed([self.audio.slice(last_start, end_ms)])[0]
-                        if not short
-                        else last_voice
-                    )
+                if (start_ms, end_ms) not in voices:
+                    pieces[-1] = (last_start, end_ms, last_voice)
+                    continue
+                if float(voices[start_ms, end_ms] @ last_voice) >= self.config.new_voice_threshold:
+                    joined = self.models.embedder.embed([self.audio.slice(last_start, end_ms)])[0]
                     pieces[-1] = (last_start, end_ms, joined)
                     continue
-            pieces.append((start_ms, end_ms, voice))
+            pieces.append((start_ms, end_ms, voices[start_ms, end_ms]))
         return pieces
 
     def _identify(self, label: str, voice: np.ndarray, *, ms: int, intro: bool) -> tuple[str, float | None]:
