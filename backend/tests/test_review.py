@@ -36,8 +36,11 @@ def test_group_lines_take_misspelled_names_their_answers_and_the_group_noun():
         "Nice.",
         "Who wants tea?",
         "The whole crew is going back.",
+        "Me too.",
+        "So now it's five of us.",
     ]
-    assert group_lines(texts, ["Sunday Sends"]) == [0, 1, 2, 4]
+    assert group_lines(texts, ["Sunday Sends"]) == [0, 1, 2, 4, 5]
+    assert group_lines(texts, ["The Know It Alls"]) == []
 
 
 def test_a_record_event_takes_the_date_of_the_first_happening_linked_to_it(store):

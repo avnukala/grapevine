@@ -34,6 +34,7 @@ NOT_HAPPENINGS = {"relationship", "meeting", "met", "dating", "friendship"}
 EVENT_KINDS = {"the", "and", "with", "trip", "party", "event", "wedding", "birthday", "move", "visit", "weekend"}
 VOTES = 3
 LINE_MATCH = 0.8
+WORD_MATCH = 0.6
 MAX_CANDIDATES = 8
 THE_NAME = re.compile(r"\b(The [A-Z][\w'-]*(?: [A-Z][\w'-]*)*)")
 NOUN_NAME = re.compile(r"\b((?:[A-Z][\w'-]* )+(?:crew|team|league|club|band|Crew|Team|League|Club|Band))\b")
@@ -74,17 +75,17 @@ GROUPS_SYSTEM = (
     INTRO
     + """Write "analysis" first: for each named group (a crew, a team, a band, a club, a league) that anyone names, even once, such as a league someone runs, the plain phrases people use for it, such as "the crew" or "the league", and each line of the transcript that puts someone in it under any of those names. Then fill "known", which has one key for each group in the record, "candidates", which has one key for each name in the transcript that could be a group, and "new", for other named groups the record does not have.
 
-- For each known group, list its plain phrases in "also_called", and answer for each person whether they are in it under any of its names. People who say "we", "our team", or "our league" about the group are in it, and so are the people they list as going with "the whole crew".
-- For each candidate, is_group is true only when the name is a group of people, such as a crew, a team, a band, a club, a league, or a friend group, that someone in the transcript belongs to. A trivia team someone reports a result for is a group. A band people only went to see, an event, a place, or a misheard phrase is not.
-- Every other named group in your analysis that is not under "known" or "candidates" goes in "new", with one entry under its proper name, for example "Thursday Flyers", and everyone in it.
+- For each known group, list its plain phrases in "also_called", and answer for each person whether a line puts them in it under any of its names. People who say "we", "our team", or "our league" about the group are in it, and so are the people they list as going with "the whole crew". Asking about a group, or talking near it, does not put someone in it.
+- For each candidate, is_group is true only when the name is a group of people, such as a crew, a team, a band, a club, a league, or a friend group, that a line says someone in the transcript belongs to. A trivia team someone reports a result for is a group. A band people only went to see, an event, a place, or a misheard phrase is not.
+- Every other named group in your analysis that is not under "known" or "candidates" goes in "new", with one entry under its proper name, spelled as its members would write it, for example "Thursday Flyers" when the transcript says "Thursday Fliers", and everyone in it.
 - A house, a meeting, or an event is not a group."""
 )
 
 MEMBERS_SYSTEM = """You read the lines of a group conversation that mention one group, and list who is in it. Return JSON only.
 
-Write "analysis" first: for each line, who it puts in the group. Then list "members" with the full names under PEOPLE when they match.
-- The speaker of a line is in the group when they say "we", "our", or "me" about it, or call themselves a member.
-- The speaker of a line is in the group when they talk about it from the inside, such as how it is run or how it did, even without naming it or saying "we". "Which she runs like a tyrant", said about the club's president, puts the speaker in the club. "The team lost again, and I am livid" puts the speaker in the team.
+Write "analysis" first: for each line, who it puts in the group. Some lines are about something else and put no one in it. Then list "members" with the full names under PEOPLE when they match.
+- The speaker of a line is in the group when they say "we", "our", or "me" about this group, or call themselves a member. A "we" in a story or about another group does not count.
+- The speaker of a line is in the group when they talk about this group from the inside, such as how it is run or how it did, even without naming it or saying "we". "Which she runs like a tyrant", said about the club's president, puts the speaker in the club. "The team lost again, and I am livid" puts the speaker in the team.
 - Asking whether someone goes with the group, or telling who leads it, does not by itself put the speaker in it.
 - People a line names as going with the whole group are in it, for example "the whole crew is going: me, Dev, and Lena".
 - A line can answer the line before it, for example "Are you going with the Thursday Flyers crew?" "Yes, me, Dev, and Lena."
@@ -319,27 +320,30 @@ async def call_or_retry(store: Store, llm: LLM, call: Call) -> Result:
 def group_lines(texts: list[str], group_names: list[str]) -> list[int]:
     """The indexes of the lines about a group: lines that name it under any spelling close to one of its
     names, the two lines after each, which often answer it, and lines that use its plain noun, such as "the
-    whole crew"."""
+    whole crew", with the line after each. Each word of a name must be close to the word said, so "now it's
+    five" does not name "Know It Alls"."""
 
     def words(text: str) -> list[str]:
         return re.findall(r"[a-z]+", text.lower())
 
     keys = [words(group_key(name)) for name in group_names if group_key(name)]
 
+    def close(said: list[str], key: list[str]) -> bool:
+        return SequenceMatcher(None, " ".join(said), " ".join(key)).ratio() >= LINE_MATCH and all(
+            SequenceMatcher(None, a, b).ratio() >= WORD_MATCH for a, b in zip(said, key)
+        )
+
     def names_it(text: str) -> bool:
         said = words(text)
-        return any(
-            SequenceMatcher(None, " ".join(said[i : i + len(key)]), " ".join(key)).ratio() >= LINE_MATCH
-            for key in keys
-            for i in range(len(said) - len(key) + 1)
-        )
+        return any(close(said[i : i + len(key)], key) for key in keys for i in range(len(said) - len(key) + 1))
 
     named = [i for i, text in enumerate(texts) if names_it(text)]
     near = {j for i in named for j in range(i, min(i + 3, len(texts)))}
     nouns = {w for i in near for w in words(texts[i]) if w in GROUP_WORDS} | {
         w for name in group_names for w in words(name) if w in GROUP_WORDS
     }
-    return sorted(near | {i for i, text in enumerate(texts) if nouns & set(words(text))})
+    plain = [i for i, text in enumerate(texts) if nouns & set(words(text))]
+    return sorted(near | {j for i in plain for j in range(i, min(i + 2, len(texts)))})
 
 
 def agreed(lists: list[list[Record]], person, model_call_id: int, *, needed: int) -> list[Record]:
