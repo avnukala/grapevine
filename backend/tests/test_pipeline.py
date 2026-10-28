@@ -351,7 +351,7 @@ def test_the_review_completes_relationships_groups_and_events(conn):
         "happenings": [
             {"name": "Electric Zoo 2018", "record": None, "start_date": "2018", "place": None, "people": ["Ray Patel"]}
         ],
-        "members": ["Sophie Moreau"],
+        "members": ["Jasper Lin", "Sophie Moreau"],
     }
     store = replay(conn, FakeChat(RULES, reviewed=reviewed))
     graph = store.graph
@@ -362,7 +362,6 @@ def test_the_review_completes_relationships_groups_and_events(conn):
     ]
     [group] = graph.groups.values()
     assert {names[m["person_id"]] for m in graph.members.values() if m["group_id"] == group["id"]} == {
-        "Ray Patel",
         "Jasper Lin",
         "Sophie Moreau",
     }

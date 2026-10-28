@@ -51,6 +51,8 @@ class Graph:
             case "member":
                 member = op["member"]
                 self.members[(member["group_id"], member["person_id"], member["source_fact_id"])] = member
+            case "member_removed":
+                self._remove_member(op["group_id"], op["person_id"])
             case "relationship":
                 self.relationships[op["relationship"]["id"]] = op["relationship"]
             case "relationship_removed":
@@ -75,6 +77,12 @@ class Graph:
             if any(p["person_id"] == person_id for p in event["people"]):
                 people = [p for p in event["people"] if p["person_id"] != person_id]
                 self.events[event_id] = {**event, "people": people}
+
+    def _remove_member(self, group_id: int, person_id: int) -> None:
+        """Drops a person from a group. A group lives in a run through its members, so it leaves with the last one."""
+        self.members = {key: m for key, m in self.members.items() if key[:2] != (group_id, person_id)}
+        if all(key[0] != group_id for key in self.members):
+            self.groups.pop(group_id, None)
 
     def room(self) -> list[int]:
         """The people in the room: everyone on the roster, and anyone a voice belongs to."""

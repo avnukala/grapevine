@@ -41,6 +41,8 @@ export function applyOp(state: RunState, op: Op): RunState {
       const key = `${op.member.group_id}:${op.member.person_id}:${op.member.source_fact_id}`;
       return { ...state, members: { ...state.members, [key]: op.member } };
     }
+    case "member_removed":
+      return removeMember(state, op.group_id, op.person_id);
     case "relationship":
       return { ...state, relationships: { ...state.relationships, [op.relationship.id]: op.relationship } };
     case "relationship_removed": {
@@ -57,6 +59,17 @@ export function applyOp(state: RunState, op: Op): RunState {
     case "roster":
       return { ...state, roster: op.person_ids };
   }
+}
+
+// A group lives in a run through its members, so it leaves with the last one.
+function removeMember(state: RunState, groupId: number, personId: number): RunState {
+  const members = Object.fromEntries(
+    Object.entries(state.members).filter(([, m]) => m.group_id !== groupId || m.person_id !== personId),
+  );
+  if (Object.values(members).some((m) => m.group_id === groupId)) return { ...state, members };
+  const groups = { ...state.groups };
+  delete groups[groupId];
+  return { ...state, members, groups };
 }
 
 function removePerson(state: RunState, id: number): RunState {

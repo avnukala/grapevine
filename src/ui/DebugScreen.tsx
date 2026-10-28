@@ -304,6 +304,8 @@ function describe(change: Change, state: RunState): string {
       return op.group.name;
     case "member":
       return `${personName(state, op.member.person_id)} in ${state.groups[op.member.group_id]?.name ?? op.member.group_id}`;
+    case "member_removed":
+      return `${personName(state, op.person_id)} left ${state.groups[op.group_id]?.name ?? op.group_id}`;
     case "relationship":
       return `${personName(state, op.relationship.a)} - ${personName(state, op.relationship.b)}: ${op.relationship.category} "${op.relationship.label}" ${op.relationship.status}`;
     case "relationship_removed":

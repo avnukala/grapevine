@@ -27,7 +27,7 @@ from grapevine.llm import LLM, Call, Result, watch_on
 from grapevine.names import misspelled
 from grapevine.store import GROUP_WORDS, Store, group_key, proper_group_name
 
-PROMPT_VERSION = "review-v24"
+PROMPT_VERSION = "review-v25"
 SAME_EVENT = 0.6
 # The prompt says that how two people met, or that they dated, is not a happening, and the model still lists it.
 NOT_HAPPENINGS = {"relationship", "meeting", "met", "dating", "friendship"}
@@ -244,7 +244,10 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
             ]
         ] + groups.output["new"]
         more = await asyncio.gather(*[members_of(store, llm, g, model=model, seed=seed) for g in found_groups])
-        found_groups = [{**g, "members": [*g["members"], *extra]} for g, extra in zip(found_groups, more)]
+        found_groups = [
+            {**g, "members": extra or g["members"], "named": [*g["members"], *extra]}
+            for g, extra in zip(found_groups, more)
+        ]
 
     def person(name: str, model_call_id: int) -> int | None:
         known = [p for p in store.graph.people.values() if misspelled(p["name"], name)]
@@ -264,10 +267,10 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
             in_room = [t for t in kept if {person(t["a"], call_id), person(t["b"], call_id)} <= room]
             apply_relationships(store, in_room, person, call_id, prune=True)
             apply_relationships(store, [t for t in kept if t not in in_room], person, call_id, prune=False)
-        if groups.output:
-            apply_groups(store, found_groups, person, groups.model_call_id)
         if events.output:
             apply_happenings(store, events.output["happenings"], record_events, person, events.model_call_id)
+        if groups.output:
+            apply_groups(store, found_groups, person, groups.model_call_id)
 
 
 def quoted(quote: str, texts: list[str]) -> bool:
@@ -413,12 +416,24 @@ def apply_relationships(store: Store, entries: list[Record], person, model_call_
 
 
 def apply_groups(store: Store, entries: list[Record], person, model_call_id: int) -> None:
-    for entry in [e for e in entries if proper_group_name(e["name"])]:
+    """Adds the members that the lines about a group name, or that the whole transcript names when no line
+    is about it. The whole transcript puts a guest in a league that a line beside him lists. A record member
+    that neither call names leaves the group, and a group that is a record event, such as "Friendsgiving",
+    loses all its members."""
+    events = {group_key(re.sub(r"\d+", "", e["name"]).strip()) for e in store.graph.events.values()}
+    for group in list(store.graph.groups.values()):
+        if group_key(group["name"]) in events:
+            for pid in {m["person_id"] for m in store.graph.members.values() if m["group_id"] == group["id"]}:
+                store.remove_member(group_id=group["id"], person_id=pid)
+    for entry in [e for e in entries if proper_group_name(e["name"]) and group_key(e["name"]) not in events]:
         found = [pid for name in entry["members"] if (pid := person(name, model_call_id)) is not None]
         if not found:
             continue
         group = store.group_for(entry["name"])
         known = {m["person_id"] for m in store.graph.members.values() if m["group_id"] == group["id"]}
+        named = {person(name, model_call_id) for name in entry["named"]}
+        for pid in known - named:
+            store.remove_member(group_id=group["id"], person_id=pid)
         new = list(dict.fromkeys(pid for pid in found if pid not in known))
         if not new:
             continue

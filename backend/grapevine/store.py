@@ -439,6 +439,15 @@ class Store:
             )
             self.emit({"type": "member", "member": member})
 
+    def remove_member(self, *, group_id: int, person_id: int) -> None:
+        with self.batch():
+            self.conn.execute(
+                "DELETE FROM group_members WHERE group_id = ? AND person_id = ? "
+                "AND source_fact_id IN (SELECT id FROM facts WHERE run_id = ?)",
+                (group_id, person_id, self.run_id),
+            )
+            self.emit({"type": "member_removed", "group_id": group_id, "person_id": person_id})
+
     def relationship(self, relationship_id: int) -> Record:
         row = self.conn.execute("SELECT * FROM relationships WHERE id = ?", (relationship_id,)).fetchone()
         evidence = self.conn.execute(

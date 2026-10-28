@@ -1,7 +1,16 @@
 import asyncio
 
 from grapevine.llm import Call, Result
-from grapevine.review import agreed, apply_happenings, call_or_retry, candidate_groups, group_lines, quoted, ties
+from grapevine.review import (
+    agreed,
+    apply_groups,
+    apply_happenings,
+    call_or_retry,
+    candidate_groups,
+    group_lines,
+    quoted,
+    ties,
+)
 
 IDS = {"Ray Patel": 1, "Jasper Lin": 2, "Sophie Moreau": 3}
 
@@ -134,3 +143,39 @@ def test_a_second_fact_about_a_member_does_not_list_them_twice(store):
         fact = store.add_fact({"kind": "membership", "text": text}, people=[], segment_ids=[], model_call_id=None)
         store.add_member(group_id=group["id"], person_id=felix, since=None, until=None, fact_id=fact["id"])
     assert [m["person_id"] for m in store.graph.members.values()] == [felix]
+
+
+def test_a_removed_member_leaves_the_group_and_the_last_one_takes_the_group(store):
+    felix = store.create_person(name="Felix Ward", aliases=[], gender="male")["id"]
+    dana = store.create_person(name="Dana Cole", aliases=[], gender="female")["id"]
+    group = store.group_for("Night Hawks")
+    fact = store.add_fact({"kind": "membership", "text": "x"}, people=[], segment_ids=[], model_call_id=None)
+    for pid in (felix, dana):
+        store.add_member(group_id=group["id"], person_id=pid, since=None, until=None, fact_id=fact["id"])
+    store.remove_member(group_id=group["id"], person_id=felix)
+    assert [m["person_id"] for m in store.graph.members.values()] == [dana]
+    store.remove_member(group_id=group["id"], person_id=dana)
+    assert store.graph.groups == {}
+    assert store.conn.execute("SELECT COUNT(*) FROM group_members").fetchone()[0] == 0
+
+
+def test_the_review_keeps_the_members_lines_name_and_drops_events_kept_as_groups(store):
+    ids = {
+        n: store.create_person(name=n, aliases=[], gender="female")["id"]
+        for n in ["Felix Ward", "Greta", "Mia Rao", "Dana Cole"]
+    }
+    store.upsert_event(None, {"name": "Harvest Supper 2024"}, people=[], model_call_id=None)
+    fact = store.add_fact({"kind": "membership", "text": "x"}, people=[], segment_ids=[], model_call_id=None)
+    for group, name in [("Night Hawks", "Felix Ward"), ("Night Hawks", "Greta"), ("Harvest Supper", "Felix Ward")]:
+        store.add_member(
+            group_id=store.group_for(group)["id"], person_id=ids[name], since=None, until=None, fact_id=fact["id"]
+        )
+    entry = {
+        "name": "Night Hawks",
+        "members": ["Felix Ward", "Dana Cole"],
+        "named": ["Felix Ward", "Mia Rao", "Dana Cole"],
+    }
+    apply_groups(store, [entry], lambda name, _: ids[name], model_call_id=1)
+    names = {pid: name for name, pid in ids.items()}
+    assert [g["name"] for g in store.graph.groups.values()] == ["Night Hawks"]
+    assert sorted(names[m["person_id"]] for m in store.graph.members.values()) == ["Dana Cole", "Felix Ward"]

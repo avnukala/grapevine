@@ -110,6 +110,7 @@ export type Op =
   | { type: "event_removed"; id: number }
   | { type: "group"; group: Group }
   | { type: "member"; member: Member }
+  | { type: "member_removed"; group_id: number; person_id: number }
   | { type: "relationship"; relationship: Relationship }
   | { type: "relationship_removed"; id: number }
   | { type: "person_removed"; id: number }
