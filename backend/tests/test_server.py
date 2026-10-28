@@ -96,6 +96,11 @@ def test_bad_run_config_is_a_bad_request(client, store):
     assert client.post("/api/runs", json=body | {"config": {"turn_rules": 5}}).status_code == 400
 
 
+def test_a_replay_speed_must_be_above_zero(client):
+    for speed in [0, -1]:
+        assert client.post("/api/runs", json={"session_id": 999, "source": "file", "speed": speed}).status_code == 422
+
+
 def test_a_run_cut_off_by_shutdown_fails_on_the_next_start(client, store, conn):
     run = server.ActiveRun(store.run_id, store, None)
     with client:

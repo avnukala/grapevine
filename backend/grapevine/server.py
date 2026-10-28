@@ -16,7 +16,7 @@ import openai
 import soundfile as sf
 from fastapi import FastAPI, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints
 
 from grapevine import db
 from grapevine.actions import ActionError, assign_speaker, pick_person, pick_speaker, rename_person, settle_conflict
@@ -262,7 +262,7 @@ async def session_audio(session_id: int) -> FileResponse:
 class NewRun(BaseModel):
     session_id: int
     source: Literal["file", "mic", "text"]
-    speed: float | None = None
+    speed: Annotated[float, Field(gt=0)] | None = None
     config: dict = {}
 
 
