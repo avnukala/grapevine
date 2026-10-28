@@ -100,7 +100,7 @@ EVENTS_SYSTEM = (
 - Not happenings: how or when two people met, a relationship, a job, school years, a visit planned for the coming days, or a game result.
 - A show, a party, or a game that people go to today or tonight is a happening, dated today.
 - record: the record event that is the same happening, or null. A move is never a birthday or a visit.
-- start_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD", resolved with today's date when the conversation says "last weekend" or "tonight". When people disagree on a date, use the date of the person who was there, or the date that the reasons given support, for example "Rosa got married in 2021, so the trip was 2022".
+- start_date: only as precise as what was said. "YYYY-MM-DD" only for a named day or a day near today, such as "last Saturday" or "tonight", resolved with today's date. "YYYY-MM" only for a named month or "last month". A season, "years ago", or a year alone is "YYYY". Null when no year can be worked out. When people disagree on a date, use the date of the person who was there, or the date that the reasons given support, for example "Rosa got married in 2021, so the trip was 2022".
 - name: what and who, for example "Greta's move to Seattle" or "Rosa's wedding". people: who took part."""
 )
 
