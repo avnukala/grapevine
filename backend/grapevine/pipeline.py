@@ -200,6 +200,9 @@ class Pipeline:
         await self._reextract(list(self.extracted_as))
         await review(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed, today=self.today)
         await summarize(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed)
+        # The extractor has stopped, so a fix that the room made during the review waits here as a RereadJob.
+        while not self.jobs.empty():
+            await self._reextract(self.jobs.get_nowait().segment_ids)
         self.store.set_phase("ended")
 
     async def _feed(self, chunks: AsyncIterator[np.ndarray]) -> None:

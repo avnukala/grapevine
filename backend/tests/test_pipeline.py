@@ -579,6 +579,48 @@ def test_an_edited_turn_is_read_again_with_its_new_text(conn):
     assert [f["text"] for f in store.graph.live_facts()] == ["Marcus Hale works in Seattle."]
 
 
+def test_a_turn_edited_during_the_review_is_read_again(conn, monkeypatch):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    run_id = conn.execute(
+        "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'live', '{}', 'test')"
+    ).lastrowid
+    rules = {
+        "Denver": {"facts": [fact("Marcus Hale works in Denver.", ["speaker"])]},
+        "Seattle": {"facts": [fact("Marcus Hale works in Seattle.", ["speaker"])]},
+    }
+    chat = FakeChat(rules)
+    llm = LLM(conn, chat, model_file_hash="t", reuse=True)
+    store = Store(conn, run_id)
+    pipeline = Pipeline(
+        store, fake_models([], chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[], vocabulary=[]
+    )
+    review = pipeline_module.review
+
+    async def edit_then_review(store, *args, **kwargs):
+        [segment_id] = store.graph.segments
+        store.update_segment(segment_id, text="I work in Seattle.")
+        pipeline.reread([segment_id], edited=True)
+        await review(store, *args, **kwargs)
+
+    monkeypatch.setattr(pipeline_module, "review", edit_then_review)
+    stop = asyncio.Event()
+
+    async def idle():
+        await stop.wait()
+        return
+        yield
+
+    async def go():
+        run = asyncio.create_task(pipeline.run(idle()))
+        await pipeline.add_text("Marcus Hale", "I work in Denver.")
+        stop.set()
+        await asyncio.wait_for(run, timeout=5)
+
+    asyncio.run(go())
+
+    assert [f["text"] for f in store.graph.live_facts()] == ["Marcus Hale works in Seattle."]
+
+
 def test_hints_give_the_roster_the_room_words_learned_names_and_the_last_lines(conn):
     conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
     run_id = conn.execute(
