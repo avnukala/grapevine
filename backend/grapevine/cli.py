@@ -5,13 +5,15 @@ import asyncio
 import json
 import logging
 import os
+import sqlite3
 import statistics
 from pathlib import Path
 
 from grapevine import db
 from grapevine.audio import file_chunks
 from grapevine.compare import differences, judge
-from grapevine.config import DB_PATH, ROOT, run_config
+from grapevine.config import DATA_DIR, DB_PATH, ROOT, run_config
+from grapevine.judge import Run, describe, judge_pair, judge_run
 from grapevine.llm import LLM
 from grapevine.merge import merge
 from grapevine.runs import (
@@ -97,6 +99,69 @@ async def compare_runs(first: int, second: int, *, with_judge: bool) -> None:
         print(f"judge (A = run {first}, B = run {second}):", json.dumps(verdict, indent=2))
 
 
+def judged_run(conn: sqlite3.Connection, run_id: int) -> Run:
+    recorded_at = conn.execute(
+        "SELECT sessions.recorded_at FROM runs JOIN sessions ON sessions.id = runs.session_id WHERE runs.id = ?",
+        (run_id,),
+    ).fetchone()[0]
+    return describe(open_store(conn, run_id).graph, recorded_at)
+
+
+def judge_llm() -> LLM:
+    """Reads runs without writing to their database, and keeps judge calls in a cache database of their own.
+    The cache has no runs table, so it skips the foreign keys that model_calls has in the main schema."""
+    cache = sqlite3.connect(DATA_DIR / "judge.db", isolation_level=None)
+    cache.executescript(db.SCHEMA)
+    return LLM(cache, chat(), model_file_hash=llm_file_hash(), reuse=True)
+
+
+def read_only() -> sqlite3.Connection:
+    conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+async def judge_command(run_id: int, gold_path: Path, *, seed: int) -> None:
+    gold = json.loads(gold_path.read_text())
+    run = judged_run(read_only(), run_id)
+    result = await judge_run(judge_llm(), gold, run, run_id=run_id, model=run_config({}).summary_model, seed=seed)
+    out = DATA_DIR / "judge" / f"run{run_id}-{gold_path.name.split('.')[0]}-seed{seed}.json"
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(json.dumps(result, indent=2, ensure_ascii=False))
+
+    print(f"run {run_id} against {gold_path.name}, seed {seed}")
+    for key, value in result["recall"].items():
+        label = "not_facts recorded" if key == "not_facts" else f"recall {key}"
+        print(f"  {label:28} {value:.2f}  ({len(result['items'][key])} items)")
+    print(f"  {'recall all':28} {result['recall_all']:.2f}")
+    for key, value in result["precision"].items():
+        if value["precision"] is not None:
+            print(
+                f"  {'precision ' + key:28} {value['precision']:.2f}  ({value['unsupported']} unsupported, "
+                f"{value['contradicted']} contradicted, {value['trivia']} trivia)"
+            )
+    for key, value in result["rubric"].items():
+        print(f"  {'rubric ' + key:28} {value['score'] if value else '-'}  {value['reason'] if value else ''}")
+    print(f"  {'rubric mean':28} {result['rubric_mean']:.2f}")
+    print(f"full verdicts: {out}")
+
+
+async def judge_pair_command(first: int, second: int, gold_path: Path, *, seed: int) -> None:
+    gold = json.loads(gold_path.read_text())
+    conn = read_only()
+    a, b = judged_run(conn, first), judged_run(conn, second)
+    result = await judge_pair(judge_llm(), gold, a, b, run_id=second, model=run_config({}).summary_model, seed=seed)
+    out = DATA_DIR / "judge" / f"pair{first}-{second}-{gold_path.name.split('.')[0]}-seed{seed}.json"
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(json.dumps(result, indent=2, ensure_ascii=False))
+
+    winners = {"A": f"run {first}", "B": f"run {second}", "tie": "tie"}
+    print(f"run {first} (A) against run {second} (B), kept only when both orders agree")
+    for key, verdict in result["verdicts"].items():
+        print(f"  {key:14} {winners[verdict]}")
+    print(f"full verdicts: {out}")
+
+
 def report(run_id: int) -> None:
     conn = db.connect(DB_PATH)
     store = open_store(conn, run_id)
@@ -164,6 +229,15 @@ def main() -> None:
     compare_parser.add_argument("first", type=int)
     compare_parser.add_argument("second", type=int)
     compare_parser.add_argument("--judge", action="store_true", help="also ask the local model which run is better")
+    judge_parser = commands.add_parser("judge", help="score a run against a gold checklist with the local model")
+    judge_parser.add_argument("run_id", type=int)
+    judge_parser.add_argument("--gold", type=Path, required=True)
+    judge_parser.add_argument("--seed", type=int, default=7)
+    pair_parser = commands.add_parser("judge-pair", help="ask which of two runs on the same sample is better")
+    pair_parser.add_argument("first", type=int)
+    pair_parser.add_argument("second", type=int)
+    pair_parser.add_argument("--gold", type=Path, required=True)
+    pair_parser.add_argument("--seed", type=int, default=7)
     serve_parser = commands.add_parser("serve", help="serve the API and WebSocket")
     serve_parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8790")))
     args = parser.parse_args()
@@ -180,6 +254,10 @@ def main() -> None:
             asyncio.run(merge_accepted())
         case "compare":
             asyncio.run(compare_runs(args.first, args.second, with_judge=args.judge))
+        case "judge":
+            asyncio.run(judge_command(args.run_id, args.gold, seed=args.seed))
+        case "judge-pair":
+            asyncio.run(judge_pair_command(args.first, args.second, args.gold, seed=args.seed))
         case "serve":
             import uvicorn
 
