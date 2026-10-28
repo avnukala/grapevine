@@ -210,11 +210,12 @@ def test_small_talk_is_hidden_and_lasting_facts_stay(store):
     assert [f["text"] for f in store.graph.live_facts()] == ["Felix Ward teaches in Lisbon.", "x"]
 
 
-def test_the_whole_transcript_adds_only_members_the_group_lines_name():
-    texts = ["Felix, you are in the Night Hawks.", "Yes, me, Dana, and Greta.", "Nice."]
-    group = {"name": "Night Hawks", "also_called": [], "members": ["Mia Rao", "Dana Cole", "Greta"]}
-    assert said_in_lines(group, texts) == ["Dana Cole", "Greta"]
-    assert said_in_lines({**group, "name": "Harbor Club"}, texts) == ["Mia Rao", "Dana Cole", "Greta"]
+def test_the_whole_transcript_adds_only_members_the_group_lines_name_or_who_speak_of_themselves():
+    texts = ["Felix, you are in the Night Hawks.", "Yes, me, Dana, and Greta.", "Tina and I founded them."]
+    speakers = ["Mia Rao", "Felix Ward", "Tina Alvarez"]
+    group = {"name": "Night Hawks", "also_called": [], "members": ["Mia Rao", "Dana Cole", "Greta", "Tina Alvarez"]}
+    assert said_in_lines(group, texts, speakers) == ["Dana Cole", "Greta", "Tina Alvarez"]
+    assert said_in_lines({**group, "name": "Harbor Club"}, texts, speakers) == group["members"]
 
 
 def test_ties_and_their_evidence_are_not_offered_as_small_talk(store):

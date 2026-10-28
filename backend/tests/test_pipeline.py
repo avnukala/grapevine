@@ -362,6 +362,7 @@ def test_the_review_completes_relationships_groups_and_events(conn):
     ]
     [group] = graph.groups.values()
     assert {names[m["person_id"]] for m in graph.members.values() if m["group_id"] == group["id"]} == {
+        "Ray Patel",
         "Jasper Lin",
         "Sophie Moreau",
     }

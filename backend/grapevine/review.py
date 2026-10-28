@@ -39,6 +39,7 @@ MAX_CANDIDATES = 8
 THE_NAME = re.compile(r"\b(The [A-Z][\w'-]*(?: [A-Z][\w'-]*)*)")
 NOUN_NAME = re.compile(r"\b((?:[A-Z][\w'-]* )+(?:crew|team|league|club|band|Crew|Team|League|Club|Band))\b")
 QUOTE_MATCH = 0.8
+FIRST_PERSON = {"i", "me", "my", "we", "us", "our"}
 SPEAKER = re.compile(r"^\s*[A-Z][\w'-]*(?: [A-Z][\w'-]*)*:\s")
 VOTE_TEMPERATURE = 0.5
 RETRY_TEMPERATURE = 0.3
@@ -247,6 +248,7 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
     known_groups = [g["name"] for g in store.graph.groups.values()]
     turns = sorted(store.graph.segments.values(), key=lambda s: s["start_ms"])
     texts = [s["text"] for s in turns]
+    speakers = [names[s["person_id"]]["name"] if s["person_id"] in names else None for s in turns]
     groups_call = ask(GROUPS_SYSTEM, groups_schema(known_groups, candidate_groups(texts, known_groups), people))
     small_talk_user, small_talk_schema, small_talk_facts = small_talk_message(store)
     small_talk_call = Call(
@@ -277,7 +279,7 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
         ] + groups.output["new"]
         more = await asyncio.gather(*[members_of(store, llm, g, model=model, seed=seed) for g in found_groups])
         found_groups = [
-            {**g, "members": [*extra, *said_in_lines(g, texts)], "named": [*g["members"], *extra]}
+            {**g, "members": [*extra, *said_in_lines(g, texts, speakers)], "named": [*g["members"], *extra]}
             for g, extra in zip(found_groups, more)
         ]
 
@@ -383,13 +385,16 @@ def group_lines(texts: list[str], group_names: list[str]) -> list[int]:
     return sorted(near | {j for i in plain for j in range(i, min(i + 2, len(texts)))})
 
 
-def said_in_lines(group: Record, texts: list[str]) -> list[str]:
-    """The members the whole-transcript call gives that the lines about the group name, or all of them when
-    no line is about it. That call puts the speaker of a line about a league in it, such as "Arjun, you're
-    in the league", while it also finds members that the members call misses."""
+def said_in_lines(group: Record, texts: list[str], speakers: list[str | None]) -> list[str]:
+    """The members the whole-transcript call gives that the lines about the group name, or that speak of
+    themselves in one, such as "Arjun and I founded that league", or all of them when no line is about the
+    group. That call puts the speaker of a line about a league in it, such as "Arjun, you're in the league",
+    while it also finds members that the members call misses."""
     picked = group_lines(texts, [group["name"], *group["also_called"]])
-    said = {w for i in picked for w in re.findall(r"[a-z']+", texts[i].lower())}
-    return [name for name in group["members"] if not picked or name.split()[0].lower() in said]
+    words = [set(re.findall(r"[a-z']+", texts[i].lower())) for i in picked]
+    said = set().union(*words)
+    first_person = {speakers[i] for i, w in zip(picked, words) if w & FIRST_PERSON}
+    return [name for name in group["members"] if not picked or name.split()[0].lower() in said or name in first_person]
 
 
 def agreed(lists: list[list[Record]], person, model_call_id: int, *, needed: int) -> list[Record]:
