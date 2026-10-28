@@ -400,7 +400,8 @@ class Pipeline:
     def _pieces(self, turn: Turn) -> list[tuple[int, int, np.ndarray]]:
         """Splits a turn at its pauses where the voice changes, since the speaker detector can give two
         similar voices one label. Each piece comes with its voice. A piece shorter than MIN_VOICE_MS joins
-        the piece before it, because the voice of a short piece is not reliable."""
+        the piece before it, because the voice of a short piece is not reliable. Long pieces with one voice
+        join too, and keep the mean of their voices, weighted by length."""
         bounds = list(pairwise([turn.start_ms, *turn.pauses, turn.end_ms]))
         voiced = [bound for i, bound in enumerate(bounds) if i == 0 or bound[1] - bound[0] >= MIN_VOICE_MS]
         clips = [self.audio.slice(start_ms, end_ms) for start_ms, end_ms in voiced]
@@ -408,13 +409,14 @@ class Pipeline:
         pieces: list[tuple[int, int, np.ndarray]] = []
         for start_ms, end_ms in bounds:
             if pieces:
-                last_start, _, last_voice = pieces[-1]
+                last_start, last_end, last_voice = pieces[-1]
                 if (start_ms, end_ms) not in voices:
                     pieces[-1] = (last_start, end_ms, last_voice)
                     continue
-                if float(voices[start_ms, end_ms] @ last_voice) >= self.config.new_voice_threshold:
-                    joined = self.models.embedder.embed([self.audio.slice(last_start, end_ms)])[0]
-                    pieces[-1] = (last_start, end_ms, joined)
+                voice = voices[start_ms, end_ms]
+                if float(voice @ last_voice) >= self.config.new_voice_threshold:
+                    joined = last_voice * (last_end - last_start) + voice * (end_ms - start_ms)
+                    pieces[-1] = (last_start, end_ms, joined / np.linalg.norm(joined))
                     continue
             pieces.append((start_ms, end_ms, voices[start_ms, end_ms]))
         return pieces

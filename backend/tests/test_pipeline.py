@@ -734,33 +734,46 @@ def test_an_edit_keeps_its_mark_until_a_read_of_its_new_text_answers(conn, monke
     assert segment_id in pipeline.edited
 
 
-def pieces_of(store, lines, turn):
+def piece_pipeline(store, lines, total_ms):
     chat = FakeChat({})
     llm = LLM(store.conn, chat, model_file_hash="t", reuse=True)
     pipeline = Pipeline(
         store, fake_models([], chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[], vocabulary=[]
     )
-    pipeline.audio.append(render(lines, turn.end_ms))
-    pieces = pipeline._pieces(turn)
-    return [(start_ms, end_ms) for start_ms, end_ms, _ in pieces], pipeline.models.embedder.calls
+    pipeline.audio.append(render(lines, total_ms))
+    return pipeline
 
 
 def test_a_turn_embeds_all_its_pieces_in_one_call(store):
     lines = [Line(0, 0, 2500, ""), Line(1, 3000, 5500, ""), Line(2, 6000, 8500, "")]
+    pipeline = piece_pipeline(store, lines, 8500)
 
-    pieces, calls = pieces_of(store, lines, Turn(0, 0, 8500, (2750, 5750)))
+    pieces = pipeline._pieces(Turn(0, 0, 8500, (2750, 5750)))
 
-    assert pieces == [(0, 2750), (2750, 5750), (5750, 8500)]
-    assert len(calls) == 1
+    assert [piece[:2] for piece in pieces] == [(0, 2750), (2750, 5750), (5750, 8500)]
+    assert len(pipeline.models.embedder.calls) == 1
 
 
 def test_a_short_piece_after_the_first_is_not_embedded(store):
     lines = [Line(0, 0, 2500, ""), Line(0, 2700, 3500, ""), Line(1, 4000, 6500, "")]
+    pipeline = piece_pipeline(store, lines, 6500)
 
-    pieces, calls = pieces_of(store, lines, Turn(0, 0, 6500, (2600, 3750)))
+    pieces = pipeline._pieces(Turn(0, 0, 6500, (2600, 3750)))
 
-    assert pieces == [(0, 3750), (3750, 6500)]
-    assert calls == [[2600 * SAMPLE_RATE // 1000, 2750 * SAMPLE_RATE // 1000]]
+    assert [piece[:2] for piece in pieces] == [(0, 3750), (3750, 6500)]
+    assert pipeline.models.embedder.calls == [[2600 * SAMPLE_RATE // 1000, 2750 * SAMPLE_RATE // 1000]]
+
+
+def test_joined_pieces_keep_the_mean_of_their_voices_by_length(store):
+    pipeline = piece_pipeline(store, [], 5000)
+    voices = [np.array([1.0, 0.0]), np.array([0.96, 0.28])]
+    pipeline.models.embedder.embed = lambda clips: voices
+
+    (piece,) = pipeline._pieces(Turn(0, 0, 5000, (3000,)))
+
+    joined = 3000 * voices[0] + 2000 * voices[1]
+    assert piece[:2] == (0, 5000)
+    np.testing.assert_allclose(piece[2], joined / np.linalg.norm(joined))
 
 
 def test_hints_give_the_roster_the_room_words_learned_names_and_the_last_lines(conn):
