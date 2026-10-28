@@ -238,6 +238,28 @@ def test_an_event_that_only_a_revised_fact_told_of_goes(store):
     assert all(r["met_event_id"] is None for r in store.graph.relationships.values())
 
 
+def test_an_event_that_a_later_fact_of_the_same_output_names_stays(store):
+    tina = store.create_person(name="Tina Alvarez", aliases=["Tina"], gender="female")["id"]
+    trip = fact("Tina Alvarez went to Lisbon in 2019.", ["speaker"], kind="story", event="Lisbon trip")
+    apply(store, turn(store, tina, "I went to Lisbon in 2019."), facts=[trip])
+    first = max(store.graph.facts)
+    [event_id] = store.graph.events
+    ref = store.graph.ref("e", event_id)
+
+    apply(
+        store,
+        turn(store, tina, "No, 2018, and I lost my bag there."),
+        events=[{"id": ref, "name": "Lisbon trip", "people": ["speaker"]}],
+        facts=[
+            fact("Tina Alvarez went to Lisbon in 2018.", ["speaker"], kind="correction", revises=f"f{first}"),
+            fact("Tina Alvarez lost her bag in Lisbon.", ["speaker"], kind="story", event="Lisbon trip"),
+        ],
+    )
+
+    assert list(store.graph.events) == [event_id]
+    assert store.graph.facts[max(store.graph.facts)]["event_id"] == event_id
+
+
 def test_an_added_detail_marked_as_a_dispute_is_only_a_fact_unless_its_date_differs(store):
     marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
     felix = store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")["id"]

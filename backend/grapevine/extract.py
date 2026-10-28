@@ -370,6 +370,7 @@ def apply_output(store: Store, held: Held) -> None:
                 evidence=evidence,
                 model_call_id=teller.model_call_id,
             )
+        drop_revised_events(store, model_call_id=teller.model_call_id)
 
         for ambiguity in bare_first_names(store, text):
             if ambiguity.mention not in held.answers:
@@ -714,12 +715,8 @@ def dates_differ(a: Record, b: Record) -> bool:
 
 
 def revise(store: Store, old: int, new: int, *, model_call_id: int) -> None:
-    """A teller corrects their own fact, or agrees with a correction. That settles a dispute about the fact. An
-    event that only revised facts told of, such as "Electric Zoo 2019" after the teller gives in to 2018, goes."""
+    """A teller corrects their own fact, or agrees with a correction. That settles a dispute about the fact."""
     store.update_fact(old, revised_by_fact_id=new, model_call_id=model_call_id)
-    event_id = store.graph.facts[old]["event_id"]
-    if event_id is not None and not any(f["event_id"] == event_id for f in store.graph.live_facts()):
-        store.remove_event(event_id, model_call_id=model_call_id)
     for prompt in store.graph.active_prompts():
         if prompt["reason"] == "conflict" and old in prompt["payload"]["fact_ids"]:
             store.dismiss_prompt(prompt["id"])
@@ -779,6 +776,16 @@ def retell(store: Store, old: list[int], new: list[int], *, model_call_id: int) 
     for relationship in list(store.graph.relationships.values()):
         if relationship["evidence"] and set(relationship["evidence"]) <= set(old):
             store.remove_relationship(relationship["id"])
+    drop_revised_events(store, model_call_id=model_call_id)
+
+
+def drop_revised_events(store: Store, *, model_call_id: int | None) -> None:
+    """Removes an event that only revised facts tell of, such as "Electric Zoo 2019" after the teller gives in
+    to 2018. It runs after a whole output, because a later fact of the output can still name the event."""
+    live = {f["event_id"] for f in store.graph.live_facts()}
+    revised = {f["event_id"] for f in store.graph.facts.values() if f["revised_by_fact_id"] is not None}
+    for event_id in revised - live - {None}:
+        store.remove_event(event_id, model_call_id=model_call_id)
 
 
 def dispute(store: Store, old: int, new: int, *, model_call_id: int) -> None:
