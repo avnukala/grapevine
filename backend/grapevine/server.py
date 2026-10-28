@@ -5,6 +5,7 @@ import json
 import logging
 import shutil
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import date, datetime
 from pathlib import Path
 from typing import Annotated, Literal
@@ -52,12 +53,21 @@ AUDIO_SUFFIXES = {".mp3", ".wav", ".m4a", ".flac", ".ogg", ".aiff"}
 # Every person and speaker needs a name, because name matching splits it into words.
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 
-app = FastAPI(title="Grapevine")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """A run that was going when the last server stopped can never finish, so start marks it failed. Shutdown stops
+    each run that is going but does not wait for it, so the next start marks it failed too."""
+    conn.execute("UPDATE runs SET status = 'failed' WHERE status = 'running'")
+    yield
+    for run in active.values():
+        run.stop.set()
+
+
+app = FastAPI(title="Grapevine", lifespan=lifespan)
 # One connection for the whole server. Every route that uses it, or a running pipeline, is async, so it runs on
 # the event loop with the pipelines and never on a worker thread at the same time.
 conn = db.connect(DB_PATH)
-# A run that was going when the last server stopped can never finish, so it would stay "running" forever.
-conn.execute("UPDATE runs SET status = 'failed' WHERE status = 'running'")
 clients: set[asyncio.Queue] = set()
 active: dict[int, ActiveRun] = {}
 # One store per run that is not going, because each store counts the change seq of its run on its own.
@@ -577,10 +587,3 @@ async def answer_merge(run_id: int, prompt_id: int, body: MergeAnswer) -> Record
     except ActionError as error:
         raise HTTPException(400, str(error)) from error
     return store.graph.prompts[prompt_id]
-
-
-@app.on_event("shutdown")
-async def stop_all() -> None:
-    for run in active.values():
-        run.stop.set()
-        set_status(conn, run.run_id, "stopped")

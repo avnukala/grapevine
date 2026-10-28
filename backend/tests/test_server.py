@@ -41,6 +41,19 @@ def test_bad_run_config_is_a_bad_request(client, store):
     assert client.post("/api/runs", json=body | {"config": {"turn_rules": 5}}).status_code == 400
 
 
+def test_a_run_cut_off_by_shutdown_fails_on_the_next_start(client, store, conn):
+    run = server.ActiveRun(store.run_id, store, None)
+    with client:
+        server.set_status(conn, store.run_id, "running")
+        server.active[store.run_id] = run
+    status = conn.execute("SELECT status FROM runs WHERE id = ?", (store.run_id,)).fetchone()[0]
+    assert run.stop.is_set() and status == "running"
+
+    with client:
+        pass
+    assert conn.execute("SELECT status FROM runs WHERE id = ?", (store.run_id,)).fetchone()[0] == "failed"
+
+
 def test_merge_waits_for_the_run(client, store):
     server.active[store.run_id] = object()
     assert client.post("/api/merge").status_code == 409
