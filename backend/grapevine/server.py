@@ -225,12 +225,17 @@ class SessionUpdate(BaseModel):
 
 @app.patch("/api/sessions/{session_id}")
 async def update_session(session_id: int, body: SessionUpdate) -> Record:
+    """A run of the session that is going spells a new roster from its next turn, as it does after a rename."""
     session_or_404(session_id)
     for key, value in body.model_dump(exclude_none=True).items():
         if key == "roster":
             value = json.dumps(clean_terms(value))
         conn.execute(f"UPDATE sessions SET {key} = ? WHERE id = ?", (value, session_id))
-    return session(conn, session_id)
+    updated = session(conn, session_id)
+    for run_id, run in active.items():
+        if run_row(run_id)["session_id"] == session_id:
+            run.pipeline.roster = updated["roster"]
+    return updated
 
 
 class Words(BaseModel):

@@ -324,6 +324,22 @@ def test_audio_files_outside_the_checkout_are_listed(client, tmp_path, monkeypat
     assert client.get("/api/audio-files").json() == [str((tmp_path / "samples" / "dinner.mp3").resolve())]
 
 
+def test_a_new_roster_reaches_the_run_of_its_session(client, store, conn):
+    class Running:
+        pipeline = type("Pipeline", (), {"roster": []})()
+
+    run = Running()
+    server.active[store.run_id] = run
+    other = conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('other', '2025-10-19')").lastrowid
+
+    client.patch(f"/api/sessions/{other}", json={"roster": ["Felix Ward"]})
+    assert run.pipeline.roster == []
+    response = client.patch("/api/sessions/1", json={"roster": [" Mia  Rao ", "Dana Cole", ""]})
+
+    assert response.json()["roster"] == ["Mia Rao", "Dana Cole"]
+    assert run.pipeline.roster == ["Mia Rao", "Dana Cole"]
+
+
 def test_new_words_reach_every_run_that_is_going(client, store):
     class Running:
         pipeline = type("Pipeline", (), {"vocabulary": []})()
