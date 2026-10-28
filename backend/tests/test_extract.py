@@ -3,7 +3,7 @@ import pytest
 from grapevine.actions import ActionError, assign_speaker, pick_person, rename_person, settle_conflict
 from grapevine.extract import Held, Teller, apply_output, couple_of, respell_people, retell, user_message
 from grapevine.runs import open_store
-from grapevine.store import proper_group_name
+from grapevine.store import name_matches, proper_group_name
 from tests.fakes import empty_output, fact
 
 
@@ -728,3 +728,23 @@ def test_a_turn_read_again_does_not_see_its_own_facts(store):
 
     assert "nurse in Denver." not in again.split("NEW TURN")[0]
     assert "nurse in Denver." in after
+
+
+def test_two_people_with_one_full_name_match_as_the_first(store):
+    first = store.create_person(name="Mia Rao", aliases=["Mia"], gender="female")["id"]
+    store.conn.execute("INSERT INTO people (name, aliases, gender) VALUES ('Mia Rao', '[\"Mia\"]', 'female')")
+
+    assert [p["id"] for p in name_matches(store.conn, "Mia Rao")] == [first]
+    assert [p["id"] for p in name_matches(store.conn, "Mia")] == [first]
+
+
+def test_a_respelling_never_takes_the_name_of_another_person(store):
+    store.create_person(name="Mia Rao", aliases=["Mia"], gender="female")
+    heard = store.create_person(name="Mira Rao", aliases=["Mira"], gender="female")["id"]
+
+    store.update_person(heard, add_aliases=["Mira Rao"], gender=None, name="Mia Rao")
+
+    person = store.person(heard)
+    assert person["name"] == "Mira Rao" and "Mia Rao" in person["aliases"]
+    with pytest.raises(ActionError):
+        rename_person(store, heard, "Mia Rao")

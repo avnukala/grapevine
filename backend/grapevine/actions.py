@@ -83,6 +83,8 @@ def rename_person(store: Store, person_id: int, name: str) -> None:
         return
     if any(p["name"].lower() == name.lower() for p in store.graph.people.values() if p["id"] != person_id):
         raise ActionError(f"{name} is already in this run")
+    if store.name_taken(name, person_id):
+        raise ActionError(f"Someone from another session is already called {name}")
     with store.batch():
         store.update_person(person_id, add_aliases=[old, name.split()[0]], gender=None, name=name)
         for fact in list(store.graph.facts.values()):

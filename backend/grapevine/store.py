@@ -92,11 +92,25 @@ def proper_group_name(name: str) -> bool:
 def name_matches(conn: sqlite3.Connection, name: str) -> list[Record]:
     """People whose full name or alias equals `name`, else whose first name equals a one-word `name`."""
     wanted = name.strip().lower()
-    people = [person_record(r) for r in conn.execute("SELECT * FROM people WHERE merged_into_id IS NULL")]
+    people = [person_record(r) for r in conn.execute("SELECT * FROM people WHERE merged_into_id IS NULL ORDER BY id")]
     exact = [p for p in people if wanted in {p["name"].lower(), *(a.lower() for a in p["aliases"])}]
     if exact or " " in wanted:
-        return exact
-    return [p for p in people if p["name"].lower().split()[0] == wanted]
+        return one_per_full_name(exact)
+    return one_per_full_name([p for p in people if p["name"].lower().split()[0] == wanted])
+
+
+def one_per_full_name(people: list[Record]) -> list[Record]:
+    """Two people with the same full name, such as a respelling that copied a known person, are one person to
+    the room, so the first stands for both. Asking "Ravi Kapoor or Ravi Kapoor?" has no answer."""
+    seen: set[str] = set()
+    kept = []
+    for person in people:
+        key = person["name"].lower()
+        if " " in key and key in seen:
+            continue
+        seen.add(key)
+        kept.append(person)
+    return kept
 
 
 class Store:
@@ -172,10 +186,21 @@ class Store:
             self.emit({"type": "person", "person": person})
         return person
 
+    def name_taken(self, name: str, person_id: int) -> bool:
+        """Whether another person, of any session, already has this full name."""
+        row = self.conn.execute(
+            "SELECT 1 FROM people WHERE lower(name) = ? AND id != ? AND merged_into_id IS NULL",
+            (name.lower(), person_id),
+        ).fetchone()
+        return row is not None
+
     def update_person(
         self, person_id: int, *, add_aliases: list[str], gender: str | None, name: str | None = None
     ) -> None:
         person = self.person(person_id)
+        if name and name.lower() != person["name"].lower() and self.name_taken(name, person_id):
+            # Taking the name of another person makes two people that no name can tell apart.
+            add_aliases, name = [*add_aliases, name], None
         name = name or person["name"]
         known = {a.lower() for a in person["aliases"]} | {name.lower()}
         aliases = person["aliases"] + [a for a in dict.fromkeys(add_aliases) if a.lower() not in known]
