@@ -322,7 +322,6 @@ def run_record(run_id: int) -> Record:
 
 @app.get("/api/runs/{run_id}")
 async def get_run(run_id: int) -> Record:
-    store_for(run_id)
     record = run_record(run_id)
     record["session"] = session(conn, record["session_id"]) if record["session_id"] else None
     return record

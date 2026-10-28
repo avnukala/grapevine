@@ -36,6 +36,12 @@ def test_accept_needs_a_finished_run(client, store):
     assert client.post(f"/api/runs/{store.run_id}/accept").json()["accepted"] == 1
 
 
+def test_reading_a_run_does_not_replay_it(client, store):
+    assert client.get(f"/api/runs/{store.run_id}").json()["session"]["name"] == "test"
+    assert server.stores == {}
+    assert client.get("/api/runs/999").status_code == 404
+
+
 def test_bad_run_config_is_a_bad_request(client, store):
     body = {"session_id": 1, "source": "text"}
     assert client.post("/api/runs", json=body | {"config": {"bogus": 1}}).status_code == 400
