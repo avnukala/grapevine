@@ -8,7 +8,9 @@ from grapevine.review import (
     call_or_retry,
     candidate_groups,
     group_lines,
+    hide_small_talk,
     quoted,
+    small_talk_message,
     ties,
 )
 
@@ -179,3 +181,28 @@ def test_the_review_keeps_the_members_lines_name_and_drops_events_kept_as_groups
     names = {pid: name for name, pid in ids.items()}
     assert [g["name"] for g in store.graph.groups.values()] == ["Night Hawks"]
     assert sorted(names[m["person_id"]] for m in store.graph.members.values()) == ["Dana Cole", "Felix Ward"]
+
+
+def test_small_talk_is_hidden_and_lasting_facts_stay(store):
+    felix = store.create_person(name="Felix Ward", aliases=[], gender="male")["id"]
+    segment = store.add_segment(
+        start_ms=0,
+        end_ms=1,
+        speaker_label="A",
+        timings={},
+        person_id=felix,
+        confidence=1.0,
+        text="I teach in Lisbon. The soup is cold.",
+    )
+    texts = [("personal", "Felix Ward teaches in Lisbon."), ("story", "The soup is cold."), ("membership", "x")]
+    ids = [
+        store.add_fact(
+            {"kind": kind, "text": text}, people=[(felix, "subject")], segment_ids=[segment["id"]], model_call_id=None
+        )["id"]
+        for kind, text in texts
+    ]
+    user, _, facts = small_talk_message(store)
+    assert list(facts.values()) == ids[:2] and "f2 The soup is cold." in user
+    answers = {"f1": {"note": "job", "lasting": True}, "f2": {"note": "tonight", "lasting": False}}
+    hide_small_talk(store, answers, facts, model_call_id=1)
+    assert [f["text"] for f in store.graph.live_facts()] == ["Felix Ward teaches in Lisbon.", "x"]

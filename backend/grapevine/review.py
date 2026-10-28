@@ -27,7 +27,7 @@ from grapevine.llm import LLM, Call, Result, watch_on
 from grapevine.names import misspelled
 from grapevine.store import GROUP_WORDS, Store, group_key, proper_group_name
 
-PROMPT_VERSION = "review-v25"
+PROMPT_VERSION = "review-v27"
 SAME_EVENT = 0.6
 # The prompt says that how two people met, or that they dated, is not a happening, and the model still lists it.
 NOT_HAPPENINGS = {"relationship", "meeting", "met", "dating", "friendship"}
@@ -104,6 +104,13 @@ EVENTS_SYSTEM = (
 - name: what and who, for example "Greta's move to Seattle" or "Rosa's wedding". people: who took part."""
 )
 
+SMALL_TALK_SYSTEM = """You read the facts recorded from a group conversation beside its transcript, and mark the ones that are not lasting history about the people. Return JSON only.
+
+For each fact, write a short note, then "lasting".
+- lasting is false for small talk: a remark about tonight or this gathering (the food, the game being played, who drives, who is late, a reservation), an errand or chore (a car inspection, who does the dishes, cooking on Saturday), a mood or wish of the moment, a joke or tease, a question, or a request to hear a story.
+- lasting is true for history: jobs, homes, house rules, moves, school, family, pets, hobbies, groups, relationships, how people met, life events such as an engagement, a wedding, an injury, or a trip, a story from the past, and plans to host or go to a party, a holiday, a trip, or a wedding.
+- When unsure, lasting is true."""
+
 NULLABLE = {"type": ["string", "null"]}
 NAMES = {"type": "array", "items": {"type": "string"}}
 TEXT = {"type": "string"}
@@ -170,6 +177,19 @@ def events_schema(record: list[str]) -> dict:
 
 
 MEMBERS_SCHEMA = _object(analysis=ANALYSIS, members=NAMES)
+NOTE = {"type": "string", "maxLength": 100}
+
+
+def small_talk_message(store: Store) -> tuple[str, dict, dict[str, int]]:
+    """The facts that turns recorded, other than memberships, each under its ref, then the transcript."""
+    graph = store.graph
+    names = {pid: p["name"] for pid, p in graph.people.items()}
+    facts = {graph.ref("f", f["id"]): f for f in graph.live_facts() if f["segment_ids"] and f["kind"] != "membership"}
+    turns = sorted(graph.segments.values(), key=lambda s: s["start_ms"])
+    lines = ["FACTS:", *(f"{ref} {f['text']}" for ref, f in facts.items()), "", "TRANSCRIPT:"]
+    lines += [f"{names.get(s['person_id'], 'Unknown speaker')}: {s['text']}" for s in turns]
+    schema = _object(**{ref: _object(note=NOTE, lasting={"type": "boolean"}) for ref in facts})
+    return "\n".join(lines), schema, {ref: f["id"] for ref, f in facts.items()}
 
 
 def user_message(store: Store, *, today: str) -> str:
@@ -221,9 +241,14 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
     turns = sorted(store.graph.segments.values(), key=lambda s: s["start_ms"])
     texts = [s["text"] for s in turns]
     groups_call = ask(GROUPS_SYSTEM, groups_schema(known_groups, candidate_groups(texts, known_groups), people))
-    groups, events, *voted = await asyncio.gather(
+    small_talk_user, small_talk_schema, small_talk_facts = small_talk_message(store)
+    small_talk_call = Call(
+        "reviewer", model, PROMPT_VERSION, SMALL_TALK_SYSTEM, small_talk_user, small_talk_schema, seed, 6000
+    )
+    groups, events, small_talk, *voted = await asyncio.gather(
         call_or_retry(store, llm, groups_call),
         call_or_retry(store, llm, ask(EVENTS_SYSTEM, events_schema(list(record_events)))),
+        call_or_retry(store, llm, small_talk_call),
         *[
             llm.call(vote, run_id=store.run_id, audio_ms=store.audio_ms, watch=watch if i == 0 else None)
             for i, vote in enumerate(votes)
@@ -271,6 +296,8 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
             apply_happenings(store, events.output["happenings"], record_events, person, events.model_call_id)
         if groups.output:
             apply_groups(store, found_groups, person, groups.model_call_id)
+        if small_talk.output:
+            hide_small_talk(store, small_talk.output, small_talk_facts, small_talk.model_call_id)
 
 
 def quoted(quote: str, texts: list[str]) -> bool:
@@ -449,6 +476,14 @@ def apply_groups(store: Store, entries: list[Record], person, model_call_id: int
         )
         for pid in new:
             store.add_member(group_id=group["id"], person_id=pid, since=None, until=None, fact_id=fact["id"])
+
+
+def hide_small_talk(store: Store, answers: Record, facts: dict[str, int], model_call_id: int) -> None:
+    """Hides each fact the review calls small talk the way a correction hides a fact, so the change log keeps
+    it. A fact revised by itself has no newer version."""
+    for ref, answer in answers.items():
+        if not answer["lasting"]:
+            store.update_fact(facts[ref], revised_by_fact_id=facts[ref], model_call_id=model_call_id)
 
 
 def apply_happenings(

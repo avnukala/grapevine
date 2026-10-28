@@ -141,6 +141,8 @@ class FakeChat:
                 return json.dumps({"stories": [], "relationships": []})
             case "merger":
                 return json.dumps(self.merged)
+            case "reviewer" if "lasting" in request["messages"][0]["content"]:
+                return json.dumps({})
             case "reviewer":
                 return json.dumps(self.reviewed)
         new_turn = user.split("NEW TURN", 1)[1]
