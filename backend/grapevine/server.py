@@ -69,7 +69,9 @@ app = FastAPI(title="Grapevine", lifespan=lifespan)
 # One connection for the whole server. Every route that uses it, or a running pipeline, is async, so it runs on
 # the event loop with the pipelines and never on a worker thread at the same time.
 conn = db.connect(DB_PATH)
-clients: set[asyncio.Queue] = set()
+# The messages a client waits for, or None once it fell too far behind and its socket must close.
+clients: set[asyncio.Queue[str | None]] = set()
+CLIENT_QUEUE_SIZE = 1000
 active: dict[int, ActiveRun] = {}
 # One store per run that is not going, because each store counts the change seq of its run on its own.
 stores: dict[int, Store] = {}
@@ -85,8 +87,18 @@ async def action_error(request: Request, error: ActionError) -> JSONResponse:
 
 
 def broadcast(message: Record) -> None:
-    for queue in clients:
-        queue.put_nowait(message)
+    """Sends a message to every client. A client that falls CLIENT_QUEUE_SIZE messages behind loses its socket, and
+    then reconnects and loads the changes it missed."""
+    text = json.dumps(message)
+    for queue in list(clients):
+        try:
+            queue.put_nowait(text)
+        except asyncio.QueueFull:
+            log.warning("closing a websocket that fell %s messages behind", CLIENT_QUEUE_SIZE)
+            clients.discard(queue)
+            while not queue.empty():
+                queue.get_nowait()
+            queue.put_nowait(None)
 
 
 def store_for(run_id: int) -> Store:
@@ -121,11 +133,12 @@ def threshold(run_id: int) -> float:
 @app.websocket("/ws")
 async def websocket(socket: WebSocket) -> None:
     await socket.accept()
-    queue: asyncio.Queue = asyncio.Queue()
+    queue: asyncio.Queue[str | None] = asyncio.Queue(maxsize=CLIENT_QUEUE_SIZE)
     clients.add(queue)
     try:
-        while True:
-            await socket.send_text(json.dumps(await queue.get()))
+        while (text := await queue.get()) is not None:
+            await socket.send_text(text)
+        await socket.close()
     except WebSocketDisconnect:
         pass
     finally:

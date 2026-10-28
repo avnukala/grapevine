@@ -22,6 +22,42 @@ def client(conn, store, monkeypatch):
     return TestClient(server.app)
 
 
+def test_a_client_that_falls_behind_loses_its_socket(monkeypatch):
+    monkeypatch.setattr(server, "clients", set())
+    monkeypatch.setattr(server, "CLIENT_QUEUE_SIZE", 2)
+
+    class SlowSocket:
+        def __init__(self) -> None:
+            self.sent: list[str] = []
+            self.closed = False
+            self.sending = asyncio.Event()
+
+        async def accept(self) -> None:
+            pass
+
+        async def send_text(self, text: str) -> None:
+            self.sent.append(text)
+            await self.sending.wait()
+
+        async def close(self) -> None:
+            self.closed = True
+
+    async def scenario() -> SlowSocket:
+        socket = SlowSocket()
+        handler = asyncio.create_task(server.websocket(socket))
+        await asyncio.sleep(0)
+        for seq in range(4):
+            server.broadcast({"seq": seq})
+            await asyncio.sleep(0)
+        assert server.clients == set()
+        socket.sending.set()
+        await handler
+        return socket
+
+    socket = asyncio.run(scenario())
+    assert socket.sent == ['{"seq": 0}'] and socket.closed
+
+
 def test_unknown_session_is_not_found(client):
     assert client.patch("/api/sessions/999", json={"name": "Dana Cole"}).status_code == 404
     assert client.get("/api/sessions/999/audio").status_code == 404
