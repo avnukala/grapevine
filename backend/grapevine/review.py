@@ -39,6 +39,7 @@ MAX_CANDIDATES = 8
 THE_NAME = re.compile(r"\b(The [A-Z][\w'-]*(?: [A-Z][\w'-]*)*)")
 NOUN_NAME = re.compile(r"\b((?:[A-Z][\w'-]* )+(?:crew|team|league|club|band|Crew|Team|League|Club|Band))\b")
 QUOTE_MATCH = 0.8
+LASTING_WORDS = {"tradition", "traditions", "rule", "rules"}
 FIRST_PERSON = {"i", "me", "my", "we", "us", "our"}
 SPEAKER = re.compile(r"^\s*[A-Z][\w'-]*(?: [A-Z][\w'-]*)*:\s")
 VOTE_TEMPERATURE = 0.5
@@ -185,8 +186,8 @@ NOTE = {"type": "string", "maxLength": 100}
 
 def small_talk_message(store: Store) -> tuple[str, dict, dict[str, int]]:
     """The personal facts and stories that turns recorded, each under its ref, then the transcript. Ties,
-    corrections, the evidence of a relationship, and traditions are history, and the model called a couple and
-    a tradition the group started tonight small talk."""
+    corrections, the evidence of a relationship, traditions, and house rules are history, and the model
+    called a couple, a tradition the group started tonight, and a new house rule small talk."""
     graph = store.graph
     names = {pid: p["name"] for pid, p in graph.people.items()}
     evidence = {fact_id for r in graph.relationships.values() for fact_id in r["evidence"]}
@@ -196,7 +197,7 @@ def small_talk_message(store: Store) -> tuple[str, dict, dict[str, int]]:
         if f["segment_ids"]
         and f["kind"] in ("personal", "story")
         and f["id"] not in evidence
-        and "tradition" not in f["text"].lower()
+        and not LASTING_WORDS & set(re.findall(r"[a-z]+", f["text"].lower()))
     }
     turns = sorted(graph.segments.values(), key=lambda s: s["start_ms"])
     lines = ["FACTS:", *(f"{ref} {f['text']}" for ref, f in facts.items()), "", "TRANSCRIPT:"]

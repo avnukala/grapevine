@@ -218,7 +218,7 @@ def test_the_whole_transcript_adds_only_members_the_group_lines_name_or_who_spea
     assert said_in_lines({**group, "name": "Harbor Club"}, texts, speakers) == group["members"]
 
 
-def test_ties_their_evidence_and_traditions_are_not_offered_as_small_talk(store):
+def test_ties_their_evidence_traditions_and_rules_are_not_offered_as_small_talk(store):
     felix = store.create_person(name="Felix Ward", aliases=[], gender="male")["id"]
     dana = store.create_person(name="Dana Cole", aliases=[], gender="female")["id"]
     segment = store.add_segment(
@@ -228,6 +228,7 @@ def test_ties_their_evidence_and_traditions_are_not_offered_as_small_talk(store)
         ("relationship", "Felix and Dana are a couple."),
         ("story", "Felix and Dana married."),
         ("story", "The group starts a tradition of a toast."),
+        ("story", "No shoes inside is a house rule."),
         ("story", "Hi."),
     ]
     ids = [
@@ -236,7 +237,7 @@ def test_ties_their_evidence_and_traditions_are_not_offered_as_small_talk(store)
     ]
     store.upsert_relationship(a=felix, b=dana, category="romantic", fields={}, evidence=[ids[1]], model_call_id=None)
     _, _, facts = small_talk_message(store)
-    assert list(facts.values()) == [ids[3]]
+    assert list(facts.values()) == [ids[4]]
 
 
 def test_a_second_person_with_a_members_first_name_does_not_join(store):
