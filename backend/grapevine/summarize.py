@@ -3,7 +3,7 @@
 from grapevine.llm import LLM, Call, watch_on
 from grapevine.store import Store
 
-PROMPT_VERSION = "summarizer-v3"
+PROMPT_VERSION = "summarizer-v4"
 
 SYSTEM = """You write the record of a group conversation after it ends. You get the people, the events, the relationships, every fact people told, and the transcript.
 
@@ -14,7 +14,7 @@ Write:
   "matters": one sentence on why it matters to the group, or "" if nobody said.
   "tellers": ids of the people who told it. If tellers disagree, give each version in the text: "Mia Rao says 2019. Dana Cole says 2018."
   "event": the event id, or null. "people": ids of everyone in it.
-- relationships: for each relationship id, a "summary" of 1 or 2 sentences built from all of its facts, and a "label" of 1 to 3 words.
+- relationships: for each relationship id, a "summary" of 1 or 2 sentences built from its facts that hold for both people, and a "label" of 1 to 3 words.
 
 Use only the facts. Where facts disagree, say so in the text. Skip facts that a later fact revised."""
 
