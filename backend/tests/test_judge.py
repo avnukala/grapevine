@@ -1,7 +1,17 @@
 import asyncio
 import json
 
-from grapevine.judge import DIMENSIONS, PAIR_SYSTEM, PRECISION_SYSTEM, RECALL_SYSTEM, Run, agree, judge_pair, judge_run
+from grapevine.judge import (
+    DIMENSIONS,
+    PAIR_SYSTEM,
+    PRECISION_SYSTEM,
+    RECALL_SYSTEM,
+    Run,
+    agree,
+    findings,
+    judge_pair,
+    judge_run,
+)
 from grapevine.llm import LLM
 
 GOLD = {
@@ -77,3 +87,27 @@ def test_judge_pair_asks_in_both_orders(store):
     result = asyncio.run(judge_pair(llm, GOLD, first, second, run_id=store.run_id, model="m", seed=7))
     assert result["verdicts"]["people"] == "A"
     assert result["verdicts"]["groups"] == "tie"
+
+
+def test_findings_list_only_misses_partial_items_and_doubtful_record_items():
+    result = {
+        "items": {
+            "people": [
+                {"id": "p1", "name": "Mia Rao", "judge": {"verdict": "yes", "note": "listed"}},
+                {"id": "p2", "name": "Dana Cole", "judge": {"verdict": "no", "note": "absent"}},
+            ],
+            "stories": [{"id": "s1", "title": "Lisbon trip", "judge": {"verdict": "partly", "note": "no outcome"}}],
+            "not_facts": [{"id": "n1", "text": "Mia said okay", "judge": {"verdict": "yes"}}],
+            "precision": [
+                {"id": "f1", "text": "Mia Rao lives in Seattle.", "judge": {"support": "supported", "trivia": False}},
+                {"id": "f2", "text": "Mia Rao owns a boat.", "judge": {"support": "unsupported", "trivia": False}},
+            ],
+        }
+    }
+
+    text = findings(result)
+
+    assert "people p2" in text and "people p1" not in text
+    assert "stories s1" in text and "no outcome" in text
+    assert "- Mia said okay" in text
+    assert "f2 Mia Rao owns a boat.: unsupported" in text and "f1" not in text

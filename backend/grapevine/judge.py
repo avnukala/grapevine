@@ -10,6 +10,8 @@ from grapevine.graph import Graph, Record
 from grapevine.llm import LLM, Call
 
 PROMPT_VERSION = "gold-judge-v3"
+# The rubric has its own version, so a change to it keeps the cached recall and precision calls.
+RUBRIC_VERSION = "gold-rubric-v4"
 PRECISION_BATCH = 12
 PARALLEL = 2
 
@@ -40,7 +42,7 @@ PRECISION_SYSTEM = """You check the record that software wrote about a conversat
 - "contradicted": the transcript says something else.
 A claim marked disputed is "supported" when its teller said it, even if someone else disagreed. A tie between two members of a named group is "supported" when the transcript lists both in it. Choose the verdict that your note gives. Names in the transcript come from speech recognition and may be misspelled. Mark "trivia" true when the item is small talk, a joke, a question, or a passing remark that is not lasting history about the people. Write the note first, in at most 15 words."""
 
-RUBRIC_SYSTEM = f"""You grade the record that software wrote about a conversation among friends. You get the transcript, a gold checklist of what a perfect record captures, and the record. Score each dimension from 1 to 5 with a reason of at most 25 words. Write the reason before the score.
+RUBRIC_SYSTEM = f"""You grade the record that software wrote about a conversation among friends. You get a gold checklist of what a perfect record captures, the record, and the findings of checks that compared each gold item and each record item one by one. Treat the findings as settled: call a gold item missing only when the findings list it, and base each score on them. Then judge what the checks cannot see: how specific the labels are, whether stories carry the complication, the outcome, and vivid details, and whether a friend could retell the group's history from the record. Score each dimension from 1 to 5 with a reason of at most 25 words that names findings or record items. Write the reason before the score.
 
 {RUBRIC}"""
 
@@ -172,14 +174,42 @@ def precision_call(items: list[Record], run: Run, *, model: str, seed: int) -> C
     return Call("judge", model, PROMPT_VERSION, PRECISION_SYSTEM, user, schema, seed, max_tokens=4000)
 
 
-def rubric_call(gold: Record, run: Run, *, model: str, seed: int) -> Call:
+def rubric_call(gold: Record, run: Run, findings: str, *, model: str, seed: int) -> Call:
     dimension = object_schema({"reason": {"type": "string"}, "score": {"type": "integer", "enum": [1, 2, 3, 4, 5]}})
     schema = object_schema({name: dimension for name in DIMENSIONS})
     user = (
-        f"TRANSCRIPT:\n{run.transcript}\n\nGOLD CHECKLIST:\n{json.dumps(gold, ensure_ascii=False)}\n\n"
-        f"RECORD:\n{run.listing}"
+        f"GOLD CHECKLIST:\n{json.dumps(gold, ensure_ascii=False)}\n\nRECORD TO GRADE:\n{run.listing}\n\n"
+        f"FINDINGS OF THE ITEM CHECKS:\n{findings}"
     )
-    return Call("judge", model, PROMPT_VERSION, RUBRIC_SYSTEM, user, schema, seed, max_tokens=2000)
+    return Call("judge", model, RUBRIC_VERSION, RUBRIC_SYSTEM, user, schema, seed, max_tokens=2000)
+
+
+def findings(result: Record) -> str:
+    """The gold items that the record misses or only partly captures, and the record items that the transcript
+    does not support, so the rubric grades from the same verdicts as recall and precision."""
+
+    def gold_line(key: str, item: Record) -> str:
+        body = json.dumps({k: v for k, v in item.items() if k not in ("id", "judge")}, ensure_ascii=False)
+        return f"- {key} {item['id']}: {body[:200]} ({item['judge'].get('note', '') if item['judge'] else 'no answer'})"
+
+    def verdict(item: Record) -> str | None:
+        return (item["judge"] or {}).get("verdict", "no")
+
+    sections = {key: items for key, items in result["items"].items() if key not in ("precision", "not_facts")}
+    lines = ["Gold items the record misses:"]
+    lines += [gold_line(k, i) for k, items in sections.items() for i in items if verdict(i) == "no"] or ["- none"]
+    lines += ["Gold items the record only partly captures:"]
+    lines += [gold_line(k, i) for k, items in sections.items() for i in items if verdict(i) == "partly"] or ["- none"]
+    lines += ["Small talk the record states as a fact:"]
+    lines += [f"- {i['text']}" for i in result["items"].get("not_facts", []) if verdict(i) == "yes"] or ["- none"]
+    lines += ["Record items the transcript does not fully support, or that are trivia:"]
+    lines += [
+        f"- {i['id']} {i['text'][:160]}: {(i['judge'] or {}).get('support', 'unsupported')}"
+        + (", trivia" if (i["judge"] or {}).get("trivia") else "")
+        for i in result["items"]["precision"]
+        if not i["judge"] or i["judge"]["support"] != "supported" or i["judge"].get("trivia")
+    ] or ["- none"]
+    return "\n".join(lines)
 
 
 def pair_call(gold: Record, first: Run, second: Run, *, model: str, seed: int) -> Call:
@@ -243,9 +273,8 @@ async def judge_run(llm: LLM, gold: Record, run: Run, *, run_id: int, model: str
     batches = [items[i : i + PRECISION_BATCH] for i in range(0, len(items), PRECISION_BATCH)]
     calls = [recall_call(key, section, run, model=model, seed=seed) for key, section in sections.items()]
     calls += [precision_call(batch, run, model=model, seed=seed) for batch in batches]
-    calls.append(rubric_call(gold, run, model=model, seed=seed))
     outputs = await gather(llm, calls, run_id=run_id)
-    recall_outputs, precision_outputs, rubric = outputs[: len(sections)], outputs[len(sections) : -1], outputs[-1]
+    recall_outputs, precision_outputs = outputs[: len(sections)], outputs[len(sections) :]
 
     result: Record = {"run_id": run_id, "sample": gold.get("sample"), "seed": seed, "recall": {}, "items": {}}
     for (key, section), output in zip(sections.items(), recall_outputs, strict=True):
@@ -266,6 +295,7 @@ async def judge_run(llm: LLM, gold: Record, run: Run, *, run_id: int, model: str
     }
     result["items"]["precision"] = [{**item, "judge": found.get(item["id"])} for item in items]
 
+    [rubric] = await gather(llm, [rubric_call(gold, run, findings(result), model=model, seed=seed)], run_id=run_id)
     result["rubric"] = {name: (rubric or {}).get(name) for name in DIMENSIONS}
     scores = [d["score"] for d in result["rubric"].values() if d]
     result["rubric_mean"] = sum(scores) / len(scores) if scores else None
