@@ -27,8 +27,11 @@ class Graph:
     roster: list[int] = field(default_factory=list)
     removed: set[int] = field(default_factory=set)
     phase: Phase = "intro"
+    # Ref numbers of each kind, rebuilt after any op because a removal shifts the numbers after it.
+    _positions: dict[RefKind, dict[int, int]] = field(default_factory=dict, repr=False, compare=False)
 
     def apply(self, op: Record) -> None:
+        self._positions.clear()
         kind = op["type"]
         match kind:
             case "person":
@@ -111,7 +114,9 @@ class Graph:
     def ref(self, kind: RefKind, record_id: int) -> str:
         """Numbers records 1, 2, 3 in the order the run first wrote them. Model prompts use these refs, so an
         unchanged replay sends the same text although its database ids differ."""
-        return f"{kind}{list(self._records(kind)).index(record_id) + 1}"
+        if kind not in self._positions:
+            self._positions[kind] = {key: position for position, key in enumerate(self._records(kind), start=1)}
+        return f"{kind}{self._positions[kind][record_id]}"
 
     def lookup(self, kind: RefKind, ref: str | None) -> int | None:
         match = re.match(rf"{kind}(\d+)", ref or "")
