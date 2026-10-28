@@ -244,6 +244,28 @@ def test_a_run_that_is_going_reads_fixed_lines_in_its_pipeline(client, store):
     assert rereads == [([segment["id"]], True), ([segment["id"]], False)]
 
 
+def test_the_llm_files_are_fingerprinted_off_the_event_loop(client, store, monkeypatch):
+    fingerprinted_on_loop = []
+
+    def llm_file_hash() -> str:
+        try:
+            asyncio.get_running_loop()
+            fingerprinted_on_loop.append(True)
+        except RuntimeError:
+            fingerprinted_on_loop.append(False)
+        return "t"
+
+    monkeypatch.setattr(server, "chat", lambda: FakeChat({}))
+    monkeypatch.setattr(server, "llm_file_hash", llm_file_hash)
+    segment = store.add_segment(
+        start_ms=0, end_ms=900, speaker_label="spk0", person_id=None, confidence=None, text="Hi.", timings={}
+    )
+
+    assert client.patch(f"/api/runs/{store.run_id}/segments/{segment['id']}", json={"text": "Hello."}).is_success
+    assert client.post("/api/merge").is_success
+    assert fingerprinted_on_loop == [False, False]
+
+
 def test_two_edits_at_once_of_a_finished_run_both_save(conn, store, monkeypatch):
     class SlowChat(FakeChat):
         async def complete(self, request: dict, on_text=None) -> str:

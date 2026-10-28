@@ -152,6 +152,8 @@ def llm_file_hash() -> str:
 
 
 def load_models(config: RunConfig) -> Models:
+    """Loads the models of a run. It also fingerprints the LLM files once, because hashing them is slow too."""
+    llm_file_hash()
     return Models(
         detector=detector(config.diarizer, config.diarizer_mode, config.diarizer_device),
         embedder=embedder(config.embedder, config.embedder_device),

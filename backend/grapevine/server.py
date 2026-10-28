@@ -487,7 +487,7 @@ async def reread(run_id: int, store: Store, segment_ids: list[int], *, saved: Li
         return
     row = run_row(run_id)
     config = run_config(json.loads(row["config_json"]))
-    llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
+    llm = LLM(conn, chat(), model_file_hash=await asyncio.to_thread(llm_file_hash), reuse=config.reuse_model_calls)
     today = session(conn, row["session_id"])["recorded_at"][:10]
     try:
         async with rereading:
@@ -571,9 +571,10 @@ async def new_merge() -> Record:
     config = run_config({})
     run_id = create_run(conn, session_id=None, kind="merge", config=config)
     store = stores[run_id] = Store(conn, run_id, broadcast)
-    llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
     try:
         async with busy:
+            file_hash = await asyncio.to_thread(llm_file_hash)
+            llm = LLM(conn, chat(), model_file_hash=file_hash, reuse=config.reuse_model_calls)
             await merge(store, llm, model=config.summary_model, seed=config.seed)
     except Exception as error:
         set_status(conn, store.run_id, "failed")
