@@ -122,8 +122,7 @@ class FakeChat:
         self.prompts = prompts or []
         self.merged = merged or {"relationships": [], "conflicts": [], "same_person": []}
         self.reviewed = reviewed or {
-            "room": {},
-            "other": [],
+            "ties": [],
             "known": {},
             "candidates": {},
             "new": [],

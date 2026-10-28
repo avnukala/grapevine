@@ -327,8 +327,9 @@ def test_a_name_given_by_the_voice_before_names_an_unnamed_voice_in_introduction
 def test_the_review_completes_relationships_groups_and_events(conn):
     conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
 
-    def rel(a, b, category, met_on=None):
+    def rel(a, b, category, met_on=None, quote="Ray and I met at Cornell in 2016"):
         return {
+            "quote": quote,
             "a": a,
             "b": b,
             "category": category,
@@ -340,11 +341,10 @@ def test_the_review_completes_relationships_groups_and_events(conn):
         }
 
     reviewed = {
-        "room": {
-            "Ray Patel and Jasper Lin": [rel("Ray Patel", "Jasper Lin", "professional", "2016")],
-            "Ray Patel and Sophie Moreau": [rel("Ray Patel", "Sophie Moreau", "friend")],
-        },
-        "other": [],
+        "ties": [
+            rel("Ray Patel", "Jasper Lin", "professional", "2016"),
+            rel("Jasper Lin", "Sophie Moreau", "friend", quote="They are friends."),
+        ],
         "known": {},
         "candidates": {},
         "new": [{"name": "Tuesday crew", "also_called": ["climb"], "members": ["Ray Patel", "Jasper Lin"]}],
@@ -359,7 +359,6 @@ def test_the_review_completes_relationships_groups_and_events(conn):
 
     assert sorted((names[r["a"]], names[r["b"]], r["category"], r["met_on"]) for r in graph.relationships.values()) == [
         ("Ray Patel", "Jasper Lin", "professional", "2016"),
-        ("Ray Patel", "Sophie Moreau", "friend", None),
     ]
     [group] = graph.groups.values()
     assert {names[m["person_id"]] for m in graph.members.values() if m["group_id"] == group["id"]} == {

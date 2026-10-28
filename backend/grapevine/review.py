@@ -10,7 +10,6 @@ import re
 from collections import defaultdict
 from dataclasses import replace
 from difflib import SequenceMatcher
-from itertools import combinations
 
 from grapevine.extract import (
     Ambiguity,
@@ -28,7 +27,7 @@ from grapevine.llm import LLM, Call, Result, watch_on
 from grapevine.names import misspelled
 from grapevine.store import GROUP_WORDS, Store, group_key, proper_group_name
 
-PROMPT_VERSION = "review-v22"
+PROMPT_VERSION = "review-v24"
 SAME_EVENT = 0.6
 # The prompt says that how two people met, or that they dated, is not a happening, and the model still lists it.
 NOT_HAPPENINGS = {"relationship", "meeting", "met", "dating", "friendship"}
@@ -38,6 +37,8 @@ LINE_MATCH = 0.8
 MAX_CANDIDATES = 8
 THE_NAME = re.compile(r"\b(The [A-Z][\w'-]*(?: [A-Z][\w'-]*)*)")
 NOUN_NAME = re.compile(r"\b((?:[A-Z][\w'-]* )+(?:crew|team|league|club|band|Crew|Team|League|Club|Band))\b")
+QUOTE_MATCH = 0.8
+SPEAKER = re.compile(r"^\s*[A-Z][\w'-]*(?: [A-Z][\w'-]*)*:\s")
 VOTE_TEMPERATURE = 0.5
 RETRY_TEMPERATURE = 0.3
 
@@ -49,11 +50,12 @@ The input lists today's date, the people (the ones in the room are marked), the 
 
 RELATIONSHIPS_SYSTEM = (
     INTRO
-    + """Write "analysis" first: one line for each other pair the conversation ties together, such as a couple whose wedding someone mentions, a sibling, a cousin, an ex, or a coworker. Include pairs where neither person is in the room: "my cousin's wedding, Tom and Rachel" makes Tom and Rachel a married couple. Then fill "room", which has one key for each pair of people in the room, and "other", for every pair in your analysis.
+    + """Write "analysis" first: one line for each pair the conversation ties together. Start with the pairs in the room, such as housemates, a couple, old roommates, or coworkers, then the others, such as a couple whose wedding someone mentions, a sibling, a cousin, or an ex. Include pairs where neither person is in the room: "my cousin's wedding, Tom and Rachel" makes Tom and Rachel a married couple. Then list "ties", one entry for each relationship in your analysis.
 
-- For each pair in "room", list its relationships, or an empty list when the conversation does not show how these two know each other. Being at the same party or in the same room is not a tie.
-- List every relationship the conversation states or clearly implies, including the ones in the record. Fix a record entry when the transcript shows a better category, status, label, or meeting date.
-- Infer what the conversation implies. People who share a house, or hold a house meeting, are roommates and friends. A couple who is married or planning a wedding is romantic, and two people whose wedding someone went to are married. Exes who are still in each other's lives, for example one still helps the other move house, are also friends.
+- List only pairs that a line ties together. Being at the same dinner or party, in the same conversation, or friends of the same host is not a tie, so most pairs in a big room get no entry.
+- List every relationship the conversation states, including the ones in the record. Fix a record entry when the transcript shows a better category, status, label, or meeting date.
+- quote: the words of one transcript line that state the tie, copied exactly.
+- Some lines imply a tie. People who share a house, or hold a house meeting, are roommates and friends. A couple who is married or planning a wedding is romantic, and two people whose wedding someone went to are married. Exes who are still in each other's lives, for example one still helps the other move house, are also friends.
 - category:
   - romantic: dating, partners, engaged, married, exes.
   - family: parents, children, siblings, cousins, in-laws.
@@ -63,8 +65,9 @@ RELATIONSHIPS_SYSTEM = (
 - A pair can have two entries. Exes who stayed friends get romantic with status past and friend with status current.
 - status: current or past, for the tie itself. Exes are romantic and past.
 - in_touch: true when the two are still in each other's lives today, for example old roommates who still meet, a friend who gave a toast at the other's recent wedding, or an ex who still helps the other move house. False when the conversation says they lost touch or one died.
-- met_on: when the pair met, as "YYYY" or "YYYY-MM", when the conversation tells or implies it. A couple who met at Coachella in April 2016 has "2016-04". If the conversation only says when the relationship began, such as "we dated from 2020 to 2022", use that. Coworkers met when the second one started the job. Else null.
-- label: a 1 to 3 word term, for example "college roommate", "ex-girlfriend", "cousin". summary: one sentence."""
+- met_on: when the pair first met, as "YYYY" or "YYYY-MM", when the conversation tells or implies it. A couple who met at Coachella in April 2016 has "2016-04". If the conversation only says when the relationship began, such as "we dated from 2020 to 2022", use that. Coworkers met when the second one started the job. Never the date of a proposal, an engagement, a wedding, or a move. Else null.
+- label: a 1 to 3 word term for how they first knew each other, for example "college roommate", "ex-girlfriend", "cousin", not a later shared hobby such as "league mates" for old roommates.
+- summary: one or two sentences on how and where they met, who introduced them, and when the tie changed, for example "Met as freshman roommates in Lisbon in 2012, introduced by Dana Cole. Dated until 2019, then stayed friends." Only what the conversation says."""
 )
 
 GROUPS_SYSTEM = (
@@ -112,6 +115,7 @@ def _object(**properties: dict) -> dict:
 
 
 TIE = {
+    "quote": TEXT,
     "category": {"type": "string", "enum": ["romantic", "family", "friend", "professional", "other"]},
     "label": TEXT,
     "status": {"type": "string", "enum": ["current", "past"]},
@@ -121,13 +125,7 @@ TIE = {
 }
 
 
-def relationships_schema(pairs: list[str]) -> dict:
-    """One required key for each pair in the room, so the model answers for every pair."""
-    return _object(
-        analysis=ANALYSIS,
-        room=_object(**{pair: {"type": "array", "items": _object(**TIE)} for pair in pairs}),
-        other={"type": "array", "items": _object(a=TEXT, b=TEXT, **TIE)},
-    )
+RELATIONSHIPS_SCHEMA = _object(analysis=ANALYSIS, ties={"type": "array", "items": _object(a=TEXT, b=TEXT, **TIE)})
 
 
 def groups_schema(groups: list[str], candidates: list[str], people: list[str]) -> dict:
@@ -207,7 +205,6 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
         return
     user = user_message(store, today=today)
     names = store.graph.people
-    pairs = {f"{names[a]['name']} and {names[b]['name']}": (a, b) for a, b in combinations(store.graph.room(), 2)}
     people = list(dict.fromkeys(p["name"] for p in names.values() if p["merged_into_id"] is None))
     record_events = {e["name"]: e["id"] for e in reversed(list(store.graph.events.values()))}
 
@@ -216,11 +213,12 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
 
     watch = watch_on(store, worker="reviewer")
     votes = [
-        ask(RELATIONSHIPS_SYSTEM, relationships_schema(list(pairs)), seed=seed + i, temperature=VOTE_TEMPERATURE)
+        ask(RELATIONSHIPS_SYSTEM, RELATIONSHIPS_SCHEMA, seed=seed + i, temperature=VOTE_TEMPERATURE)
         for i in range(VOTES)
     ]
     known_groups = [g["name"] for g in store.graph.groups.values()]
-    texts = [s["text"] for s in sorted(store.graph.segments.values(), key=lambda s: s["start_ms"])]
+    turns = sorted(store.graph.segments.values(), key=lambda s: s["start_ms"])
+    texts = [s["text"] for s in turns]
     groups_call = ask(GROUPS_SYSTEM, groups_schema(known_groups, candidate_groups(texts, known_groups), people))
     groups, events, *voted = await asyncio.gather(
         call_or_retry(store, llm, groups_call),
@@ -258,23 +256,35 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
     with store.batch():
         outputs = [v.output for v in voted if v.output]
         if outputs:
-            room = [
-                [
-                    {**tie, "a": names[pairs[pair][0]]["name"], "b": names[pairs[pair][1]]["name"]}
-                    for pair, ties in output["room"].items()
-                    for tie in ties
-                ]
-                for output in outputs
-            ]
             call_id = voted[0].model_call_id
-            needed = len(room) // 2 + 1
-            apply_relationships(store, agreed(room, person, call_id, needed=needed), person, call_id, prune=True)
-            other = agreed([o["other"] for o in outputs], person, call_id, needed=needed)
-            apply_relationships(store, other, person, call_id, prune=False)
+            stated_ties = [[tie for tie in output["ties"] if quoted(tie["quote"], texts)] for output in outputs]
+            kept = agreed(stated_ties, person, call_id, needed=len(outputs) // 2 + 1)
+            room = set(store.graph.room())
+            in_room = [t for t in kept if {person(t["a"], call_id), person(t["b"], call_id)} <= room]
+            apply_relationships(store, in_room, person, call_id, prune=True)
+            apply_relationships(store, [t for t in kept if t not in in_room], person, call_id, prune=False)
         if groups.output:
             apply_groups(store, found_groups, person, groups.model_call_id)
         if events.output:
             apply_happenings(store, events.output["happenings"], record_events, person, events.model_call_id)
+
+
+def quoted(quote: str, texts: list[str]) -> bool:
+    """Whether each sentence of a quote is in a transcript line, allowing for small slips in the copy and a
+    speaker name before it. The model joins sentences from several lines into one quote. A tie the model
+    cannot quote, such as two guests at one dinner being "friends", is one it made up."""
+    lines = [re.findall(r"[a-z0-9']+", text.lower()) for text in texts]
+
+    def found(sentence: str) -> bool:
+        wanted = re.findall(r"[a-z0-9']+", SPEAKER.sub("", sentence).lower())
+        return any(
+            sum(b.size for b in SequenceMatcher(None, wanted, line, autojunk=False).get_matching_blocks())
+            >= QUOTE_MATCH * len(wanted)
+            for line in lines
+        )
+
+    sentences = [sentence for sentence in re.split(r"[.!?…]+", quote) if re.search(r"\w", sentence)]
+    return bool(sentences) and all(found(sentence) for sentence in sentences)
 
 
 async def members_of(store: Store, llm: LLM, group: Record, *, model: str, seed: int) -> list[str]:
@@ -371,8 +381,8 @@ def ties(entries: list[Record]) -> list[Record]:
 def apply_relationships(store: Store, entries: list[Record], person, model_call_id: int, *, prune: bool) -> None:
     """Writes each listed relationship. With `prune`, for a pair the review lists, it also removes the
     categories the review left out, because the review read the whole conversation and a single turn did not.
-    The review answers every pair in the room, so only those answers prune. A pair outside the room is one
-    the model chose to list, and it can miss a category that a turn got right."""
+    Only pairs in the room prune. The review hears both of them, while it can miss a category that a turn got
+    right about people who are not there."""
     kept: dict[frozenset, set[str]] = defaultdict(set)
     for entry in entries:
         a, b = person(entry["a"], model_call_id), person(entry["b"], model_call_id)

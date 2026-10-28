@@ -1,7 +1,7 @@
 import asyncio
 
 from grapevine.llm import Call, Result
-from grapevine.review import agreed, apply_happenings, call_or_retry, candidate_groups, group_lines, ties
+from grapevine.review import agreed, apply_happenings, call_or_retry, candidate_groups, group_lines, quoted, ties
 
 IDS = {"Ray Patel": 1, "Jasper Lin": 2, "Sophie Moreau": 3}
 
@@ -111,3 +111,14 @@ def test_a_friend_labelled_coworker_is_professional():
         *["professional"] * 6,
         "friend",
     ]
+
+
+def test_a_tie_needs_a_quote_from_the_transcript():
+    texts = ["Ray and I were freshman roommates at Cornell, back in 2016.", "Happy birthday!", "We still climb."]
+    assert quoted("Ray and I were freshmen roommates at Cornell", texts)
+    assert quoted("Happy birthday! We still climb.", texts)
+    assert quoted("Happy birthday. Ray and I were freshman roommates at Cornell", texts)
+    assert quoted("Jasper Lin: Ray and I were freshman roommates... We still climb.", texts)
+    assert not quoted("Ray and I were freshman roommates... They are friends within the group.", texts)
+    assert not quoted("They are friends within the group.", texts)
+    assert not quoted("...", texts)
