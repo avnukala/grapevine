@@ -181,6 +181,25 @@ def test_a_line_moved_to_another_speaker_after_a_run_gets_new_facts(client, stor
     assert (new["text"], new["told_by_person_id"]) == ("Felix Ward works in Denver.", felix)
 
 
+def test_a_run_that_is_going_reads_fixed_lines_in_its_pipeline(client, store):
+    rereads = []
+
+    class Pipeline:
+        def reread(self, segment_ids, *, edited):
+            rereads.append((segment_ids, edited))
+
+    server.active[store.run_id] = server.ActiveRun(store.run_id, store, Pipeline())
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    segment = store.add_segment(
+        start_ms=0, end_ms=900, speaker_label="spk0", person_id=None, confidence=None, text="Hi.", timings={}
+    )
+
+    client.patch(f"/api/runs/{store.run_id}/segments/{segment['id']}", json={"text": "Hello."})
+    client.post(f"/api/runs/{store.run_id}/segments/{segment['id']}/speaker", json={"person_id": marcus})
+
+    assert rereads == [([segment["id"]], True), ([segment["id"]], False)]
+
+
 def test_two_edits_at_once_of_a_finished_run_both_save(conn, store, monkeypatch):
     class SlowChat(FakeChat):
         async def complete(self, request: dict, on_text=None) -> str:

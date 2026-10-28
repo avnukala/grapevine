@@ -458,16 +458,17 @@ async def edit_segment(run_id: int, segment_id: int, body: LineEdit) -> Record:
     if segment_id not in store.graph.segments:
         raise HTTPException(404, f"segment {segment_id} is not in run {run_id}")
     store.update_segment(segment_id, text=body.text)
-    if run_id in active:
-        active[run_id].pipeline.reread([segment_id], edited=True)
-    else:
-        await read_after_run(run_id, store, [segment_id], saved="text")
+    await reread(run_id, store, [segment_id], saved="text")
     return store.graph.segments[segment_id]
 
 
-async def read_after_run(run_id: int, store: Store, segment_ids: list[int], *, saved: str) -> None:
-    """Reads turns of an ended run again after the room fixed them, so their facts follow the fix. It reads with
-    the model of today, because the model of an old run may no longer be loaded."""
+async def reread(run_id: int, store: Store, segment_ids: list[int], *, saved: Literal["text", "speaker"]) -> None:
+    """Reads turns again after the room fixed them, so their facts follow the fix. A run that is going reads them in
+    its pipeline. An ended run reads them with the model of today, because the model of an old run may no longer be
+    loaded."""
+    if run_id in active:
+        active[run_id].pipeline.reread(segment_ids, edited=saved == "text")
+        return
     row = run_row(run_id)
     config = run_config(json.loads(row["config_json"]))
     llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
@@ -526,10 +527,7 @@ async def set_segment_speaker(run_id: int, segment_id: int, body: SpeakerAnswer)
         every_line=body.every_line,
         threshold=threshold(run_id),
     )
-    if run_id in active:
-        active[run_id].pipeline.reread(changed)
-    else:
-        await read_after_run(run_id, store, changed, saved="speaker")
+    await reread(run_id, store, changed, saved="speaker")
     return store.graph.segments[segment_id]
 
 
