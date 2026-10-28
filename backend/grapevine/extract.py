@@ -10,7 +10,7 @@ from grapevine.names import better_spelling, drop_ly, misspelled, near_first, pa
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
-PROMPT_VERSION = "extract-v13"
+PROMPT_VERSION = "extract-v14"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
 
@@ -31,18 +31,21 @@ SPEAKER NAME
 
 FACTS
 - Write one fact for each new piece of information in the NEW TURN only. Do not repeat known facts. Skip questions and filler.
+- Speech recognition mishears words. Skip a line that makes no sense in the talk, such as a greeting or a toast that reads like a claim.
+- A short turn such as "Lisbon, 2019." tells about the topic of the turn right before it, not about an older fact.
 - kind: personal (one person: job, home, school, pet, hobby), relationship (how two people know each other, such as "Dana Cole is Mia Rao's manager" or "Leo Hale is Tess's ex"), story (something that happened), membership, correction.
 - If the turn names a group of people, such as a crew, a team, a band, a club, or a friend group, write a membership fact with "group" set to the group name and "people" set to its members. When people in the room say "we" or "our team", they are members. A person who leads or runs the group, such as its commissioner, captain, or president, is a member. If the turn calls a known group something else, such as "the crew", use the known group name. A group is not an event, and a house is not a group.
 - text: one short sentence with full names and no pronouns, for example "Marcus Hale and Tina Alvarez met freshman year at Rutgers." State the fact itself, not that someone said or corrected it.
 - people: every person the fact is about, by name.
-- when_text: the time as said, for example "freshman year". start_date and end_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD" when the turn, the known facts, or today's date resolve it. "Tonight" and "today" are today's date.
+- when_text: the time as said, for example "freshman year". start_date and end_date: "YYYY", "YYYY-MM", or "YYYY-MM-DD" when the turn, the known facts, or today's date resolve it. "Tonight" and "today" are today's date. A past happening with no time said gets no date, never today's date.
 - event: for a named or dated happening (a festival, a show or concert, including one tonight, a trip, a wedding, a proposal, an accident, a move to a new city or house), the event name, also listed in "events". To talk about a known event again, list it in "events" with its "id" ("e2") and use its known name. Name a new event by what and when, for example "Coachella 2018". All facts of one story share one event. A school, a place, or a group is not an event.
 - If the speaker corrects a fact that they told, or agrees with a correction, use kind correction and set "revises" to the old fact id. A speaker who gives in, such as with "okay, fine" or "you are right", agrees with the correction. Write that correction first, even though it repeats a known fact. For example, Mia Rao told f3 "Mia Rao moved to Seattle in 2016.", Dana Cole said it was 2017, and Mia Rao now says "Okay, fine, it was 2017, and I love it there": the first fact is {"kind": "correction", "text": "Mia Rao moved to Seattle in 2017.", "people": ["speaker"], "start_date": "2017", "revises": "f3"}.
-- If the speaker contradicts a fact that ANOTHER person told, write the speaker's version and set "disputes" to the other fact id. Set "disputes" only when the two facts give different values for the same thing, such as two years for one trip.
+- If the speaker contradicts a fact that ANOTHER person told, write the speaker's version and set "disputes" to the other fact id. Set "disputes" only when the two facts give different values for the same thing, such as two years for one trip. Added detail, an excuse, or an answer to a question does not dispute, for example "It was raining!" after "Felix crashed the car".
 - A turn that starts with "that is true, but" or "yes, and" agrees with the turn before. Its new facts do not dispute anything.
 
 RELATIONSHIPS
 - Add one entry for each pair whose relationship the turn tells about, for example coworkers, cousins, roommates, exes, or old friends. A pair has at most one entry per category, for example a past romantic one and a current friend one.
+- Tie the pair the turn names. "We met at my cousin's wedding" makes the speaker a cousin of the one getting married, not of the person they met.
 - Every fact of kind relationship needs a matching entry here. "My coworker Wren", "my manager Dana", and "I'm the ex" each need one.
 - category: romantic (dating, partners, married, engaged, exes), family (parents, siblings, cousins, in-laws), friend (friends, including roommates, bandmates, teammates, climbing partners, and league mates, unless the turn says they are not friends), professional (coworkers, bosses, managers, employees, clients, business partners), or other (only acquaintances with no other tie).
 - Exes are romantic with status past. If they stayed friends, add a second entry: friend, current.
