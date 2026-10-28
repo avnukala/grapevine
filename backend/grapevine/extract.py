@@ -687,7 +687,8 @@ def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, 
             )
 
     old = store.graph.lookup("f", fact.get("revises")) or store.graph.lookup("f", fact.get("disputes"))
-    if old is None:
+    # The model sees no fact of the turn it reads, so a ref to one is a guess at the id of a fact it just wrote.
+    if old is None or teller.segment_id in store.graph.facts[old]["segment_ids"]:
         return record["id"]
     told_by = store.graph.facts[old]["told_by_person_id"]
     related = same_thing(store.graph.facts[old], store.graph.facts[record["id"]])

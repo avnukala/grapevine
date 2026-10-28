@@ -960,3 +960,13 @@ def test_a_short_fact_that_shares_one_word_with_a_story_is_not_a_dispute(store):
     apply(store, turn(store, tina, "I made soup."), facts=[fact(story, ["speaker"], disputes=f"f{first}")])
 
     assert store.graph.active_prompts() == []
+
+
+def test_a_correction_never_revises_a_fact_of_its_own_turn(store):
+    felix = store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")["id"]
+    teller = turn(store, felix, "Mia got promoted to head nurse. We met in 2015. Wait, no, 2016.")
+    promoted = fact("Mia Rao was promoted to head nurse.", ["Mia Rao"])
+    met = fact("Felix Ward and Mia Rao met in 2016.", ["speaker", "Mia Rao"], kind="correction")
+    apply(store, teller, facts=[promoted, {**met, "revises": f"f{len(store.graph.facts) + 1}"}])
+
+    assert all(f["revised_by_fact_id"] is None for f in store.graph.facts.values())
