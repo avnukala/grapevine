@@ -861,3 +861,18 @@ def test_a_date_is_never_more_precise_than_said(store, when_text, start_date, st
 
     [moved] = store.graph.facts.values()
     assert (moved["start_date"], moved["date_precision"]) == stored
+
+
+def test_a_short_fact_that_shares_one_word_with_a_story_is_not_a_dispute(store):
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    tina = store.create_person(name="Tina Alvarez", aliases=["Tina"], gender="female")["id"]
+    apply(
+        store,
+        turn(store, marcus, "Tina caused the fire."),
+        facts=[fact("Tina Alvarez is the reason for the fire.", ["Tina Alvarez"])],
+    )
+    first = max(store.graph.facts)
+    story = "In February 2024, Tina Alvarez caused a kitchen fire while making soup."
+    apply(store, turn(store, tina, "I made soup."), facts=[fact(story, ["speaker"], disputes=f"f{first}")])
+
+    assert store.graph.active_prompts() == []

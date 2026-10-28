@@ -687,7 +687,7 @@ def apply_fact(store: Store, fact: Record, people: list[int], events: dict[str, 
 
 def same_thing(a: Record, b: Record) -> bool:
     """Whether two facts can disagree: they share a common word, not a name or a place, and either their dates
-    differ or half the common words of the shorter one are in both and some word differs. The model marks a
+    differ or two and at least half the common words of the shorter one are in both and some word differs. The model marks a
     new story or a retelling as a dispute at times, such as "drove Felix to the hospital" against "ate Felix's
     lunch", or "shared a dorm in Lisbon" against "stole a parking spot in Lisbon"."""
     ignored = FUNCTION_WORDS | {"speaker"}
@@ -699,10 +699,10 @@ def same_thing(a: Record, b: Record) -> bool:
     shared = len(first & second)
     if shared == 0:
         return False
-    dates = sorted([a["start_date"] or "", b["start_date"] or ""], key=len)
+    dates = sorted([f["start_date"] or year_in(f["text"]) or "" for f in (a, b)], key=len)
     if dates[0] and not dates[1].startswith(dates[0]):
         return True
-    return 2 * shared >= min(len(first), len(second)) and a["text"].lower() != b["text"].lower()
+    return shared >= 2 and 2 * shared >= min(len(first), len(second)) and a["text"].lower() != b["text"].lower()
 
 
 def revise(store: Store, old: int, new: int, *, model_call_id: int) -> None:
