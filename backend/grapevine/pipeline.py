@@ -36,6 +36,8 @@ PARTIAL_MS = 300
 MIN_PARTIAL_MS = 500
 # Each preview costs about 155 ms of GPU, which the language model also needs, so a preview waits for new words.
 NEW_AUDIO_MS = 700
+# A preview holds Whisper for up to this long, so none starts when the open turn may end before it is done.
+PREVIEW_MS = 300
 MAX_PARTIAL_MS = 15000
 SPEECH_RMS = 0.01
 VOICE_TIE = 0.02
@@ -174,6 +176,7 @@ class Pipeline:
         self.intro_over = False
         self.partials = False
         self.closed_ms = 0
+        self.transcribed_ms = 0
         self.previewed_ms = 0
         self.whisper = asyncio.Lock()
         self.fed = False
@@ -351,20 +354,28 @@ class Pipeline:
                 )
                 self.segment_voices[segment["id"]] = (voice, end_ms - start_ms)
                 await self.jobs.put(SegmentJob(segment["id"], heard_at))
+            self.transcribed_ms = turn.end_ms
             self.store.notify({"type": "partial", "start_ms": turn.start_ms, "text": None})
         await self.jobs.put(None)
 
     async def _partials(self) -> None:
         """Shows the words of speech that no turn holds yet, for a run that keeps pace with real time. The
         speaker detector opens a turn more than a second after speech starts, so loud audio after the last
-        turn starts a preview before that. The text is only a preview: it is not saved, and the final
-        transcription of a turn never waits for it."""
+        turn starts a preview before that. The text is only a preview: it is not saved. No preview starts while a
+        closed turn waits for Whisper, or when the open turn may close before the preview is done, so the final
+        transcription of a turn does not wait for one."""
         while True:
             await asyncio.sleep(PARTIAL_MS / 1000)
             speaker = self.builder.speaker
             end_ms = self.audio.size * 1000 // SAMPLE_RATE
             start_ms = max(self.builder.start_ms if speaker is not None else self.closed_ms, end_ms - MAX_PARTIAL_MS)
-            if self.whisper.locked() or end_ms - start_ms < MIN_PARTIAL_MS or end_ms - self.previewed_ms < NEW_AUDIO_MS:
+            waiting = self.closed_ms > self.transcribed_ms
+            closing = (
+                speaker is not None and self.builder.silence_ms + PREVIEW_MS >= self.config.turn_rules.end_silence_ms
+            )
+            if self.whisper.locked() or waiting or closing:
+                continue
+            if end_ms - start_ms < MIN_PARTIAL_MS or end_ms - self.previewed_ms < NEW_AUDIO_MS:
                 continue
             recent = self.audio.slice(max(start_ms, end_ms - 1000), end_ms)
             if speaker is None and float(np.sqrt(np.mean(recent**2))) < SPEECH_RMS:

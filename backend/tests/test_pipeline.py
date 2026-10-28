@@ -327,6 +327,51 @@ def test_a_run_at_real_time_previews_the_open_turn(conn, monkeypatch):
     assert previews[-1] == {"type": "partial", "start_ms": 500, "text": None, "run_id": run_id}
 
 
+class CountingTranscriber:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def transcribe(self, audio, hints):
+        self.calls += 1
+        return "words"
+
+
+def test_no_preview_starts_while_a_turn_waits_for_whisper_or_is_about_to_close(store, monkeypatch):
+    monkeypatch.setattr(pipeline_module, "PARTIAL_MS", 5)
+    transcriber = CountingTranscriber()
+    pipeline = Pipeline(
+        store,
+        replace(fake_models([], FakeChat({})), transcriber=transcriber),
+        LLM(store.conn, FakeChat({}), model_file_hash="t", reuse=True),
+        RunConfig(),
+        today="2025-10-18",
+        intro_end_ms=0,
+        roster=[],
+        vocabulary=[],
+    )
+    pipeline.audio.append(np.full(SAMPLE_RATE * 3, 0.3, dtype=np.float32))
+    pipeline.builder.speaker = 0
+    pipeline.builder.now_ms = 3000
+
+    def previews(*, closed_ms: int, silence_ms: int) -> int:
+        pipeline.closed_ms = closed_ms
+        pipeline.builder.last_speech_ms = 3000 - silence_ms
+        pipeline.previewed_ms = 0
+        transcriber.calls = 0
+
+        async def watch():
+            task = asyncio.create_task(pipeline._partials())
+            await asyncio.sleep(0.1)
+            task.cancel()
+
+        asyncio.run(watch())
+        return transcriber.calls
+
+    assert previews(closed_ms=1000, silence_ms=0) == 0
+    assert previews(closed_ms=0, silence_ms=600) == 0
+    assert previews(closed_ms=0, silence_ms=0) == 1
+
+
 def test_a_leading_full_name_names_a_voice_only_when_it_is_on_the_roster():
     def heard(text, roster):
         return said_name(text, None, intro=True, unnamed=True, roster=roster)
