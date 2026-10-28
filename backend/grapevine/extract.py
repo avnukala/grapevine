@@ -10,7 +10,7 @@ from grapevine.names import better_spelling, drop_ly, misspelled, near_first, pa
 from grapevine.prompter import show_prompt
 from grapevine.store import Store, name_matches, proper_group_name
 
-PROMPT_VERSION = "extract-v14"
+PROMPT_VERSION = "extract-v15"
 
 SYSTEM = """You extract facts about people from one turn of a live group conversation. The people in the room introduced themselves at the start. Return JSON only.
 
@@ -20,7 +20,7 @@ The input lists today's date, the known people, events (ids like e2), groups, re
 
 PEOPLE
 - Refer to a person by the full name in KNOWN PEOPLE, for example "Marcus Hale".
-- "speaker" is the person who said the new turn. Map "I", "me", and "my" to "speaker". Map "we" to "speaker" plus the people the speaker means.
+- "speaker" is the person who said the new turn. Map "I", "me", and "my" to "speaker". Map "we" to "speaker" plus the people the speaker means. "You" is the person the speaker talks to, and "you two" is that person and the one the recent turns pair them with, such as a partner just named, never someone else in the room.
 - For a new person, write the name as said, for example "Imani", and add them to "people".
 - If a first name fits more than one known person and the turn does not say which one, write only that first name, for example "Felix".
 - List in "people" only new people, or known people with a new alias or gender.
