@@ -11,7 +11,7 @@ from pathlib import Path
 
 from grapevine import db
 from grapevine.audio import file_chunks
-from grapevine.compare import differences, judge
+from grapevine.compare import differences
 from grapevine.config import DATA_DIR, DB_PATH, ROOT, run_config
 from grapevine.judge import Run, describe, judge_pair, judge_run
 from grapevine.llm import LLM
@@ -83,7 +83,7 @@ async def merge_accepted() -> None:
         print(f"  [{prompt['reason']}] {prompt['text']}")
 
 
-async def compare_runs(first: int, second: int, *, with_judge: bool) -> None:
+def compare_runs(first: int, second: int) -> None:
     conn = db.connect(DB_PATH)
     a, b = open_store(conn, first).graph, open_store(conn, second).graph
     for key, diff in differences(a, b).items():
@@ -92,11 +92,6 @@ async def compare_runs(first: int, second: int, *, with_judge: bool) -> None:
             print(f"  - {item}")
         for item in diff["only_b"]:
             print(f"  + {item}")
-    if with_judge:
-        config = run_config({})
-        llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
-        verdict = await judge(llm, a, b, run_id=second, model=config.summary_model, seed=config.seed)
-        print(f"judge (A = run {first}, B = run {second}):", json.dumps(verdict, indent=2))
 
 
 def judged_run(conn: sqlite3.Connection, run_id: int) -> Run:
@@ -228,7 +223,6 @@ def main() -> None:
     compare_parser = commands.add_parser("compare", help="compare two runs on the same session")
     compare_parser.add_argument("first", type=int)
     compare_parser.add_argument("second", type=int)
-    compare_parser.add_argument("--judge", action="store_true", help="also ask the local model which run is better")
     judge_parser = commands.add_parser("judge", help="score a run against a gold checklist with the local model")
     judge_parser.add_argument("run_id", type=int)
     judge_parser.add_argument("--gold", type=Path, required=True)
@@ -253,7 +247,7 @@ def main() -> None:
         case "merge":
             asyncio.run(merge_accepted())
         case "compare":
-            asyncio.run(compare_runs(args.first, args.second, with_judge=args.judge))
+            compare_runs(args.first, args.second)
         case "judge":
             asyncio.run(judge_command(args.run_id, args.gold, seed=args.seed))
         case "judge-pair":
