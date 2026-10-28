@@ -353,6 +353,8 @@ def apply_output(store: Store, held: Held) -> None:
             if len(ids) != 2:
                 continue
             evidence = [held.fact_ids[i] for i in rel.get("facts") or [] if i in held.fact_ids]
+            if tie_of_someone_else(rel["label"], [store.graph.facts[f]["text"] for f in evidence]):
+                continue
             store.upsert_relationship(
                 a=ids[0],
                 b=ids[1],
@@ -386,6 +388,16 @@ def apply_output(store: Store, held: Held) -> None:
                 payload={"mention": ambiguity.mention, "held": held_payload(held)},
                 model_call_id=teller.model_call_id,
             )
+
+
+def tie_of_someone_else(label: str, texts: list[str]) -> bool:
+    """Whether the facts use the label only for a third person, as in "met at Marcus's cousin's wedding", which
+    the model reads as a cousin tie between the two who met."""
+    word = re.escape(label.lower())
+    said = [t.lower() for t in texts]
+    return any(re.search(rf"\b{word}'s\b", t) for t in said) and not any(
+        re.search(rf"\b{word}\b(?!')", t) for t in said
+    )
 
 
 def category_of(category: str, label: str) -> str:

@@ -277,6 +277,26 @@ def test_an_added_detail_marked_as_a_dispute_is_only_a_fact_unless_its_date_diff
     assert store.graph.facts[first]["disputed"]
 
 
+def test_a_tie_that_the_facts_give_only_to_a_third_person_is_skipped(store):
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    store.create_person(name="Tina Alvarez", aliases=["Tina"], gender="female")
+    cousin = {"a": "speaker", "b": "Tina Alvarez", "category": "family", "label": "cousin", "status": "current"}
+    wedding = fact("Marcus Hale and Tina Alvarez met at Marcus Hale's cousin's wedding.", ["speaker", "Tina Alvarez"])
+    apply(
+        store,
+        turn(store, marcus, "We met at my cousin's wedding."),
+        facts=[wedding],
+        relationships=[{**cousin, "facts": [0]}],
+    )
+
+    assert store.graph.relationships == {}
+
+    cousins = fact("Tina Alvarez is Marcus Hale's cousin.", ["speaker", "Tina Alvarez"])
+    apply(store, turn(store, marcus, "Tina is my cousin."), facts=[cousins], relationships=[{**cousin, "facts": [0]}])
+
+    assert [r["label"] for r in store.graph.relationships.values()] == ["cousin"]
+
+
 def test_a_new_story_marked_as_a_dispute_is_only_a_fact(store):
     marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
     store.create_person(name="Tina Alvarez", aliases=["Tina"], gender="female")
