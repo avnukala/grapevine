@@ -16,6 +16,9 @@ from grapevine.audio import SAMPLE_RATE
 FRAME_MS = 10
 MAX_SPEAKERS = 8
 MIN_EMBED_SAMPLES = SAMPLE_RATE // 2
+# The longest wait for the next piece of an answer from a server that works. A review call can wait up to 180 s
+# for a free slot behind other review calls, and a cold model can take 50 s to read a prompt.
+CHAT_TIMEOUT_SECONDS = 300
 
 
 class SpeakerDetector(Protocol):
@@ -195,17 +198,17 @@ class OpenAIChat:
     def __init__(self, base_url: str) -> None:
         from openai import AsyncOpenAI
 
-        self.client = AsyncOpenAI(base_url=base_url, api_key="local")
+        self.client = AsyncOpenAI(base_url=base_url, api_key="local", timeout=CHAT_TIMEOUT_SECONDS, max_retries=1)
 
     async def complete(self, request: dict, on_text: Callable[[str], None] | None = None) -> str:
-        if on_text is None:
-            response = await self.client.chat.completions.create(**request)
-            return response.choices[0].message.content or ""
+        """Streams every answer, so the timeout limits each wait for the server and not the length of a long
+        answer. A server that hangs fails the call, so it cannot stall the run."""
         text = ""
         async for chunk in await self.client.chat.completions.create(**request, stream=True):
             if chunk.choices and (delta := chunk.choices[0].delta.content):
                 text += delta
-                on_text(text)
+                if on_text:
+                    on_text(text)
         return text
 
 
