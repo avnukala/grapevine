@@ -334,13 +334,13 @@ def test_prompt_lists_people_by_name_and_facts_by_id(store):
     store.set_speaker("spk0", ray, None)
     teller = turn(store, ray, "I live in Brooklyn.")
     apply(store, teller, facts=[fact("Ray Patel lives in Brooklyn.", ["speaker"])])
-    segment = store.graph.segments[teller.segment_id]
+    segment = store.graph.segments[turn(store, ray, "I climb.").segment_id]
 
     message = user_message(store, segment=segment, speaker_id=ray, today="2025-10-18", context="full")
 
     assert "- Ray Patel (aliases: Ray) [in the room]" in message
     assert f"{store.graph.ref('f', max(store.graph.facts))} told by Ray Patel: Ray Patel lives in Brooklyn." in message
-    assert message.endswith("NEW TURN (speaker: Ray Patel):\nI live in Brooklyn.")
+    assert message.endswith("NEW TURN (speaker: Ray Patel):\nI climb.")
 
 
 def test_an_unknown_speaker_can_dispute_a_fact(store):
@@ -711,3 +711,20 @@ def test_news_from_the_same_teller_does_not_hide_an_unrelated_fact(store):
 
     assert store.graph.facts[home]["revised_by_fact_id"] is None
     assert store.graph.facts[job]["revised_by_fact_id"] is not None
+
+
+def test_a_turn_read_again_does_not_see_its_own_facts(store):
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    first = turn(store, marcus, "I'm Marcus, a nurse in Denver.")
+    apply(store, first, facts=[fact("Marcus Hale is a nurse in Denver.", ["speaker"])])
+    later = turn(store, marcus, "I climb on Sundays.")
+
+    again = user_message(
+        store, segment=store.graph.segments[first.segment_id], speaker_id=marcus, today="2025-10-18", context="full"
+    )
+    after = user_message(
+        store, segment=store.graph.segments[later.segment_id], speaker_id=marcus, today="2025-10-18", context="full"
+    )
+
+    assert "nurse in Denver." not in again.split("NEW TURN")[0]
+    assert "nurse in Denver." in after

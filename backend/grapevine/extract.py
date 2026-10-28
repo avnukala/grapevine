@@ -255,7 +255,8 @@ def user_message(store: Store, *, segment: Record, speaker_id: int | None, today
         + (f" [{f['start_date']}]" if f["start_date"] else "")
         + (" (disputed)" if f["disputed"] else "")
         for f in graph.live_facts()
-        if touches([p["person_id"] for p in f["people"]])
+        # A turn read again must not see its own facts, or the model finds nothing new and they all get hidden.
+        if segment["id"] not in f["segment_ids"] and touches([p["person_id"] for p in f["people"]])
     ] or ["(none)"]
     lines += ["", "RECENT TURNS:"]
     lines += [f"{name(s['person_id'])}: {s['text']}" for s in recent] or ["(none)"]
