@@ -27,7 +27,7 @@ from grapevine.llm import LLM, Call, Result, watch_on
 from grapevine.names import misspelled
 from grapevine.store import GROUP_WORDS, Store, group_key, proper_group_name
 
-PROMPT_VERSION = "review-v29"
+PROMPT_VERSION = "review-v30"
 SAME_EVENT = 0.6
 # The prompt says that how two people met, or that they dated, is not a happening, and the model still lists it.
 NOT_HAPPENINGS = {"relationship", "meeting", "met", "dating", "friendship"}
@@ -101,7 +101,7 @@ EVENTS_SYSTEM = (
 
 - List every happening of your analysis, including one whose date people dispute.
 - Not happenings: how or when two people met, a relationship, a job, school years, a visit planned for the coming days, or a game result.
-- A show, a party, or a game that people go to today or tonight is a happening, dated today.
+- A show, a party, or a game that people go to today or tonight is a happening, dated today. A past happening, such as a 21st birthday years ago, is never dated today.
 - record: the record event that is the same happening, or null. A move is never a birthday or a visit.
 - start_date: only as precise as what was said. "YYYY-MM-DD" only for a named day or a day near today, such as "last Saturday" or "tonight", resolved with today's date. "YYYY-MM" only for a named month or "last month". A season, "years ago", or a year alone is "YYYY". Null when no year can be worked out. When people disagree on a date, use the date of the person who was there, or the date that the reasons given support, for example "Rosa got married in 2021, so the trip was 2022".
 - name: what and who, for example "Greta's move to Seattle" or "Rosa's wedding". people: who took part."""
@@ -308,7 +308,9 @@ async def review(store: Store, llm: LLM, *, model: str, seed: int, today: str) -
             apply_relationships(store, in_room, person, call_id, prune=True)
             apply_relationships(store, [t for t in kept if t not in in_room], person, call_id, prune=False)
         if events.output:
-            apply_happenings(store, events.output["happenings"], record_events, person, events.model_call_id)
+            apply_happenings(
+                store, events.output["happenings"], record_events, person, events.model_call_id, today=today
+            )
         if groups.output:
             apply_groups(store, found_groups, person, groups.model_call_id)
         if small_talk.output:
@@ -521,12 +523,13 @@ def hide_small_talk(store: Store, answers: Record, facts: dict[str, int], model_
 
 
 def apply_happenings(
-    store: Store, happenings: list[Record], record: dict[str, int], person, model_call_id: int
+    store: Store, happenings: list[Record], record: dict[str, int], person, model_call_id: int, *, today: str
 ) -> None:
     """Moves each record event to the date of the happening linked to it, and adds the other happenings.
     The model links a happening to a wrong record event at times, so a link needs a shared word, and only the
     first happening linked to a record event keeps the link. "Nina's move to Denver" must not move the date
-    of "Move to Denver 2016", which is Megan's."""
+    of "Move to Denver 2016", which is Megan's. A record event never moves to today: the model gave a 21st
+    birthday from years ago the date of tonight's birthday dinner, while a turn records tonight's events itself."""
     linked = set()
     added = []
     for happening in happenings:
@@ -538,18 +541,18 @@ def apply_happenings(
                 added.append(happening)
             continue
         linked.add(event["id"])
-        if start and start != event["start_date"]:
+        if start and start != event["start_date"] and start != today:
             fields = {"start_date": start, "date_precision": date_precision(start, None)}
             store.upsert_event(event["id"], fields, people=[], model_call_id=model_call_id)
-    apply_events(store, added, person, model_call_id)
+    apply_events(store, added, person, model_call_id, today=today)
 
 
-def apply_events(store: Store, entries: list[Record], person, model_call_id: int) -> None:
-    """Adds each new event, and moves a record event to the date the review gives it."""
+def apply_events(store: Store, entries: list[Record], person, model_call_id: int, *, today: str) -> None:
+    """Adds each new event, and moves a record event to the date the review gives it, other than today."""
     for entry in entries:
         start = clean_date(entry["start_date"]) or year_in(entry["name"])
         known = next((e for e in store.graph.events.values() if same_event(entry["name"], start, e)), None)
-        if known and (start is None or known["start_date"] == start):
+        if known and start in (None, today, known["start_date"]):
             continue
         event = store.upsert_event(
             known["id"] if known else None,

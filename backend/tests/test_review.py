@@ -63,6 +63,7 @@ def test_a_record_event_takes_the_date_of_the_first_happening_linked_to_it(store
         None, {"name": "Move to Denver", "start_date": "2015"}, people=[megan], model_call_id=None
     )
     birthday = store.upsert_event(None, {"name": "Nina's birthday"}, people=[nina], model_call_id=None)
+    climb = store.upsert_event(None, {"name": "Granite climb"}, people=[], model_call_id=None)
 
     def happening(name: str, record: str | None, start: str) -> dict:
         return {"name": name, "record": record, "start_date": start, "place": None, "people": []}
@@ -73,10 +74,13 @@ def test_a_record_event_takes_the_date_of_the_first_happening_linked_to_it(store
         happening("Nina's move to Boston", "Nina's birthday", "2012"),
         happening("...", "Nina's birthday", "2020-03"),
         happening("Megan and Nina's meeting", None, "2020"),
+        happening("Granite climb", "Granite climb", "2025-10-18"),
+        happening("Move to Denver", None, "2025-10-18"),
     ]
-    record = {"Move to Denver": move["id"], "Nina's birthday": birthday["id"]}
-    apply_happenings(store, happenings, record, lambda name, _: None, model_call_id=1)
+    record = {"Move to Denver": move["id"], "Nina's birthday": birthday["id"], "Granite climb": climb["id"]}
+    apply_happenings(store, happenings, record, lambda name, _: None, model_call_id=1, today="2025-10-18")
     assert sorted((e["name"], e["start_date"]) for e in store.graph.events.values()) == [
+        ("Granite climb", None),
         ("Move to Denver", "2016"),
         ("Nina's birthday", "2020-03"),
         ("Nina's move to Boston", "2012"),
