@@ -109,7 +109,8 @@ def fact(text: str, people: list[str], **fields: object) -> dict:
 
 
 class FakeChat:
-    """Answers each extractor call by the first rule whose key appears in the new turn."""
+    """Answers each extractor call by the first rule whose key appears in the new turn. A warm-up request, which
+    asks for no JSON, goes to `warmups` and gets no answer."""
 
     def __init__(
         self,
@@ -130,8 +131,12 @@ class FakeChat:
             "members": [],
         }
         self.requests: list[dict] = []
+        self.warmups: list[dict] = []
 
     async def complete(self, request: dict, on_text=None) -> str:
+        if "response_format" not in request:
+            self.warmups.append(request)
+            return ""
         self.requests.append(request)
         user = request["messages"][1]["content"]
         match request["response_format"]["json_schema"]["name"]:

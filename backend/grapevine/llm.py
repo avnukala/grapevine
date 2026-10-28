@@ -1,6 +1,7 @@
 """Model calls with a record of each one. A call with the same input as a stored call reuses its response,
 so an unchanged replay gives the same result."""
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -62,6 +63,29 @@ class LLM:
         self.chat = chat
         self.model_file_hash = model_file_hash
         self.reuse = reuse
+        self.warming: set[asyncio.Task] = set()
+
+    def warm(self, model: str, system: str) -> None:
+        """Asks a model for one token after a system prompt, in the background, so the server has the model and
+        the prompt ready before the first real call. After a pause, the first call waits up to 50 s for them.
+        Nothing is recorded, and a failure is only logged."""
+        request = {
+            "model": model,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": "Ready?"}],
+            "temperature": 0,
+            "reasoning_effort": "none",
+            "max_tokens": 1,
+        }
+
+        async def send() -> None:
+            try:
+                await self.chat.complete(request)
+            except Exception:
+                log.debug("warm-up of %s failed", model, exc_info=True)
+
+        task = asyncio.create_task(send())
+        self.warming.add(task)
+        task.add_done_callback(self.warming.discard)
 
     async def call(self, call: Call, *, run_id: int, audio_ms: int, watch: Watch | None = None) -> Result:
         """Returns the parsed JSON output, or None when the model returned something that is not valid JSON.

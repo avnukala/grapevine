@@ -7,8 +7,10 @@ import pytest
 from grapevine import pipeline as pipeline_module
 from grapevine.audio import SAMPLE_RATE
 from grapevine.config import RunConfig
+from grapevine.extract import SYSTEM as EXTRACT_SYSTEM
 from grapevine.llm import LLM
 from grapevine.pipeline import Pipeline, RunStopping, said_name
+from grapevine.review import RELATIONSHIPS_SYSTEM
 from grapevine.store import Store
 from tests.fakes import FakeChat, Line, chunks, fact, fake_models, render
 
@@ -122,6 +124,20 @@ def test_unchanged_replay_reuses_every_model_call(conn):
     cached = conn.execute("SELECT MIN(cached) FROM model_calls WHERE run_id = ?", (second.run_id,)).fetchone()[0]
     assert cached == 1
     assert snapshot(second) == snapshot(first)
+
+
+def test_a_run_warms_both_models_with_their_system_prompts_and_records_no_warm_up(conn):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    chat = FakeChat(RULES, PROMPTS)
+    store = replay(conn, chat)
+
+    config = RunConfig()
+    assert [(w["model"], w["messages"][0]["content"], w["max_tokens"]) for w in chat.warmups] == [
+        (config.extract_model, EXTRACT_SYSTEM, 1),
+        (config.summary_model, RELATIONSHIPS_SYSTEM, 1),
+    ]
+    recorded = conn.execute("SELECT COUNT(*) FROM model_calls WHERE run_id = ?", (store.run_id,)).fetchone()[0]
+    assert recorded == len(chat.requests)
 
 
 def test_voices_split_people_the_speaker_detector_merged(conn):

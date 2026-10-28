@@ -18,12 +18,13 @@ import numpy as np
 
 from grapevine.audio import SAMPLE_RATE
 from grapevine.config import RunConfig
+from grapevine.extract import SYSTEM as EXTRACT_SYSTEM
 from grapevine.extract import Held, Teller, apply_output, extraction_call, held_payload, read_again, respell_people
 from grapevine.llm import LLM, watch_on
 from grapevine.models import Hints, Models
 from grapevine.names import english, misspelled, proper_names, spell_names
 from grapevine.prompter import prompter_call, show_prompt, suggest
-from grapevine.review import review
+from grapevine.review import RELATIONSHIPS_SYSTEM, review
 from grapevine.store import Store, name_matches
 from grapevine.summarize import summarize
 from grapevine.turns import Turn, TurnBuilder
@@ -178,6 +179,7 @@ class Pipeline:
         self.fed = False
 
     async def run(self, chunks: AsyncIterator[np.ndarray]) -> None:
+        self.llm.warm(self.config.extract_model, EXTRACT_SYSTEM)
         self.models.detector.start()
         self.intro_over = self.intro_end_ms == 0
         self.store.set_phase("conversation" if self.intro_over else "intro")
@@ -197,6 +199,7 @@ class Pipeline:
         self.store.audio_ms = self.builder.now_ms
         self.store.set_phase("review")
         self._settle_speakers()
+        self.llm.warm(self.config.summary_model, RELATIONSHIPS_SYSTEM)
         await self._reextract(list(self.extracted_as))
         await review(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed, today=self.today)
         await summarize(self.store, self.llm, model=self.config.summary_model, seed=self.config.seed)
