@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import shutil
+import sqlite3
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import date, datetime
@@ -93,8 +94,7 @@ def store_for(run_id: int) -> Store:
         return active[run_id].store
     if run_id in stores:
         return stores[run_id]
-    if conn.execute("SELECT 1 FROM runs WHERE id = ?", (run_id,)).fetchone() is None:
-        raise HTTPException(404, f"no run {run_id}")
+    run_row(run_id)
     stores[run_id] = open_store(conn, run_id, broadcast)
     return stores[run_id]
 
@@ -106,8 +106,15 @@ def session_or_404(session_id: int) -> Record:
         raise HTTPException(404, f"no session {session_id}") from None
 
 
+def run_row(run_id: int) -> sqlite3.Row:
+    row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
+    if row is None:
+        raise HTTPException(404, f"no run {run_id}")
+    return row
+
+
 def threshold(run_id: int) -> float:
-    config = json.loads(conn.execute("SELECT config_json FROM runs WHERE id = ?", (run_id,)).fetchone()[0])
+    config = json.loads(run_row(run_id)["config_json"])
     return config.get("voice_threshold", RunConfig().voice_threshold)
 
 
@@ -309,7 +316,7 @@ async def going_run() -> Record | None:
 
 
 def run_record(run_id: int) -> Record:
-    row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
+    row = run_row(run_id)
     return {**dict(row), "config": json.loads(row["config_json"]), "active": run_id in active}
 
 
@@ -375,19 +382,16 @@ async def stop_run(run_id: int) -> Record:
 async def intro_done(run_id: int) -> Record:
     run = active_run(run_id)
     run.pipeline.end_intro()
-    session_id = conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()[0]
+    session_id = run_row(run_id)["session_id"]
     conn.execute("UPDATE sessions SET intro_end_ms = ? WHERE id = ?", (run.pipeline.intro_end_ms, session_id))
     return run_record(run_id)
 
 
 @app.post("/api/runs/{run_id}/accept")
 async def accept_run(run_id: int) -> Record:
-    row = conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()
-    if row is None:
-        raise HTTPException(404, f"no run {run_id}")
+    session_id = run_row(run_id)["session_id"]
     if run_id in active:
         raise HTTPException(409, f"run {run_id} is still going")
-    session_id = row[0]
     conn.execute("BEGIN")
     conn.execute("UPDATE runs SET accepted = 0 WHERE session_id = ?", (session_id,))
     conn.execute("UPDATE runs SET accepted = 1 WHERE id = ?", (run_id,))
@@ -465,7 +469,7 @@ async def edit_segment(run_id: int, segment_id: int, body: LineEdit) -> Record:
 async def read_after_run(run_id: int, store: Store, segment_ids: list[int], *, saved: str) -> None:
     """Reads turns of an ended run again after the room fixed them, so their facts follow the fix. It reads with
     the model of today, because the model of an old run may no longer be loaded."""
-    row = conn.execute("SELECT config_json, session_id FROM runs WHERE id = ?", (run_id,)).fetchone()
+    row = run_row(run_id)
     config = run_config(json.loads(row["config_json"]))
     llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
     today = session(conn, row["session_id"])["recorded_at"][:10]
@@ -496,7 +500,7 @@ async def rename(run_id: int, person_id: int, body: Rename) -> Record:
     store = store_for(run_id)
     old = store.graph.people[person_id]["name"] if person_id in store.graph.people else None
     rename_person(store, person_id, body.name)
-    session_id = conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()["session_id"]
+    session_id = run_row(run_id)["session_id"]
     roster = session(conn, session_id)["roster"] if session_id is not None else []
     if old in roster:
         new_roster = [body.name if name == old else name for name in roster]
