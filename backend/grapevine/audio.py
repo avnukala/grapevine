@@ -21,7 +21,7 @@ def decode(path: Path) -> np.ndarray:
 
 async def file_chunks(path: Path, *, speed: float | None, stop: asyncio.Event) -> AsyncIterator[np.ndarray]:
     """Yields chunks of a file. With a speed, the file streams in real time scaled by it, else as fast as possible."""
-    audio = decode(path)
+    audio = await asyncio.to_thread(decode, path)
     loop = asyncio.get_running_loop()
     started = loop.time()
     for offset in range(0, len(audio), CHUNK_SAMPLES):
