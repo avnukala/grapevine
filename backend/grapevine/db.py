@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS model_calls (
     audio_ms INTEGER
 );
 CREATE INDEX IF NOT EXISTS model_calls_input_hash ON model_calls(input_hash);
+CREATE INDEX IF NOT EXISTS model_calls_run_id ON model_calls(run_id);
 CREATE TABLE IF NOT EXISTS changes (
     id INTEGER PRIMARY KEY,
     run_id INTEGER NOT NULL REFERENCES runs(id),
@@ -174,21 +175,47 @@ CREATE TABLE IF NOT EXISTS prompts (
 """
 
 
+def columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+
+
+def add_session_roster(conn: sqlite3.Connection) -> None:
+    if "roster" not in columns(conn, "sessions"):
+        conn.execute("ALTER TABLE sessions ADD COLUMN roster TEXT NOT NULL DEFAULT '[]'")
+
+
+def move_vocabulary_to_words(conn: sqlite3.Connection) -> None:
+    """The word list was a list per session for a short time. Its words join the one list for all sessions."""
+    if "vocabulary" not in columns(conn, "sessions"):
+        return
+    for (vocabulary,) in conn.execute("SELECT vocabulary FROM sessions").fetchall():
+        conn.executemany("INSERT OR IGNORE INTO words (word) VALUES (?)", [(w,) for w in json.loads(vocabulary)])
+    conn.execute("ALTER TABLE sessions DROP COLUMN vocabulary")
+
+
+def add_segment_speaker_manual(conn: sqlite3.Connection) -> None:
+    if "speaker_manual" not in columns(conn, "segments"):
+        conn.execute("ALTER TABLE segments ADD COLUMN speaker_manual INTEGER NOT NULL DEFAULT 0")
+
+
+# Append new steps only. A database at user_version n has run the first n steps. Databases from before
+# user_version start at 0 with some steps done, so each step checks first.
+MIGRATIONS = (add_session_roster, move_vocabulary_to_words, add_segment_speaker_manual)
+
+
 def connect(path: Path) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path, isolation_level=None, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
     conn.execute("PRAGMA busy_timeout = 10000")
     conn.executescript(SCHEMA)
-    if "roster" not in {row["name"] for row in conn.execute("PRAGMA table_info(sessions)")}:
-        conn.execute("ALTER TABLE sessions ADD COLUMN roster TEXT NOT NULL DEFAULT '[]'")
-    if "vocabulary" in {row["name"] for row in conn.execute("PRAGMA table_info(sessions)")}:
-        # The word list was a list per session for a short time. Its words join the one list for all sessions.
-        for (vocabulary,) in conn.execute("SELECT vocabulary FROM sessions").fetchall():
-            conn.executemany("INSERT OR IGNORE INTO words (word) VALUES (?)", [(w,) for w in json.loads(vocabulary)])
-        conn.execute("ALTER TABLE sessions DROP COLUMN vocabulary")
-    if "speaker_manual" not in {row["name"] for row in conn.execute("PRAGMA table_info(segments)")}:
-        conn.execute("ALTER TABLE segments ADD COLUMN speaker_manual INTEGER NOT NULL DEFAULT 0")
+    version = conn.execute("PRAGMA user_version").fetchone()[0]
+    for number, migrate in enumerate(MIGRATIONS[version:], start=version + 1):
+        conn.execute("BEGIN IMMEDIATE")
+        migrate(conn)
+        conn.execute(f"PRAGMA user_version = {number}")
+        conn.execute("COMMIT")
     return conn
