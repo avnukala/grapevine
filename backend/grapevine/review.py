@@ -27,7 +27,7 @@ from grapevine.llm import LLM, Call, Result, watch_on
 from grapevine.names import misspelled
 from grapevine.store import GROUP_WORDS, Store, group_key, proper_group_name
 
-PROMPT_VERSION = "review-v28"
+PROMPT_VERSION = "review-v29"
 SAME_EVENT = 0.6
 # The prompt says that how two people met, or that they dated, is not a happening, and the model still lists it.
 NOT_HAPPENINGS = {"relationship", "meeting", "met", "dating", "friendship"}
@@ -110,7 +110,8 @@ SMALL_TALK_SYSTEM = """You read the facts recorded from a group conversation bes
 
 For each fact, write a short note, then "lasting".
 - lasting is false for small talk: a remark about tonight or this gathering (the food, the game being played, who drives, who is late, a reservation), an errand or chore (a car inspection, who does the dishes, cooking on Saturday), a mood or wish of the moment, a joke or tease, a question, or a request to hear a story.
-- lasting is true for history: jobs, homes (also a town someone drives in from), house rules, traditions (also ones people plan to start), moves, school, family, pets, hobbies, groups, relationships, how people met, life events such as an engagement, a wedding, an injury, or a trip, a story from the past, and plans to host or go to a party, a holiday, a trip, or a wedding.
+- lasting is true for history: jobs, homes (also a town someone drives in from), house rules, traditions, moves, school, family, pets, hobbies, groups, relationships, how people met, life events such as an engagement, a wedding, an injury, or a trip, a story from the past, and plans to host or go to a party, a holiday, a trip, or a wedding.
+- Judge what the fact says, not the line it came from. A past event told in a question, such as "were you there when Dana broke her wrist?", and a detail of a past story are history.
 - When unsure, lasting is true."""
 
 NULLABLE = {"type": ["string", "null"]}
@@ -184,14 +185,18 @@ NOTE = {"type": "string", "maxLength": 100}
 
 def small_talk_message(store: Store) -> tuple[str, dict, dict[str, int]]:
     """The personal facts and stories that turns recorded, each under its ref, then the transcript. Ties,
-    corrections, and the evidence of a relationship are history, and the model called a couple small talk."""
+    corrections, the evidence of a relationship, and traditions are history, and the model called a couple and
+    a tradition the group started tonight small talk."""
     graph = store.graph
     names = {pid: p["name"] for pid, p in graph.people.items()}
     evidence = {fact_id for r in graph.relationships.values() for fact_id in r["evidence"]}
     facts = {
         graph.ref("f", f["id"]): f
         for f in graph.live_facts()
-        if f["segment_ids"] and f["kind"] in ("personal", "story") and f["id"] not in evidence
+        if f["segment_ids"]
+        and f["kind"] in ("personal", "story")
+        and f["id"] not in evidence
+        and "tradition" not in f["text"].lower()
     }
     turns = sorted(graph.segments.values(), key=lambda s: s["start_ms"])
     lines = ["FACTS:", *(f"{ref} {f['text']}" for ref, f in facts.items()), "", "TRANSCRIPT:"]
