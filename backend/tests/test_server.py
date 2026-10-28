@@ -90,7 +90,9 @@ def test_blank_or_long_names_are_rejected(client, store):
     assert store.conn.execute("SELECT count(*) FROM people").fetchone()[0] == 0
 
 
-def test_speaker_needs_one_known_person(client, store):
+def test_speaker_needs_one_known_person(client, store, monkeypatch):
+    monkeypatch.setattr(server, "chat", lambda: FakeChat({}))
+    monkeypatch.setattr(server, "llm_file_hash", lambda: "t")
     segment = store.add_segment(
         start_ms=0, end_ms=1000, speaker_label="s1", person_id=None, confidence=None, text="hi", timings={}
     )
