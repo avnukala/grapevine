@@ -13,8 +13,8 @@ from typing import Annotated, Literal
 import numpy as np
 import openai
 import soundfile as sf
-from fastapi import FastAPI, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, StringConstraints
 
 from grapevine import db
@@ -75,6 +75,12 @@ stores: dict[int, Store] = {}
 busy = asyncio.Lock()
 # Fixes read one at a time, so two reads of one turn do not both replace the same old facts.
 rereading = asyncio.Lock()
+
+
+@app.exception_handler(ActionError)
+async def action_error(request: Request, error: ActionError) -> JSONResponse:
+    """An action the room asked for that cannot be done is a bad request, with the same body as an HTTPException."""
+    return JSONResponse({"detail": str(error)}, status_code=400)
 
 
 def broadcast(message: Record) -> None:
@@ -415,20 +421,17 @@ async def answer_prompt(run_id: int, prompt_id: int, body: Answer) -> Record:
     prompt = store.graph.prompts.get(prompt_id)
     if prompt is None:
         raise HTTPException(404, f"no prompt {prompt_id} in run {run_id}")
-    try:
-        match prompt["reason"]:
-            case "which_person":
-                pick_person(store, prompt_id, person_id=body.person_id, new_name=body.new_name)
-            case "which_speaker":
-                pick_speaker(
-                    store, prompt_id, person_id=body.person_id, nickname=body.nickname, threshold=threshold(run_id)
-                )
-            case "conflict":
-                settle_conflict(store, prompt_id, keep_fact_id=body.keep_fact_id)
-            case _:
-                store.dismiss_prompt(prompt_id)
-    except ActionError as error:
-        raise HTTPException(400, str(error)) from error
+    match prompt["reason"]:
+        case "which_person":
+            pick_person(store, prompt_id, person_id=body.person_id, new_name=body.new_name)
+        case "which_speaker":
+            pick_speaker(
+                store, prompt_id, person_id=body.person_id, nickname=body.nickname, threshold=threshold(run_id)
+            )
+        case "conflict":
+            settle_conflict(store, prompt_id, keep_fact_id=body.keep_fact_id)
+        case _:
+            store.dismiss_prompt(prompt_id)
     return store.graph.prompts[prompt_id]
 
 
@@ -492,10 +495,7 @@ async def rename(run_id: int, person_id: int, body: Rename) -> Record:
     """Renames a person, such as a name that the transcript misheard. A name on the roster changes there too."""
     store = store_for(run_id)
     old = store.graph.people[person_id]["name"] if person_id in store.graph.people else None
-    try:
-        rename_person(store, person_id, body.name)
-    except ActionError as error:
-        raise HTTPException(400, str(error)) from error
+    rename_person(store, person_id, body.name)
     session_id = conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()["session_id"]
     roster = session(conn, session_id)["roster"] if session_id is not None else []
     if old in roster:
@@ -515,17 +515,14 @@ class SpeakerAnswer(BaseModel):
 @app.post("/api/runs/{run_id}/segments/{segment_id}/speaker")
 async def set_segment_speaker(run_id: int, segment_id: int, body: SpeakerAnswer) -> Record:
     store = store_for(run_id)
-    try:
-        changed = assign_speaker(
-            store,
-            segment_id,
-            person_id=body.person_id,
-            new_name=body.new_name,
-            every_line=body.every_line,
-            threshold=threshold(run_id),
-        )
-    except ActionError as error:
-        raise HTTPException(400, str(error)) from error
+    changed = assign_speaker(
+        store,
+        segment_id,
+        person_id=body.person_id,
+        new_name=body.new_name,
+        every_line=body.every_line,
+        threshold=threshold(run_id),
+    )
     if run_id in active:
         active[run_id].pipeline.reread(changed)
     else:
@@ -585,8 +582,5 @@ class MergeAnswer(BaseModel):
 @app.post("/api/merge/{run_id}/prompts/{prompt_id}")
 async def answer_merge(run_id: int, prompt_id: int, body: MergeAnswer) -> Record:
     store = store_for(run_id)
-    try:
-        resolve_merge(store, prompt_id, action=body.action, fact_id=body.fact_id)
-    except ActionError as error:
-        raise HTTPException(400, str(error)) from error
+    resolve_merge(store, prompt_id, action=body.action, fact_id=body.fact_id)
     return store.graph.prompts[prompt_id]

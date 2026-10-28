@@ -101,6 +101,7 @@ def test_speaker_needs_one_known_person(client, store, monkeypatch):
     url = f"/api/runs/{store.run_id}/segments/{segment['id']}/speaker"
     for body in [{}, {"person_id": person["id"], "new_name": "Felix Ward"}, {"person_id": 999}]:
         assert client.post(url, json=body).status_code == 400
+    assert client.post(url, json={"person_id": 999}).json() == {"detail": "no person 999"}
     assert (
         client.post(f"/api/runs/{store.run_id}/segments/999/speaker", json={"new_name": "Felix Ward"}).status_code
         == 400
