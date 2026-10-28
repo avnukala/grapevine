@@ -31,7 +31,7 @@ def session(conn: sqlite3.Connection, session_id: int) -> Record:
 
 
 def session_record(row: sqlite3.Row) -> Record:
-    return {**dict(row), "roster": json.loads(row["roster"]), "vocabulary": json.loads(row["vocabulary"])}
+    return {**dict(row), "roster": json.loads(row["roster"])}
 
 
 def create_session(
@@ -42,13 +42,30 @@ def create_session(
     audio_uri: str | None,
     intro_end_ms: int | None,
     roster: list[str],
-    vocabulary: list[str],
 ) -> Record:
     cursor = conn.execute(
-        "INSERT INTO sessions (name, recorded_at, audio_uri, intro_end_ms, roster, vocabulary) VALUES (?, ?, ?, ?, ?, ?)",
-        (name, recorded_at, audio_uri, intro_end_ms, json.dumps(roster), json.dumps(vocabulary)),
+        "INSERT INTO sessions (name, recorded_at, audio_uri, intro_end_ms, roster) VALUES (?, ?, ?, ?, ?)",
+        (name, recorded_at, audio_uri, intro_end_ms, json.dumps(roster)),
     )
     return session(conn, cursor.lastrowid)
+
+
+def words(conn: sqlite3.Connection) -> list[str]:
+    """The words to know of every session, in the order they were added."""
+    return [row[0] for row in conn.execute("SELECT word FROM words ORDER BY rowid")]
+
+
+def set_words(conn: sqlite3.Connection, new: list[str]) -> list[str]:
+    """Replaces the word list in one transaction, so a failed write keeps the old list."""
+    conn.execute("BEGIN")
+    try:
+        conn.execute("DELETE FROM words")
+        conn.executemany("INSERT OR IGNORE INTO words (word) VALUES (?)", [(w,) for w in new])
+    except sqlite3.Error:
+        conn.execute("ROLLBACK")
+        raise
+    conn.execute("COMMIT")
+    return words(conn)
 
 
 def audio_path(audio_uri: str) -> Path:
@@ -80,7 +97,6 @@ def session_for_audio(conn: sqlite3.Connection, path: Path) -> Record:
         audio_uri=uri,
         intro_end_ms=labels.get("intro_end_ms"),
         roster=list(script.get("voices", {})),
-        vocabulary=[],
     )
 
 
@@ -193,7 +209,7 @@ def start_pipeline(
         today=session["recorded_at"][:10],
         intro_end_ms=session["intro_end_ms"],
         roster=session["roster"],
-        vocabulary=session["vocabulary"],
+        vocabulary=words(conn),
     )
     return ActiveRun(run_id, store, pipeline)
 

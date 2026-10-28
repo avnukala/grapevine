@@ -1,5 +1,6 @@
 """SQLite schema and connection. Every write goes through `Store` in `store.py`."""
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -11,8 +12,11 @@ CREATE TABLE IF NOT EXISTS sessions (
     audio_uri TEXT,
     notes TEXT,
     intro_end_ms INTEGER,
-    roster TEXT NOT NULL DEFAULT '[]',
-    vocabulary TEXT NOT NULL DEFAULT '[]'
+    roster TEXT NOT NULL DEFAULT '[]'
+);
+-- Words the transcript gets wrong, such as nicknames, places, and slang. One list for every session.
+CREATE TABLE IF NOT EXISTS words (
+    word TEXT PRIMARY KEY COLLATE NOCASE
 );
 CREATE TABLE IF NOT EXISTS runs (
     id INTEGER PRIMARY KEY,
@@ -180,8 +184,11 @@ def connect(path: Path) -> sqlite3.Connection:
     conn.executescript(SCHEMA)
     if "roster" not in {row["name"] for row in conn.execute("PRAGMA table_info(sessions)")}:
         conn.execute("ALTER TABLE sessions ADD COLUMN roster TEXT NOT NULL DEFAULT '[]'")
-    if "vocabulary" not in {row["name"] for row in conn.execute("PRAGMA table_info(sessions)")}:
-        conn.execute("ALTER TABLE sessions ADD COLUMN vocabulary TEXT NOT NULL DEFAULT '[]'")
+    if "vocabulary" in {row["name"] for row in conn.execute("PRAGMA table_info(sessions)")}:
+        # The word list was a list per session for a short time. Its words join the one list for all sessions.
+        for (vocabulary,) in conn.execute("SELECT vocabulary FROM sessions").fetchall():
+            conn.executemany("INSERT OR IGNORE INTO words (word) VALUES (?)", [(w,) for w in json.loads(vocabulary)])
+        conn.execute("ALTER TABLE sessions DROP COLUMN vocabulary")
     if "speaker_manual" not in {row["name"] for row in conn.execute("PRAGMA table_info(segments)")}:
         conn.execute("ALTER TABLE segments ADD COLUMN speaker_manual INTEGER NOT NULL DEFAULT 0")
     return conn

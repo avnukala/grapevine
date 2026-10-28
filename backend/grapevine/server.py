@@ -41,7 +41,9 @@ from grapevine.runs import (
     session_for_audio,
     session_record,
     set_status,
+    set_words,
     start_pipeline,
+    words,
 )
 from grapevine.store import Store
 
@@ -119,7 +121,6 @@ class NewSession(BaseModel):
     recorded_at: str | None = None
     intro_end_ms: int | None = None
     roster: list[Annotated[str, StringConstraints(max_length=100)]] = []
-    vocabulary: list[Annotated[str, StringConstraints(max_length=100)]] = []
 
 
 @app.post("/api/sessions")
@@ -136,7 +137,6 @@ async def new_session(body: NewSession) -> Record:
         audio_uri=body.audio_uri,
         intro_end_ms=body.intro_end_ms,
         roster=clean_terms(body.roster),
-        vocabulary=clean_terms(body.vocabulary),
     )
 
 
@@ -165,7 +165,6 @@ async def upload_session(file: UploadFile) -> Record:
         audio_uri=audio_uri(target),
         intro_end_ms=None,
         roster=[],
-        vocabulary=[],
     )
 
 
@@ -179,22 +178,34 @@ class SessionUpdate(BaseModel):
     notes: str | None = None
     intro_end_ms: int | None = None
     roster: list[Annotated[str, StringConstraints(max_length=100)]] | None = None
-    vocabulary: list[Annotated[str, StringConstraints(max_length=100)]] | None = None
 
 
 @app.patch("/api/sessions/{session_id}")
 async def update_session(session_id: int, body: SessionUpdate) -> Record:
-    """Updates a session. New words reach a run of the session that is going, so the next turn spells them."""
     session_or_404(session_id)
     for key, value in body.model_dump(exclude_none=True).items():
-        if key in ("roster", "vocabulary"):
+        if key == "roster":
             value = json.dumps(clean_terms(value))
         conn.execute(f"UPDATE sessions SET {key} = ? WHERE id = ?", (value, session_id))
-    updated = session(conn, session_id)
-    for run_id, run in active.items():
-        if conn.execute("SELECT session_id FROM runs WHERE id = ?", (run_id,)).fetchone()[0] == session_id:
-            run.pipeline.vocabulary = updated["vocabulary"]
-    return updated
+    return session(conn, session_id)
+
+
+class Words(BaseModel):
+    words: list[Annotated[str, StringConstraints(max_length=100)]]
+
+
+@app.get("/api/words")
+async def get_words() -> list[str]:
+    return words(conn)
+
+
+@app.put("/api/words")
+async def put_words(body: Words) -> list[str]:
+    """Replaces the words to know of every session. A run that is going spells them from its next turn."""
+    new = set_words(conn, clean_terms(body.words))
+    for run in active.values():
+        run.pipeline.vocabulary = new
+    return new
 
 
 @app.get("/api/sessions/{session_id}/audio")

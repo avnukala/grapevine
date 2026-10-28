@@ -16,7 +16,7 @@ import type { Phase, Prompt, Run, RunState, Segment, Session } from "../state/ty
 import { useNow, useRun } from "../state/useRun";
 import type { TimedChange } from "../state/useRun";
 import { GraphView } from "./GraphView";
-import { Onboarding } from "./Onboarding";
+import { Onboarding, splitWords } from "./Onboarding";
 import { PersonDetails } from "./PersonDetails";
 import type { Answer } from "./PromptCard";
 import { PromptPanel } from "./PromptPanel";
@@ -105,6 +105,11 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [onboarding, setOnboarding] = useState(() => linkedRun() === null);
   const [promptsHidden, setPromptsHidden] = useState(false);
+  const [words, setWords] = useState<string[]>([]);
+  useEffect(() => {
+    api.words().then(setWords).catch(() => setWords([]));
+  }, []);
+  const saveWords = (next: string[]) => api.setWords(next).then(setWords);
   const live = useRun(runId);
   const now = useNow();
   const { state } = live;
@@ -205,6 +210,8 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
         <Onboarding
           blocked={going !== null}
           known={knownNames(sessions)}
+          words={words}
+          onWords={saveWords}
           onCreated={async (id, newRunId) => {
             await refresh();
             setSessionId(id);
@@ -238,7 +245,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
                 {runActive && <span className="size-2 animate-pulse rounded-full bg-alert" />}
                 {runId ? `Run ${runId} · ${status ?? ""} · ${PHASE_LABELS[state.phase]}` : "No run"}
               </Badge>
-              {session && <WordsToKnow session={session} onSaved={refresh} />}
+              <WordsToKnow words={words} onSave={saveWords} />
             </div>
             {view === "graph" && <Stats state={state} />}
             {state.phase === "intro" && runActive && (
@@ -341,25 +348,26 @@ function knownNames(sessions: Session[]): string[] {
 }
 
 interface WordsToKnowProps {
-  session: Session;
-  onSaved: () => Promise<void>;
+  words: string[];
+  onSave: (words: string[]) => Promise<void>;
 }
 
-// Words the transcript gets wrong, such as a nickname or a festival. A run that is going spells them from the next turn.
-function WordsToKnow({ session, onSaved }: WordsToKnowProps) {
+// Words the transcript gets wrong, such as a nickname or a festival, for every session. A run that is going spells
+// them from its next turn.
+function WordsToKnow({ words, onSave }: WordsToKnowProps) {
   const [open, setOpen] = useState(false);
-  const [words, setWords] = useState("");
+  const [text, setText] = useState("");
   return (
     <Popover
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) setWords(session.vocabulary.join(", "));
+        if (next) setText(words.join(", "));
       }}
     >
       <PopoverTrigger asChild>
         <Button size="sm" variant="outline" className="h-6 gap-1 bg-card px-2 text-xs" data-testid="words">
-          <BookA /> Words{session.vocabulary.length > 0 && ` · ${session.vocabulary.length}`}
+          <BookA /> Words{words.length > 0 && ` · ${words.length}`}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 space-y-2">
@@ -367,19 +375,16 @@ function WordsToKnow({ session, onSaved }: WordsToKnowProps) {
           className="space-y-2"
           onSubmit={(e) => {
             e.preventDefault();
-            const vocabulary = words.split(",").map((w) => w.trim()).filter(Boolean);
-            api
-              .updateSession(session.id, { vocabulary })
-              .then(onSaved)
+            onSave(splitWords(text))
               .then(() => setOpen(false))
               .catch((err) => toast.error(String(err)));
           }}
         >
           <div className="text-sm font-medium">Words to know</div>
-          <Input value={words} onChange={(e) => setWords(e.target.value)} placeholder="EZoo, Glow" aria-label="Words to know" />
+          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="EZoo, Glow" aria-label="Words to know" />
           <p className="text-xs text-muted-foreground">
-            Nicknames, places, and slang that the transcript gets wrong, separated by commas. The next lines spell them
-            the way you type them.
+            Nicknames, places, and slang that the transcript gets wrong, separated by commas. Every session spells them
+            the way you type them, from the next line on.
           </p>
           <Button size="sm" type="submit">
             Save

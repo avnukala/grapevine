@@ -36,7 +36,6 @@ export const api = {
     audio_uri?: string | null;
     intro_end_ms?: number | null;
     roster?: string[];
-    vocabulary?: string[];
   }) =>
     post<Session>("/api/sessions", body),
   upload: (file: File) => {
@@ -44,7 +43,7 @@ export const api = {
     form.append("file", file);
     return call<Session>("/api/sessions/upload", { method: "POST", body: form });
   },
-  updateSession: (id: number, body: { intro_end_ms?: number | null; name?: string; vocabulary?: string[] }) =>
+  updateSession: (id: number, body: { intro_end_ms?: number | null; name?: string }) =>
     call<Session>(`/api/sessions/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   startRun: (body: { session_id: number; source: Source; speed?: number | null; config?: Record<string, unknown> }) =>
     post<Run>("/api/runs", body),
@@ -74,6 +73,8 @@ export const api = {
   removePerson: (runId: number, personId: number) =>
     call<null>(`/api/runs/${runId}/people/${personId}`, { method: "DELETE" }),
   people: () => call<Person[]>("/api/people"),
+  words: () => call<string[]>("/api/words"),
+  setWords: (words: string[]) => call<string[]>("/api/words", { method: "PUT", body: JSON.stringify({ words }) }),
   merge: () => post<Run>("/api/merge"),
   global: () => call<{ run: Run | null }>("/api/global"),
   resolveMerge: (runId: number, promptId: number, body: { action: string; fact_id?: number }) =>

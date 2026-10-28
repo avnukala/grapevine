@@ -7,17 +7,27 @@ import { Input } from "@/components/ui/input";
 import { api } from "../api";
 import { GROUP_COLORS, initials } from "../state/categories";
 
+export function splitWords(text: string): string[] {
+  return text
+    .split(",")
+    .map((w) => w.trim())
+    .filter(Boolean);
+}
+
 interface OnboardingProps {
   blocked: boolean;
   known: string[];
+  words: string[];
+  onWords: (words: string[]) => Promise<void>;
   onCreated: (sessionId: number, runId: number | null) => Promise<void>;
   onCancel: (() => void) | null;
 }
 
-export function Onboarding({ blocked, known, onCreated, onCancel }: OnboardingProps) {
+export function Onboarding({ blocked, known, words, onWords, onCreated, onCancel }: OnboardingProps) {
   const [title, setTitle] = useState("");
   const [names, setNames] = useState(["", ""]);
-  const [words, setWords] = useState("");
+  const [text, setText] = useState<string | null>(null);
+  const shownWords = text ?? words.join(", ");
   const [busy, setBusy] = useState<"live" | "save" | null>(null);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -44,8 +54,8 @@ export function Onboarding({ blocked, known, onCreated, onCancel }: OnboardingPr
     setBusy(live ? "live" : "save");
     try {
       const name = title.trim() || `Session ${new Date().toLocaleDateString()}`;
-      const vocabulary = words.split(",").map((w) => w.trim()).filter(Boolean);
-      const session = await api.newSession({ name, roster, vocabulary });
+      if (text !== null) await onWords(splitWords(text));
+      const session = await api.newSession({ name, roster });
       const run = live ? await api.startRun({ session_id: session.id, source: "mic" }) : null;
       await onCreated(session.id, run?.id ?? null);
     } catch (e) {
@@ -140,13 +150,13 @@ export function Onboarding({ blocked, known, onCreated, onCancel }: OnboardingPr
 
           <div className="space-y-1.5">
             <Input
-              value={words}
-              onChange={(e) => setWords(e.target.value)}
+              value={shownWords}
+              onChange={(e) => setText(e.target.value)}
               placeholder="Words to know, such as EZoo, Glow, or a nickname"
               aria-label="Words to know"
             />
             <p className="text-xs text-muted-foreground">
-              Separate them with commas. Grapevine spells these words the way you type them.
+              Separate them with commas. Every session spells these words the way you type them.
             </p>
           </div>
 
