@@ -17,6 +17,7 @@ from tests.fakes import FakeChat, empty_output, fact
 def client(conn, store, monkeypatch):
     monkeypatch.setattr(server, "conn", conn)
     monkeypatch.setattr(server, "active", {})
+    monkeypatch.setattr(server, "stores", {})
     return TestClient(server.app)
 
 
@@ -155,6 +156,38 @@ def test_a_line_moved_to_another_speaker_after_a_run_gets_new_facts(client, stor
 
     [new] = server.store_for(store.run_id).graph.live_facts()
     assert (new["text"], new["told_by_person_id"]) == ("Felix Ward works in Denver.", felix)
+
+
+def test_two_edits_at_once_of_a_finished_run_both_save(conn, store, monkeypatch):
+    class SlowChat(FakeChat):
+        async def complete(self, request: dict, on_text=None) -> str:
+            await asyncio.sleep(0.05)
+            return await super().complete(request, on_text)
+
+    rules = {
+        "Seattle": {"facts": [fact("Marcus Hale works in Seattle.", ["speaker"])]},
+        "Boston": {"facts": [fact("Marcus Hale works in Boston.", ["speaker"])]},
+    }
+    monkeypatch.setattr(server, "conn", conn)
+    monkeypatch.setattr(server, "active", {})
+    monkeypatch.setattr(server, "stores", {})
+    monkeypatch.setattr(server, "rereading", asyncio.Lock())
+    monkeypatch.setattr(server, "chat", lambda: SlowChat(rules))
+    monkeypatch.setattr(server, "llm_file_hash", lambda: "t")
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    segment = store.add_segment(
+        start_ms=0, end_ms=900, speaker_label="spk0", person_id=marcus, confidence=0.9, text="Hi.", timings={}
+    )
+
+    async def both() -> list:
+        edits = [server.LineEdit(text="I work in Seattle."), server.LineEdit(text="I work in Boston.")]
+        return await asyncio.gather(*(server.edit_segment(store.run_id, segment["id"], edit) for edit in edits))
+
+    first, second = asyncio.run(both())
+
+    assert first["text"] == second["text"] == "I work in Boston."
+    fresh = server.open_store(conn, store.run_id)
+    assert [f["text"] for f in fresh.graph.live_facts()] == ["Marcus Hale works in Boston."]
 
 
 def test_renaming_a_roster_person_renames_them_on_the_roster(client, store, conn):

@@ -60,7 +60,11 @@ conn = db.connect(DB_PATH)
 conn.execute("UPDATE runs SET status = 'failed' WHERE status = 'running'")
 clients: set[asyncio.Queue] = set()
 active: dict[int, ActiveRun] = {}
+# One store per run that is not going, because each store counts the change seq of its run on its own.
+stores: dict[int, Store] = {}
 busy = asyncio.Lock()
+# Fixes read one at a time, so two reads of one turn do not both replace the same old facts.
+rereading = asyncio.Lock()
 
 
 def broadcast(message: Record) -> None:
@@ -71,9 +75,12 @@ def broadcast(message: Record) -> None:
 def store_for(run_id: int) -> Store:
     if run_id in active:
         return active[run_id].store
+    if run_id in stores:
+        return stores[run_id]
     if conn.execute("SELECT 1 FROM runs WHERE id = ?", (run_id,)).fetchone() is None:
         raise HTTPException(404, f"no run {run_id}")
-    return open_store(conn, run_id, broadcast)
+    stores[run_id] = open_store(conn, run_id, broadcast)
+    return stores[run_id]
 
 
 def session_or_404(session_id: int) -> Record:
@@ -447,16 +454,17 @@ async def read_after_run(run_id: int, store: Store, segment_ids: list[int], *, s
     llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
     today = session(conn, row["session_id"])["recorded_at"][:10]
     try:
-        for segment_id in segment_ids:
-            await read_again(
-                store,
-                llm,
-                segment_id,
-                today=today,
-                model=RunConfig().extract_model,
-                seed=config.seed,
-                context=config.context,
-            )
+        async with rereading:
+            for segment_id in segment_ids:
+                await read_again(
+                    store,
+                    llm,
+                    segment_id,
+                    today=today,
+                    model=RunConfig().extract_model,
+                    seed=config.seed,
+                    context=config.context,
+                )
     except openai.APIError as error:
         message = f"The {saved} is saved, but the model at {LLM_BASE_URL} did not answer, so the facts did not change."
         raise HTTPException(503, message) from error
@@ -530,7 +538,8 @@ async def people() -> list[Record]:
 async def new_merge() -> Record:
     check_idle()
     config = run_config({})
-    store = Store(conn, create_run(conn, session_id=None, kind="merge", config=config), broadcast)
+    run_id = create_run(conn, session_id=None, kind="merge", config=config)
+    store = stores[run_id] = Store(conn, run_id, broadcast)
     llm = LLM(conn, chat(), model_file_hash=llm_file_hash(), reuse=config.reuse_model_calls)
     try:
         async with busy:
