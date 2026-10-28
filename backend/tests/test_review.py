@@ -51,7 +51,7 @@ def test_group_lines_take_misspelled_names_their_answers_and_the_group_noun():
         "Me too.",
         "So now it's five of us.",
     ]
-    assert group_lines(texts, ["Sunday Sends"]) == [0, 1, 2, 4, 5]
+    assert group_lines(texts, ["Sunday Sends"]) == [0, 1, 2, 3, 4, 5]
     assert group_lines(texts, ["The Know It Alls"]) == []
     assert group_lines(["I moved to Lisbon.", "Then you joined the Night Hawks?", "Yes."], ["Night Hawks"]) == [0, 1, 2]
 
