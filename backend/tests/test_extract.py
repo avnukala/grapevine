@@ -801,3 +801,41 @@ def test_two_stories_at_one_place_are_not_a_dispute(store):
     apply(store, turn(store, tina, "I stole his spot."), facts=[fact(spot, ["speaker"], disputes=f"f{first}")])
 
     assert store.graph.active_prompts() == []
+
+
+def test_retelling_a_turn_keeps_a_dispute_that_its_new_facts_still_make(store):
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    felix = store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")["id"]
+    said = "We met at band camp in 2014."
+    apply(
+        store,
+        turn(store, marcus, said),
+        facts=[fact("They met at band camp in 2014.", ["speaker", "Felix Ward"], start_date="2014")],
+    )
+    first = max(store.graph.facts)
+    apply(
+        store,
+        turn(store, None, "No, summer 2015."),
+        facts=[
+            fact(
+                "The speaker met Marcus Hale in 2015.",
+                ["speaker", "Marcus Hale"],
+                start_date="2015",
+                disputes=f"f{first}",
+            )
+        ],
+    )
+    old = max(store.graph.facts)
+    assert store.graph.active_prompts()
+    apply(
+        store,
+        turn(store, felix, "No, summer 2015."),
+        facts=[fact("Felix Ward met Marcus Hale in summer 2015.", ["speaker", "Marcus Hale"], start_date="2015")],
+    )
+    new = max(store.graph.facts)
+
+    retell(store, [old], [new], model_call_id=None)
+
+    [conflict] = store.graph.active_prompts()
+    assert conflict["payload"]["fact_ids"] == [first, new]
+    assert store.graph.facts[first]["disputed"] and store.graph.facts[new]["disputed"]

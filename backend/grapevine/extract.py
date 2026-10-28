@@ -718,9 +718,30 @@ async def read_again(
 def retell(store: Store, old: list[int], new: list[int], *, model_call_id: int) -> None:
     """Replaces the facts of a turn read again under a new teller. The old facts close their conflicts, and a
     relationship that only the old facts showed goes away, because "my cousin" named the wrong person. With no
-    new fact, an old fact revises itself, which hides it like any revised fact."""
+    new fact, an old fact revises itself, which hides it like any revised fact. A new fact that still
+    disagrees with the other side of a conflict keeps the dispute."""
     for fact_id in old:
+        rivals = [
+            other
+            for prompt in store.graph.active_prompts()
+            if prompt["reason"] == "conflict" and fact_id in prompt["payload"]["fact_ids"]
+            for other in prompt["payload"]["fact_ids"]
+            if other != fact_id
+        ]
         revise(store, fact_id, new[0] if new else fact_id, model_call_id=model_call_id)
+        for rival in rivals:
+            told_by = store.graph.facts[rival]["told_by_person_id"]
+            match = next(
+                (
+                    n
+                    for n in new
+                    if store.graph.facts[n]["told_by_person_id"] != told_by
+                    and same_thing(store.graph.facts[rival], store.graph.facts[n])
+                ),
+                None,
+            )
+            if match is not None:
+                dispute(store, rival, match, model_call_id=model_call_id)
     for relationship in list(store.graph.relationships.values()):
         if relationship["evidence"] and set(relationship["evidence"]) <= set(old):
             store.remove_relationship(relationship["id"])
