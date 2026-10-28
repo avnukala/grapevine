@@ -1,11 +1,13 @@
 """The end-of-session pass: a larger model writes stories and relationship summaries from the facts of a run."""
 
+import re
+
 from grapevine.llm import LLM, Call, watch_on
 from grapevine.review import quoted
 from grapevine.store import Store
 
-PROMPT_VERSION = "summarizer-v7"
-STORY_LINES = 2
+PROMPT_VERSION = "summarizer-v8"
+STORY_SENTENCES = 2
 
 SYSTEM = """You write the record of a group conversation after it ends. You get the people, the events, the relationships, every fact people told, and the transcript.
 
@@ -17,7 +19,7 @@ Write:
   "matters": one sentence on why it matters to the group, or "" if nobody said.
   "tellers": ids of the people who told it. If tellers disagree, give each version in the text: "Mia Rao says 2019. Dana Cole says 2018."
   Keep a joke or a boast as one: write "Felix Ward says he won twice", not "Felix Ward won twice".
-  Skip a story that rests on fewer than 2 lines.
+  Skip a story that rests on fewer than 2 sentences.
   "event": the event id, or null. "people": ids of everyone in it.
 - relationships: for each relationship id, a "summary" of 1 or 2 sentences built from its facts that hold for both people, and a "label" of 1 to 3 words.
 
@@ -104,7 +106,8 @@ async def summarize(store: Store, llm: LLM, *, model: str, seed: int) -> None:
     with store.batch():
         for story in result.output["stories"]:
             # A story whose lines are not in the transcript is one the model made up or built from one fact.
-            if sum(quoted(line, texts) for line in story["lines"]) < STORY_LINES:
+            told_lines = " ".join(line for line in story["lines"] if quoted(line, texts))
+            if len(re.findall(r"\w[^.!?…]*", told_lines)) < STORY_SENTENCES:
                 continue
             event = graph.events.get(graph.lookup("e", story["event"]))
             people = [pid for ref in story["people"] if (pid := graph.lookup("p", ref)) is not None]

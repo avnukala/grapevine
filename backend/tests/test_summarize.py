@@ -62,8 +62,9 @@ def test_a_story_drops_when_its_lines_are_not_in_the_transcript(store):
     told(store)
     made_up = {**STORY, "title": "The Lisbon Race", "lines": ["The lights died.", "Mia won the race twice."]}
     stub = {**STORY, "title": "Mia Rao Is In The League", "lines": ["The lights died."]}
+    one_line = {**STORY, "lines": ["The lights died. We sat in the dark all night."]}
 
-    asyncio.run(summarize(store, Summarizer([made_up, stub, STORY]), model="m", seed=1))
+    asyncio.run(summarize(store, Summarizer([made_up, stub, one_line]), model="m", seed=1))
 
     titles = {f["text"] for f in store.graph.facts.values() if f["kind"] == "story" and not f["segment_ids"]}
     assert titles == {"The Seattle Blackout"}
