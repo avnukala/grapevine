@@ -44,6 +44,8 @@ class Graph:
                 self.facts[op["fact"]["id"]] = op["fact"]
             case "event":
                 self.events[op["event"]["id"]] = op["event"]
+            case "event_removed":
+                self.events.pop(op["id"], None)
             case "group":
                 self.groups[op["group"]["id"]] = op["group"]
             case "member":

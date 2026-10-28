@@ -213,6 +213,31 @@ def test_contradicting_another_teller_is_a_dispute_and_own_correction_settles_it
     assert store.graph.active_prompts() == []
 
 
+def test_an_event_that_only_a_revised_fact_told_of_goes(store):
+    tina = store.create_person(name="Tina Alvarez", aliases=["Tina"], gender="female")["id"]
+    store.create_person(name="Felix Ward", aliases=["Felix"], gender="male")
+    said = fact(
+        "Tina Alvarez and Felix Ward met at Coachella in 2019.", ["speaker", "Felix Ward"], event="Coachella 2019"
+    )
+    apply(store, turn(store, tina, "We met at Coachella 2019."), facts=[said])
+    first = max(store.graph.facts)
+    relationship = {"a": "speaker", "b": "Felix Ward", "category": "friend", "label": "friend", "status": "current"}
+    [event_id] = store.graph.events
+    met_event = store.graph.ref("e", event_id)
+    apply(store, turn(store, tina, "We are friends."), relationships=[{**relationship, "met_event": met_event}])
+    assert [r["met_event_id"] for r in store.graph.relationships.values()] == [event_id]
+
+    apply(
+        store,
+        turn(store, tina, "Okay, fine, it was 2018."),
+        facts=[fact("They met in 2018.", ["speaker", "Felix Ward"], kind="correction", revises=f"f{first}")],
+    )
+
+    assert store.graph.events == {}
+    assert store.graph.facts[first]["event_id"] is None
+    assert all(r["met_event_id"] is None for r in store.graph.relationships.values())
+
+
 def test_a_new_story_marked_as_a_dispute_is_only_a_fact(store):
     marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
     store.create_person(name="Tina Alvarez", aliases=["Tina"], gender="female")

@@ -30,6 +30,11 @@ export function applyOp(state: RunState, op: Op): RunState {
       return { ...state, facts: { ...state.facts, [op.fact.id]: op.fact } };
     case "event":
       return { ...state, events: { ...state.events, [op.event.id]: op.event } };
+    case "event_removed": {
+      const events = { ...state.events };
+      delete events[op.id];
+      return { ...state, events };
+    }
     case "group":
       return { ...state, groups: { ...state.groups, [op.group.id]: op.group } };
     case "member": {

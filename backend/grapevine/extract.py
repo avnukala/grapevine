@@ -706,8 +706,12 @@ def same_thing(a: Record, b: Record) -> bool:
 
 
 def revise(store: Store, old: int, new: int, *, model_call_id: int) -> None:
-    """A teller corrects their own fact, or agrees with a correction. That settles a dispute about the fact."""
+    """A teller corrects their own fact, or agrees with a correction. That settles a dispute about the fact. An
+    event that only revised facts told of, such as "Electric Zoo 2019" after the teller gives in to 2018, goes."""
     store.update_fact(old, revised_by_fact_id=new, model_call_id=model_call_id)
+    event_id = store.graph.facts[old]["event_id"]
+    if event_id is not None and not any(f["event_id"] == event_id for f in store.graph.live_facts()):
+        store.remove_event(event_id, model_call_id=model_call_id)
     for prompt in store.graph.active_prompts():
         if prompt["reason"] == "conflict" and old in prompt["payload"]["fact_ids"]:
             store.dismiss_prompt(prompt["id"])

@@ -502,6 +502,19 @@ class Store:
             self.conn.execute("DELETE FROM relationships WHERE id = ?", (relationship_id,))
             self.emit({"type": "relationship_removed", "id": relationship_id})
 
+    def remove_event(self, event_id: int, *, model_call_id: int | None) -> None:
+        with self.batch():
+            for (fact_id,) in self.conn.execute("SELECT id FROM facts WHERE event_id = ?", (event_id,)).fetchall():
+                self.update_fact(fact_id, event_id=None, model_call_id=model_call_id)
+            met = self.conn.execute("SELECT id FROM relationships WHERE met_event_id = ?", (event_id,)).fetchall()
+            self.conn.execute("UPDATE relationships SET met_event_id = NULL WHERE met_event_id = ?", (event_id,))
+            for (relationship_id,) in met:
+                relationship = self.relationship(relationship_id)
+                self.emit({"type": "relationship", "relationship": relationship}, model_call_id=model_call_id)
+            self.conn.execute("DELETE FROM event_people WHERE event_id = ?", (event_id,))
+            self.conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
+            self.emit({"type": "event_removed", "id": event_id}, model_call_id=model_call_id)
+
     def prompt(self, prompt_id: int) -> Record:
         row = self.conn.execute("SELECT * FROM prompts WHERE id = ?", (prompt_id,)).fetchone()
         return {

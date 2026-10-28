@@ -298,6 +298,8 @@ function describe(change: Change, state: RunState): string {
       return `[${op.fact.kind}] ${op.fact.text}${op.fact.disputed ? " (disputed)" : ""}${op.fact.revised_by_fact_id ? " (revised)" : ""}`;
     case "event":
       return `${op.event.name} ${op.event.start_date ?? ""}`;
+    case "event_removed":
+      return `event ${op.id} removed`;
     case "group":
       return op.group.name;
     case "member":

@@ -107,6 +107,7 @@ export type Op =
   | { type: "segment"; segment: Segment }
   | { type: "fact"; fact: Fact }
   | { type: "event"; event: GraphEvent }
+  | { type: "event_removed"; id: number }
   | { type: "group"; group: Group }
   | { type: "member"; member: Member }
   | { type: "relationship"; relationship: Relationship }
