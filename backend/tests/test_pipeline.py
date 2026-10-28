@@ -621,6 +621,57 @@ def test_a_turn_edited_during_the_review_is_read_again(conn, monkeypatch):
     assert [f["text"] for f in store.graph.live_facts()] == ["Marcus Hale works in Seattle."]
 
 
+def test_an_edit_keeps_its_mark_until_a_read_of_its_new_text_answers(conn, monkeypatch):
+    conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
+    run_id = conn.execute(
+        "INSERT INTO runs (session_id, kind, config_json, code_version) VALUES (1, 'live', '{}', 'test')"
+    ).lastrowid
+    rules = {
+        "Seattle": {"facts": [fact("Marcus Hale works in Seattle.", ["speaker"])]},
+        "Boston": {"facts": [fact("Marcus Hale works in Boston.", ["speaker"])]},
+    }
+    chat = FakeChat(rules)
+    llm = LLM(conn, chat, model_file_hash="t", reuse=True)
+    store = Store(conn, run_id)
+    pipeline = Pipeline(
+        store, fake_models([], chat), llm, RunConfig(), today="2025-10-18", intro_end_ms=0, roster=[], vocabulary=[]
+    )
+    marcus = store.create_person(name="Marcus Hale", aliases=["Marcus"], gender="male")["id"]
+    segment_id = store.add_segment(
+        start_ms=0, end_ms=900, speaker_label="spk0", person_id=marcus, confidence=0.9, text="Hi.", timings={}
+    )["id"]
+    pipeline.extracted_as[segment_id] = marcus
+    read_again = pipeline_module.read_again
+
+    async def read_then_edit(store, *args, **kwargs):
+        answered = await read_again(store, *args, **kwargs)
+        if store.graph.segments[segment_id]["text"] == "I work in Seattle.":
+            store.update_segment(segment_id, text="I work in Boston.")
+            pipeline.reread([segment_id], edited=True)
+        return answered
+
+    monkeypatch.setattr(pipeline_module, "read_again", read_then_edit)
+    store.update_segment(segment_id, text="I work in Seattle.")
+    pipeline.reread([segment_id], edited=True)
+
+    async def go():
+        while not pipeline.jobs.empty():
+            await pipeline._reextract(pipeline.jobs.get_nowait().segment_ids)
+
+    asyncio.run(go())
+
+    assert [f["text"] for f in store.graph.live_facts()] == ["Marcus Hale works in Boston."]
+
+    async def no_answer(*args, **kwargs):
+        return False
+
+    monkeypatch.setattr(pipeline_module, "read_again", no_answer)
+    pipeline.reread([segment_id], edited=True)
+    asyncio.run(go())
+
+    assert segment_id in pipeline.edited
+
+
 def test_hints_give_the_roster_the_room_words_learned_names_and_the_last_lines(conn):
     conn.execute("INSERT INTO sessions (name, recorded_at) VALUES ('test', '2025-10-18')")
     run_id = conn.execute(

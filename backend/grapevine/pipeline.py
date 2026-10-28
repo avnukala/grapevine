@@ -592,6 +592,8 @@ class Pipeline:
             edited = segment_id in self.edited
             if not edited and segment["person_id"] in (None, self.extracted_as[segment_id]):
                 continue
+            # A fix during the read marks the turn again, and its RereadJob reads the new text.
+            self.edited.discard(segment_id)
             answered = await read_again(
                 self.store,
                 self.llm,
@@ -603,7 +605,8 @@ class Pipeline:
             )
             if answered:
                 self.extracted_as[segment_id] = segment["person_id"]
-                self.edited.discard(segment_id)
+            elif edited:
+                self.edited.add(segment_id)
 
     def _sounds_unlike_label(self, segment: dict) -> bool:
         """Whether a turn sounds unlike the voice its label saved from other turns. The voice of a short turn
