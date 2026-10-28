@@ -1,19 +1,24 @@
 """The end-of-session pass: a larger model writes stories and relationship summaries from the facts of a run."""
 
 from grapevine.llm import LLM, Call, watch_on
+from grapevine.review import quoted
 from grapevine.store import Store
 
-PROMPT_VERSION = "summarizer-v5"
+PROMPT_VERSION = "summarizer-v6"
+STORY_LINES = 2
 
 SYSTEM = """You write the record of a group conversation after it ends. You get the people, the events, the relationships, every fact people told, and the transcript.
 
 Write:
 - stories: one for each story someone told about the past: how people met, trips, mishaps, milestones, and how a group began. Skip plans, logistics, and talk about tonight. Use the transcript lines of the story, not only its facts.
   "title": 2 to 5 words, the name the group would use, such as "The Seattle Blackout".
-  "text": 3 to 6 plain sentences: who was there and their roles, when, where, what went wrong, how it ended. Keep one or two vivid details or exact words, such as Felix Ward waving a wet towel at the smoke.
+  "lines": the transcript lines the story rests on, each copied word for word.
+  "text": 3 to 6 plain sentences, each one said in those lines: who was there and their roles, when, where, what went wrong, how it ended. Keep one or two vivid details or exact words, such as Felix Ward waving a wet towel at the smoke.
   "matters": one sentence on why it matters to the group, or "" if nobody said.
   "tellers": ids of the people who told it. If tellers disagree, give each version in the text: "Mia Rao says 2019. Dana Cole says 2018."
   Keep a joke or a boast as one: write "Felix Ward says he won twice", not "Felix Ward won twice".
+  Speech-to-text garbles some lines. Leave out a line that makes no sense where it is, or that does not answer the line before it.
+  Skip a story that rests on fewer than 2 lines.
   "event": the event id, or null. "people": ids of everyone in it.
 - relationships: for each relationship id, a "summary" of 1 or 2 sentences built from its facts that hold for both people, and a "label" of 1 to 3 words.
 
@@ -29,10 +34,11 @@ SCHEMA = {
             "items": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["event", "title", "text", "matters", "tellers", "people"],
+                "required": ["event", "title", "lines", "text", "matters", "tellers", "people"],
                 "properties": {
                     "event": {"type": ["string", "null"]},
                     "title": {"type": "string"},
+                    "lines": {"type": "array", "items": {"type": "string"}},
                     "text": {"type": "string"},
                     "matters": {"type": "string"},
                     "tellers": {"type": "array", "items": {"type": "string"}},
@@ -95,8 +101,12 @@ async def summarize(store: Store, llm: LLM, *, model: str, seed: int) -> None:
     if result.output is None:
         return
     graph = store.graph
+    texts = [s["text"] for s in graph.segments.values()]
     with store.batch():
         for story in result.output["stories"]:
+            # A story whose lines are not in the transcript is one the model made up or built from one fact.
+            if sum(quoted(line, texts) for line in story["lines"]) < STORY_LINES:
+                continue
             event = graph.events.get(graph.lookup("e", story["event"]))
             people = [pid for ref in story["people"] if (pid := graph.lookup("p", ref)) is not None]
             tellers = [pid for ref in story["tellers"] if (pid := graph.lookup("p", ref)) is not None]
