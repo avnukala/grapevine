@@ -17,6 +17,7 @@ interface OnboardingProps {
 export function Onboarding({ blocked, known, onCreated, onCancel }: OnboardingProps) {
   const [title, setTitle] = useState("");
   const [names, setNames] = useState(["", ""]);
+  const [words, setWords] = useState("");
   const [busy, setBusy] = useState<"live" | "save" | null>(null);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -43,7 +44,8 @@ export function Onboarding({ blocked, known, onCreated, onCancel }: OnboardingPr
     setBusy(live ? "live" : "save");
     try {
       const name = title.trim() || `Session ${new Date().toLocaleDateString()}`;
-      const session = await api.newSession({ name, roster });
+      const vocabulary = words.split(",").map((w) => w.trim()).filter(Boolean);
+      const session = await api.newSession({ name, roster, vocabulary });
       const run = live ? await api.startRun({ session_id: session.id, source: "mic" }) : null;
       await onCreated(session.id, run?.id ?? null);
     } catch (e) {
@@ -134,6 +136,18 @@ export function Onboarding({ blocked, known, onCreated, onCancel }: OnboardingPr
                 Two people have the same first name. Last names help tell them apart.
               </p>
             )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Input
+              value={words}
+              onChange={(e) => setWords(e.target.value)}
+              placeholder="Words to know, such as EZoo, Glow, or a nickname"
+              aria-label="Words to know"
+            />
+            <p className="text-xs text-muted-foreground">
+              Separate them with commas. Grapevine spells these words the way you type them.
+            </p>
           </div>
 
           <ol className="space-y-1.5 rounded-lg border border-border/60 bg-background/40 p-3 text-sm text-muted-foreground">

@@ -1,9 +1,10 @@
-import { ArrowDown, CalendarRange, Check, Circle, Maximize2, Minimize2, Network, Send, UserCheck } from "lucide-react";
+import { ArrowDown, BookA, CalendarRange, Check, Circle, Maximize2, Minimize2, Network, Send, UserCheck } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { api } from "../api";
@@ -237,6 +238,7 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
                 {runActive && <span className="size-2 animate-pulse rounded-full bg-alert" />}
                 {runId ? `Run ${runId} · ${status ?? ""} · ${PHASE_LABELS[state.phase]}` : "No run"}
               </Badge>
+              {session && <WordsToKnow session={session} onSaved={refresh} />}
             </div>
             {view === "graph" && <Stats state={state} />}
             {state.phase === "intro" && runActive && (
@@ -336,6 +338,56 @@ export function LiveScreen({ factors, onFactors }: LiveScreenProps) {
 function knownNames(sessions: Session[]): string[] {
   const names = [...new Set([...sessions].sort((x, y) => y.id - x.id).flatMap((s) => s.roster))];
   return names.filter((n) => /^\p{Lu}/u.test(n) && !names.some((m) => m !== n && m.startsWith(`${n} `)));
+}
+
+interface WordsToKnowProps {
+  session: Session;
+  onSaved: () => Promise<void>;
+}
+
+// Words the transcript gets wrong, such as a nickname or a festival. A run that is going spells them from the next turn.
+function WordsToKnow({ session, onSaved }: WordsToKnowProps) {
+  const [open, setOpen] = useState(false);
+  const [words, setWords] = useState("");
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setWords(session.vocabulary.join(", "));
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="outline" className="h-6 gap-1 bg-card px-2 text-xs" data-testid="words">
+          <BookA /> Words{session.vocabulary.length > 0 && ` · ${session.vocabulary.length}`}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 space-y-2">
+        <form
+          className="space-y-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const vocabulary = words.split(",").map((w) => w.trim()).filter(Boolean);
+            api
+              .updateSession(session.id, { vocabulary })
+              .then(onSaved)
+              .then(() => setOpen(false))
+              .catch((err) => toast.error(String(err)));
+          }}
+        >
+          <div className="text-sm font-medium">Words to know</div>
+          <Input value={words} onChange={(e) => setWords(e.target.value)} placeholder="EZoo, Glow" aria-label="Words to know" />
+          <p className="text-xs text-muted-foreground">
+            Nicknames, places, and slang that the transcript gets wrong, separated by commas. The next lines spell them
+            the way you type them.
+          </p>
+          <Button size="sm" type="submit">
+            Save
+          </Button>
+        </form>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 interface IntroPanelProps {

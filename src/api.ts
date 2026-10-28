@@ -31,14 +31,20 @@ export type Source = "file" | "mic" | "text";
 export const api = {
   sessions: () => call<Session[]>("/api/sessions"),
   audioFiles: () => call<string[]>("/api/audio-files"),
-  newSession: (body: { name: string; audio_uri?: string | null; intro_end_ms?: number | null; roster?: string[] }) =>
+  newSession: (body: {
+    name: string;
+    audio_uri?: string | null;
+    intro_end_ms?: number | null;
+    roster?: string[];
+    vocabulary?: string[];
+  }) =>
     post<Session>("/api/sessions", body),
   upload: (file: File) => {
     const form = new FormData();
     form.append("file", file);
     return call<Session>("/api/sessions/upload", { method: "POST", body: form });
   },
-  updateSession: (id: number, body: { intro_end_ms?: number | null; name?: string }) =>
+  updateSession: (id: number, body: { intro_end_ms?: number | null; name?: string; vocabulary?: string[] }) =>
     call<Session>(`/api/sessions/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   startRun: (body: { session_id: number; source: Source; speed?: number | null; config?: Record<string, unknown> }) =>
     post<Run>("/api/runs", body),

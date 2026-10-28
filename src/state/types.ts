@@ -160,6 +160,7 @@ export interface Session {
   notes: string | null;
   intro_end_ms: number | null;
   roster: string[];
+  vocabulary: string[];
   runs: Run[];
 }
 
