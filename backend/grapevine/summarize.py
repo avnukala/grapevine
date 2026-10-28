@@ -4,7 +4,7 @@ from grapevine.llm import LLM, Call, watch_on
 from grapevine.review import quoted
 from grapevine.store import Store
 
-PROMPT_VERSION = "summarizer-v6"
+PROMPT_VERSION = "summarizer-v7"
 STORY_LINES = 2
 
 SYSTEM = """You write the record of a group conversation after it ends. You get the people, the events, the relationships, every fact people told, and the transcript.
@@ -13,11 +13,10 @@ Write:
 - stories: one for each story someone told about the past: how people met, trips, mishaps, milestones, and how a group began. Skip plans, logistics, and talk about tonight. Use the transcript lines of the story, not only its facts.
   "title": 2 to 5 words, the name the group would use, such as "The Seattle Blackout".
   "lines": the transcript lines the story rests on, each copied word for word.
-  "text": 3 to 6 plain sentences, each one said in those lines: who was there and their roles, when, where, what went wrong, how it ended. Keep one or two vivid details or exact words, such as Felix Ward waving a wet towel at the smoke.
+  "text": 2 to 6 plain sentences from those lines: who was there and their roles, when, where, what went wrong, how it ended. Keep one or two vivid details or exact words, such as Felix Ward waving a wet towel at the smoke. Stop when the lines run out: add no mood, no lesson, and no year or place that no line says.
   "matters": one sentence on why it matters to the group, or "" if nobody said.
   "tellers": ids of the people who told it. If tellers disagree, give each version in the text: "Mia Rao says 2019. Dana Cole says 2018."
   Keep a joke or a boast as one: write "Felix Ward says he won twice", not "Felix Ward won twice".
-  Speech-to-text garbles some lines. Leave out a line that makes no sense where it is, or that does not answer the line before it.
   Skip a story that rests on fewer than 2 lines.
   "event": the event id, or null. "people": ids of everyone in it.
 - relationships: for each relationship id, a "summary" of 1 or 2 sentences built from its facts that hold for both people, and a "label" of 1 to 3 words.
