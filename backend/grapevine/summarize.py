@@ -6,8 +6,10 @@ from grapevine.llm import LLM, Call, watch_on
 from grapevine.review import quoted
 from grapevine.store import Store
 
-PROMPT_VERSION = "summarizer-v9"
+PROMPT_VERSION = "summarizer-v10"
 STORY_SENTENCES = 2
+# The model sometimes loops on one-fact stories until it runs out of tokens and returns no JSON at all.
+MAX_STORIES = 12
 
 SYSTEM = """You write the record of a group conversation after it ends. You get the people, the events, the relationships, every fact people told, and the transcript.
 
@@ -32,6 +34,7 @@ SCHEMA = {
     "properties": {
         "stories": {
             "type": "array",
+            "maxItems": MAX_STORIES,
             "items": {
                 "type": "object",
                 "additionalProperties": False,

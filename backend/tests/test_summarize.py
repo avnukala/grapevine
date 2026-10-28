@@ -68,3 +68,12 @@ def test_a_story_drops_when_its_lines_are_not_in_the_transcript(store):
 
     titles = {f["text"] for f in store.graph.facts.values() if f["kind"] == "story" and not f["segment_ids"]}
     assert titles == {"The Seattle Blackout"}
+
+
+def test_the_story_count_is_capped_so_a_loop_still_ends_in_valid_json(store):
+    told(store)
+    llm = Summarizer([STORY])
+
+    asyncio.run(summarize(store, llm, model="m", seed=1))
+
+    assert llm.calls[0].schema["properties"]["stories"]["maxItems"] == 12
